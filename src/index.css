@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Muji-inspired Palette */
+    /* Background: Off-white / Warm Grey */
+    --background: 0 0% 97%; /* #F7F7F7 */
+    --foreground: 0 0% 20%; /* #333333 */
+    
+    /* Cards: White or slightly lighter than background */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+    
+    /* Primary Action: Muted Reddish-Brown/Ochre */
+    --primary: 15 30% 40%; /* Muted Terracotta/Brown */
+    --primary-foreground: 0 0% 98%;
+    
+    /* Secondary: Light Grey for subtle elements */
+    --secondary: 0 0% 90%;
+    --secondary-foreground: 0 0% 20%;
+    
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
+    
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 20%;
+    
+    /* Destructive: Deep Desaturated Red */
+    --destructive: 3 46% 55%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Borders: Very light grey */
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 15 30% 40%;
+    
+    --radius: 0.25rem; /* Minimal radius */
+    
+    /* Status Colors (Custom CSS variables for easy usage) */
+    --status-green: 100 20% 60%; /* Sage */
+    --status-yellow: 40 40% 60%; /* Ochre */
+    --status-red: 3 46% 55%; /* Terracotta */
+  }
+
+  .dark {
+    /* Muji Dark Mode (if needed, but focusing on Light as per request) */
+    /* Using a very dark warm grey instead of pure black */
+    --background: 0 0% 15%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 20%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 20%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 15 30% 50%;
+    --primary-foreground: 0 0% 95%;
+    --secondary: 0 0% 25%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 25%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 25%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 3 46% 55%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 0 0% 30%;
+    --input: 0 0% 30%;
+    --ring: 15 30% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Minimalist Utilities */
+  .muji-card {
+    @apply bg-card border border-border shadow-sm;
+  }
+  .text-label {
+    @apply text-xs font-medium text-muted-foreground uppercase tracking-wider;
+  }
+}
