@@ -4,71 +4,54 @@
 
 @layer base {
   :root {
-    /* Muji-inspired Palette */
-    /* Background: Off-white / Warm Grey */
-    --background: 0 0% 97%; /* #F7F7F7 */
-    --foreground: 0 0% 20%; /* #333333 */
-    
-    /* Cards: White or slightly lighter than background */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 20%;
-    
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
-    
-    /* Primary Action: Muted Reddish-Brown/Ochre */
-    --primary: 15 30% 40%; /* Muted Terracotta/Brown */
-    --primary-foreground: 0 0% 98%;
-    
-    /* Secondary: Light Grey for subtle elements */
-    --secondary: 0 0% 90%;
-    --secondary-foreground: 0 0% 20%;
-    
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 40%;
-    
-    --accent: 0 0% 90%;
-    --accent-foreground: 0 0% 20%;
-    
-    /* Destructive: Deep Desaturated Red */
-    --destructive: 3 46% 55%;
-    --destructive-foreground: 0 0% 98%;
-    
-    /* Borders: Very light grey */
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: 15 30% 40%;
-    
-    --radius: 0.25rem; /* Minimal radius */
-    
-    /* Status Colors (Custom CSS variables for easy usage) */
-    --status-green: 100 20% 60%; /* Sage */
-    --status-yellow: 40 40% 60%; /* Ochre */
-    --status-red: 3 46% 55%; /* Terracotta */
-  }
+    /* Light Mode Nexus Palette */
+    /* Background: Clean, calm base */
+    --background: 210 20% 98%; /* #f8fafc - Soft white */
+    --foreground: 222 47% 11%; /* #0f172a - Slate 900 */
 
-  .dark {
-    /* Muji Dark Mode (if needed, but focusing on Light as per request) */
-    /* Using a very dark warm grey instead of pure black */
-    --background: 0 0% 15%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 20%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 20%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 15 30% 50%;
-    --primary-foreground: 0 0% 95%;
-    --secondary: 0 0% 25%;
-    --secondary-foreground: 0 0% 95%;
-    --muted: 0 0% 25%;
-    --muted-foreground: 0 0% 60%;
-    --accent: 0 0% 25%;
-    --accent-foreground: 0 0% 95%;
-    --destructive: 3 46% 55%;
-    --destructive-foreground: 0 0% 95%;
-    --border: 0 0% 30%;
-    --input: 0 0% 30%;
-    --ring: 15 30% 50%;
+    /* Cards: Pure white floating surfaces */
+    --card: 0 0% 100%; /* #ffffff */
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary: Calm blue accent */
+    --primary: 221 83% 53%; /* #3b82f6 - Blue 500 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Soft slate */
+    --secondary: 210 40% 96%; /* #f1f5f9 - Slate 100 */
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted: Subtle backgrounds */
+    --muted: 210 40% 96%; /* #f1f5f9 */
+    --muted-foreground: 215 16% 47%; /* #64748b - Slate 500 */
+
+    /* Accent: Same as primary for consistency */
+    --accent: 221 83% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive: Softer red */
+    --destructive: 0 84% 60%; /* #ef4444 - Red 500 */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders: Subtle definition */
+    --border: 214 32% 91%; /* #e2e8f0 - Slate 200 */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    /* Extended radius system */
+    --radius: 8px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* Status Colors - Refined, accessible */
+    --status-green: 142 71% 45%; /* #22c55e - Green 500 */
+    --status-yellow: 38 92% 50%; /* #f59e0b - Amber 500 */
+    --status-red: 0 84% 60%; /* #ef4444 - Red 500 */
   }
 }
 
@@ -83,11 +66,35 @@
 }
 
 @layer utilities {
-  /* Minimalist Utilities */
-  .muji-card {
-    @apply bg-card border border-border shadow-sm;
+  /* Light Nexus Shadow System - Soft, single-direction elevation */
+  .shadow-soft {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
+  .shadow-card {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+  .shadow-elevated {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  .shadow-float {
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+
+  /* Focus glow for inputs and interactive elements */
+  .shadow-glow {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+  }
+  .shadow-glow-lg {
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.15), 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+
+  /* Subtle inner shadow for recessed elements */
+  .shadow-inner-soft {
+    box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+  }
+
+  /* Label styling - refined, not industrial */
   .text-label {
-    @apply text-xs font-medium text-muted-foreground uppercase tracking-wider;
+    @apply text-xs font-medium text-muted-foreground tracking-wide;
   }
 }

@@ -17,20 +17,16 @@ export default function MachineDetail() {
   )
 
   const [historyData, setHistoryData] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!id) return
 
     const fetchData = async () => {
-      setLoading(true)
       try {
         const res = await api.getRealtimeHistory(id, { limit: 50 })
         setHistoryData(res.data)
       } catch (error) {
         console.error('Failed to fetch machine history:', error)
-      } finally {
-        setLoading(false)
       }
     }
 

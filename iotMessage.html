@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background-color: #FAFAFA;
+            color: #2C2C2C;
+            line-height: 1.6;
+            padding: 32px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 48px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 300;
+            margin-bottom: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            background: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 400;
+            color: #757575;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 500;
+            color: #2C2C2C;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-container {
+            background: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .chart-container.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 400;
+            margin-bottom: 16px;
+            color: #2C2C2C;
+        }
+
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .gauge-container {
+            background: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .gauge-value {
+            font-size: 28px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .gauge-label {
+            font-size: 14px;
+            color: #757575;
+            margin-bottom: 16px;
+        }
+
+        .warning-section {
+            margin-top: 24px;
+        }
+
+        .warning-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FFFFFF;
+            border: 1px solid #E0E0E0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .warning-table th {
+            background: #F5F5F5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 500;
+            font-size: 14px;
+            color: #757575;
+            border-bottom: 1px solid #E0E0E0;
+        }
+
+        .warning-table td {
+            padding: 12px;
+            border-bottom: 1px solid #F0F0F0;
+            font-size: 14px;
+        }
+
+        .warning-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .warning-alert {
+            color: #D32F2F;
+            font-weight: 500;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 48px;
+            font-size: 16px;
+            color: #757575;
+        }
+
+        @media (max-width: 1200px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            .gauge-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>IoT Machine Monitoring Dashboard</h1>
+            <div id="loading" class="loading">Loading data...</div>
+        </header>
+
+        <div id="dashboard" style="display: none;">
+            <div class="summary-cards" id="summaryCards"></div>
+
+            <div class="gauge-grid" id="gaugeSection"></div>
+
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3 class="chart-title">Realtime Temperatures (T1-T5)</h3>
+                    <canvas id="realtimeTempChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">SPC Temperatures (ET1-ET5)</h3>
+                    <canvas id="spcTempChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3 class="chart-title">Cycle Time & Count Trends</h3>
+                    <canvas id="cycleChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Oil Temperature Trends</h3>
+                    <canvas id="oilTempChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3 class="chart-title">Temperature Distribution (T1)</h3>
+                    <canvas id="tempDistChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Cycle Time Distribution</h3>
+                    <canvas id="cycleDistChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <h3 class="chart-title">Injection Pressure Distribution</h3>
+                    <canvas id="pressureDistChart"></canvas>
+                </div>
+                <div class="chart-container full-width">
+                    <h3 class="chart-title">Process Metrics Heatmap (Hourly)</h3>
+                    <canvas id="heatmapChart"></canvas>
+                </div>
+            </div>
+
+            <div class="warning-section">
+                <div class="chart-container">
+                    <h3 class="chart-title">Warning Messages</h3>
+                    <div id="warningTableContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Chart.js default configuration for Japanese minimalist theme
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        Chart.defaults.color = '#757575';
+        Chart.defaults.borderColor = '#E0E0E0';
+
+        const colors = {
+            primary: '#424242',
+            secondary: '#9E9E9E',
+            tertiary: '#BDBDBD',
+            light: '#E0E0E0',
+            accent1: '#8D6E63',
+            accent2: '#689F38',
+            warning: '#D32F2F'
+        };
+
+        let allData = [];
+        let realtimeData = [];
+        let spcData = [];
+        let warningData = [];
+
+        // Fetch and parse CSV
+        fetch('./mock/iotmessages.csv')
+            .then(response => response.text())
+            .then(csvText => {
+                parseCSV(csvText);
+                processData();
+                renderDashboard();
+            })
+            .catch(error => {
+                document.getElementById('loading').textContent = 'Error loading data: ' + error.message;
+            });
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = parseCSVLine(lines[i]);
+                if (values.length < headers.length) continue;
+
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index];
+                });
+
+                // Parse payload JSON
+                if (row.payload) {
+                    try {
+                        const payload = JSON.parse(row.payload);
+                        row.parsedPayload = parsePayload(payload);
+                    } catch (e) {
+                        row.parsedPayload = {};
+                    }
+                }
+
+                allData.push(row);
+            }
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+
+            return result.map(val => val.replace(/^"|"$/g, ''));
+        }
+
+        function parsePayload(payload) {
+            const parsed = {};
+
+            if (payload.Data && payload.Data.M) {
+                const data = payload.Data.M;
+                for (const key in data) {
+                    if (data[key].N !== undefined) {
+                        parsed[key] = parseFloat(data[key].N);
+                    } else if (data[key].S !== undefined) {
+                        parsed[key] = data[key].S;
+                    }
+                }
+            }
+
+            if (payload.time && payload.time.S) {
+                parsed.time = payload.time.S;
+            }
+
+            return parsed;
+        }
+
+        function processData() {
+            allData.forEach(row => {
+                if (row.msgType === 'realtime') {
+                    realtimeData.push({ ts: row.ts, ...row.parsedPayload });
+                } else if (row.msgType === 'spc') {
+                    spcData.push({ ts: row.ts, ...row.parsedPayload });
+                } else if (row.msgType === 'wm') {
+                    warningData.push({ ts: row.ts, ...row.parsedPayload });
+                }
+            });
+        }
+
+        function renderDashboard() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+
+            renderSummaryCards();
+            renderGauges();
+            renderRealtimeTempChart();
+            renderSPCTempChart();
+            renderCycleChart();
+            renderOilTempChart();
+            renderTempDistChart();
+            renderCycleDistChart();
+            renderPressureDistChart();
+            renderHeatmap();
+            renderWarningTable();
+        }
+
+        function renderSummaryCards() {
+            const container = document.getElementById('summaryCards');
+
+            const totalMessages = allData.length;
+            const spcCount = spcData.length;
+            const realtimeCount = realtimeData.length;
+            const warningCount = warningData.filter(w => w.wmMsg && w.wmMsg.trim()).length;
+
+            const firstTime = allData[0]?.ts || '';
+            const lastTime = allData[allData.length - 1]?.ts || '';
+
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-title">Total Messages</div>
+                    <div class="card-value">${totalMessages}</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">SPC Messages</div>
+                    <div class="card-value">${spcCount}</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Realtime Messages</div>
+                    <div class="card-value">${realtimeCount}</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Active Warnings</div>
+                    <div class="card-value" style="color: ${warningCount > 0 ? colors.warning : colors.primary}">${warningCount}</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Time Range</div>
+                    <div class="card-value" style="font-size: 14px">${formatTime(firstTime)} → ${formatTime(lastTime)}</div>
+                </div>
+            `;
+        }
+
+        function renderGauges() {
+            const container = document.getElementById('gaugeSection');
+
+            const latestSPC = spcData[spcData.length - 1] || {};
+            const eipt = latestSPC.EIPT || 0;
+            const eiss = latestSPC.EISS || 0;
+            const eivm = latestSPC.EIVM || 0;
+
+            container.innerHTML = `
+                <div class="gauge-container">
+                    <div class="gauge-label">Injection Pressure</div>
+                    <canvas id="gaugeEIPT"></canvas>
+                    <div class="gauge-value">${eipt.toFixed(1)} MPa</div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-label">Screw Speed</div>
+                    <canvas id="gaugeEISS"></canvas>
+                    <div class="gauge-value">${eiss.toFixed(1)} rpm</div>
+                </div>
+                <div class="gauge-container">
+                    <div class="gauge-label">Injection Volume</div>
+                    <canvas id="gaugeEIVM"></canvas>
+                    <div class="gauge-value">${eivm.toFixed(0)} mm³</div>
+                </div>
+            `;
+
+            renderGaugeChart('gaugeEIPT', eipt, 0, 20);
+            renderGaugeChart('gaugeEISS', eiss, 0, 100);
+            renderGaugeChart('gaugeEIVM', eivm, 0, 50);
+        }
+
+        function renderGaugeChart(canvasId, value, min, max) {
+            const ctx = document.getElementById(canvasId);
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [value - min, max - value],
+                        backgroundColor: [colors.primary, colors.light],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+
+        function renderRealtimeTempChart() {
+            const ctx = document.getElementById('realtimeTempChart');
+            const labels = realtimeData.map(d => formatTime(d.ts));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        createLineDataset('T1', realtimeData.map(d => d.T1), colors.primary),
+                        createLineDataset('T2', realtimeData.map(d => d.T2), colors.secondary),
+                        createLineDataset('T3', realtimeData.map(d => d.T3), colors.tertiary),
+                        createLineDataset('T4', realtimeData.map(d => d.T4), colors.accent1),
+                        createLineDataset('T5', realtimeData.map(d => d.T5), colors.accent2)
+                    ]
+                },
+                options: getLineChartOptions('Temperature (°C)')
+            });
+        }
+
+        function renderSPCTempChart() {
+            const ctx = document.getElementById('spcTempChart');
+            const labels = spcData.map(d => formatTime(d.ts));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        createLineDataset('ET1', spcData.map(d => d.ET1), colors.primary),
+                        createLineDataset('ET2', spcData.map(d => d.ET2), colors.secondary),
+                        createLineDataset('ET3', spcData.map(d => d.ET3), colors.tertiary),
+                        createLineDataset('ET4', spcData.map(d => d.ET4), colors.accent1),
+                        createLineDataset('ET5', spcData.map(d => d.ET5), colors.accent2)
+                    ]
+                },
+                options: getLineChartOptions('Temperature (°C)')
+            });
+        }
+
+        function renderCycleChart() {
+            const ctx = document.getElementById('cycleChart');
+            const labels = spcData.map(d => formatTime(d.ts));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            ...createLineDataset('Cycle Time (s)', spcData.map(d => d.ECYCT), colors.primary),
+                            yAxisID: 'y'
+                        },
+                        {
+                            ...createLineDataset('Cycle Count', spcData.map(d => d.CYCN), colors.accent2),
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    ...getLineChartOptions('Cycle Time (s)'),
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Cycle Time (s)' } },
+                        y1: { position: 'right', title: { display: true, text: 'Cycle Count' }, grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        function renderOilTempChart() {
+            const ctx = document.getElementById('oilTempChart');
+            const labels = realtimeData.map(d => formatTime(d.ts));
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        createLineDataset('Realtime OT', realtimeData.map(d => d.OT), colors.primary),
+                        createLineDataset('SPC EOT', spcData.map((d, i) => d.EOT), colors.accent1)
+                    ]
+                },
+                options: getLineChartOptions('Oil Temperature (°C)')
+            });
+        }
+
+        function renderTempDistChart() {
+            const ctx = document.getElementById('tempDistChart');
+            const t1Values = realtimeData.map(d => d.T1).filter(v => v != null);
+            const histogram = createHistogram(t1Values, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: histogram.labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: histogram.values,
+                        backgroundColor: colors.primary,
+                        borderWidth: 0
+                    }]
+                },
+                options: getBarChartOptions('Frequency')
+            });
+        }
+
+        function renderCycleDistChart() {
+            const ctx = document.getElementById('cycleDistChart');
+            const cycleValues = spcData.map(d => d.ECYCT).filter(v => v != null);
+            const histogram = createHistogram(cycleValues, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: histogram.labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: histogram.values,
+                        backgroundColor: colors.secondary,
+                        borderWidth: 0
+                    }]
+                },
+                options: getBarChartOptions('Frequency')
+            });
+        }
+
+        function renderPressureDistChart() {
+            const ctx = document.getElementById('pressureDistChart');
+            const pressureValues = spcData.map(d => d.EIPT).filter(v => v != null);
+            const histogram = createHistogram(pressureValues, 10);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: histogram.labels,
+                    datasets: [{
+                        label: 'Frequency',
+                        data: histogram.values,
+                        backgroundColor: colors.accent1,
+                        borderWidth: 0
+                    }]
+                },
+                options: getBarChartOptions('Frequency')
+            });
+        }
+
+        function renderHeatmap() {
+            const ctx = document.getElementById('heatmapChart');
+
+            // Create hourly buckets
+            const hourlyData = {};
+            const metrics = ['T1', 'T2', 'ECYCT', 'EIPT', 'EISS'];
+
+            realtimeData.concat(spcData).forEach(d => {
+                const hour = new Date(d.ts).getHours();
+                if (!hourlyData[hour]) hourlyData[hour] = { T1: [], T2: [], ECYCT: [], EIPT: [], EISS: [] };
+                metrics.forEach(m => {
+                    if (d[m] != null) hourlyData[hour][m].push(d[m]);
+                });
+            });
+
+            const heatmapData = [];
+            for (let hour = 0; hour < 24; hour++) {
+                metrics.forEach((metric, yIndex) => {
+                    const values = hourlyData[hour]?.[metric] || [];
+                    const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : null;
+                    if (avg !== null) {
+                        heatmapData.push({ x: hour, y: yIndex, v: avg });
+                    }
+                });
+            }
+
+            new Chart(ctx, {
+                type: 'matrix',
+                data: {
+                    datasets: [{
+                        label: 'Metric Value',
+                        data: heatmapData,
+                        backgroundColor(context) {
+                            if (!context.dataset.data[context.dataIndex]) return colors.light;
+                            const value = context.dataset.data[context.dataIndex].v;
+                            const normalized = (value - 0) / 300;
+                            const intensity = Math.min(Math.max(normalized, 0), 1);
+                            return `rgba(66, 66, 66, ${intensity})`;
+                        },
+                        borderWidth: 1,
+                        borderColor: '#FAFAFA',
+                        width: ({ chart }) => (chart.chartArea || {}).width / 24 - 1,
+                        height: ({ chart }) => (chart.chartArea || {}).height / 5 - 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title() { return ''; },
+                                label(context) {
+                                    const v = context.dataset.data[context.dataIndex];
+                                    const metricName = metrics[v.y];
+                                    return `${metricName} at ${v.x}:00 = ${v.v.toFixed(1)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            min: 0,
+                            max: 23,
+                            ticks: { stepSize: 1 },
+                            title: { display: true, text: 'Hour of Day' }
+                        },
+                        y: {
+                            type: 'linear',
+                            min: 0,
+                            max: 4,
+                            ticks: {
+                                stepSize: 1,
+                                callback: (value) => metrics[value] || ''
+                            },
+                            title: { display: true, text: 'Metrics' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderWarningTable() {
+            const container = document.getElementById('warningTableContainer');
+            const warnings = warningData.filter(w => w.wmMsg && w.wmMsg.trim());
+
+            if (warnings.length === 0) {
+                container.innerHTML = '<p style="color: #757575; padding: 16px;">No active warnings</p>';
+                return;
+            }
+
+            let tableHTML = `
+                <table class="warning-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Warning ID</th>
+                            <th>Message</th>
+                            <th>Warning Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            warnings.forEach(w => {
+                tableHTML += `
+                    <tr>
+                        <td>${formatDateTime(w.ts)}</td>
+                        <td>${w.wmId || 'N/A'}</td>
+                        <td class="warning-alert">${w.wmMsg}</td>
+                        <td>${w.wmTime || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+
+            tableHTML += '</tbody></table>';
+            container.innerHTML = tableHTML;
+        }
+
+        // Helper functions
+        function createLineDataset(label, data, color) {
+            return {
+                label: label,
+                data: data,
+                borderColor: color,
+                backgroundColor: color + '20',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.1,
+                fill: false
+            };
+        }
+
+        function getLineChartOptions(yAxisLabel) {
+            return {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 16, font: { size: 12 } }
+                    }
+                },
+                scales: {
+                    x: { display: true, grid: { display: false } },
+                    y: { display: true, title: { display: true, text: yAxisLabel } }
+                },
+                interaction: { mode: 'index', intersect: false }
+            };
+        }
+
+        function getBarChartOptions(yAxisLabel) {
+            return {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { title: { display: true, text: yAxisLabel } }
+                }
+            };
+        }
+
+        function createHistogram(values, bins) {
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const binSize = (max - min) / bins;
+
+            const histogram = new Array(bins).fill(0);
+            const labels = [];
+
+            for (let i = 0; i < bins; i++) {
+                const binStart = min + i * binSize;
+                const binEnd = binStart + binSize;
+                labels.push(`${binStart.toFixed(1)}-${binEnd.toFixed(1)}`);
+            }
+
+            values.forEach(value => {
+                const binIndex = Math.min(Math.floor((value - min) / binSize), bins - 1);
+                histogram[binIndex]++;
+            });
+
+            return { labels, values: histogram };
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        }
+
+        function formatDateTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+</body>
+</html>

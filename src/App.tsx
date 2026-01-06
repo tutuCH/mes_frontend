@@ -15,6 +15,7 @@ const AlarmList = lazy(() => import("@/pages/alarms/AlarmList"))
 const MaintenanceDashboard = lazy(() => import("@/pages/maintenance/MaintenanceDashboard"))
 const DeviceRegistry = lazy(() => import("@/pages/admin/DeviceRegistry"))
 const UserManagement = lazy(() => import("@/pages/admin/UserManagement"))
+const IoTData = lazy(() => import("@/pages/iot/IoTData"))
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
                 <Route path="maintenance" element={<MaintenanceDashboard />} />
                 <Route path="admin/devices" element={<DeviceRegistry />} />
                 <Route path="admin/users" element={<UserManagement />} />
+                <Route path="iot" element={<IoTData />} />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

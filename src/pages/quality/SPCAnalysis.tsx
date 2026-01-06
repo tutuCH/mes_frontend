@@ -20,9 +20,7 @@ export default function SPCAnalysis() {
   const [realtimeHistory, setRealtimeHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
-  if (loading && !spcHistory.length) {
-    return <div className="text-sm text-muted-foreground">Loading data...</div>
-  }
+
 
   useEffect(() => {
     if (machineList.length > 0 && !selectedMachineId) {
@@ -92,9 +90,9 @@ export default function SPCAnalysis() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">SPC Analysis</h1>
           <p className="text-muted-foreground">Statistical Process Control for {selectedMachine.name}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Select Machine" />
             </SelectTrigger>
             <SelectContent>
@@ -103,18 +101,24 @@ export default function SPCAnalysis() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm">
-            <Calendar className="mr-2 h-4 w-4" />
-            Last 24 Hours
-          </Button>
-          <Button size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
+              <Calendar className="mr-2 h-4 w-4" />
+              Last 24 Hours
+            </Button>
+            <Button size="sm" className="flex-1 sm:flex-initial">
+              <Download className="mr-2 h-4 w-4" />
+              Export Report
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {loading && !spcHistory.length ? (
+        <div className="text-sm text-muted-foreground">Loading data...</div>
+      ) : (
+        <>
+          <div className="grid gap-6 md:grid-cols-2">
         <ControlChart 
           title="Part Weight Control (g)" 
           data={weightData}
@@ -259,7 +263,9 @@ export default function SPCAnalysis() {
           </Card>
         </TabsContent>
         </Tabs>
-      </div>
+        </div>
+        </>
+      )}
     </div>
   )
 }

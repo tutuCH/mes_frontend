@@ -1,71 +1,104 @@
+import { useState } from 'react'
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom'
 import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, User } from 'lucide-react'
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, User, Database, Circle, Menu } from 'lucide-react'
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   if (!user) {
     return <Navigate to="/login" replace />
   }
 
+  const navLinkClass = (path: string, exact = true) => {
+    const isActive = exact ? location.pathname === path : location.pathname.startsWith(path)
+    return `flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ease-smooth ${
+      isActive
+        ? 'bg-primary/10 text-primary border-l-2 border-primary'
+        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+    }`
+  }
+
+  const handleMobileNavClose = () => setMobileNavOpen(false)
+
+  // Shared navigation links component
+  const NavLinks = ({ onLinkClick }: { onLinkClick?: () => void }) => (
+    <>
+      <Link to="/" className={navLinkClass('/')} onClick={onLinkClick}>
+        <LayoutDashboard className="h-4 w-4" />
+        Control Room
+      </Link>
+      <Link to="/spc" className={navLinkClass('/spc')} onClick={onLinkClick}>
+        <LineChart className="h-4 w-4" />
+        SPC Analysis
+      </Link>
+      <Link to="/alarms" className={navLinkClass('/alarms')} onClick={onLinkClick}>
+        <AlertTriangle className="h-4 w-4" />
+        Alarms
+      </Link>
+      <Link to="/maintenance" className={navLinkClass('/maintenance')} onClick={onLinkClick}>
+        <Wrench className="h-4 w-4" />
+        Maintenance
+      </Link>
+      <Link to="/iot" className={navLinkClass('/iot')} onClick={onLinkClick}>
+        <Database className="h-4 w-4" />
+        IoT Data
+      </Link>
+
+      <div className="pt-6 pb-2">
+        <h4 className="px-4 text-label">
+          System
+        </h4>
+      </div>
+      <Link to="/admin/devices" className={navLinkClass('/admin/devices')} onClick={onLinkClick}>
+        <Settings className="h-4 w-4" />
+        Devices
+      </Link>
+      <Link to="/admin/users" className={navLinkClass('/admin/users')} onClick={onLinkClick}>
+        <User className="h-4 w-4" />
+        Users
+      </Link>
+    </>
+  )
+
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 border-r border-border bg-background hidden md:flex flex-col z-20">
+        <aside className="w-64 bg-card border-r border-border hidden md:flex flex-col z-20">
+          {/* Logo Section */}
           <div className="p-6 border-b border-border">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">
-              NEXUS<span className="font-light text-muted-foreground">MES</span>
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1 tracking-widest uppercase">Production Control</p>
-          </div>
-          
-          <nav className="flex-1 p-4 space-y-1">
-            <Link to="/" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <LayoutDashboard className="h-4 w-4" />
-              Control Room
-            </Link>
-            <Link to="/spc" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/spc' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <LineChart className="h-4 w-4" />
-              SPC Analysis
-            </Link>
-            <Link to="/alarms" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/alarms' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <AlertTriangle className="h-4 w-4" />
-              Alarms
-            </Link>
-            <Link to="/maintenance" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/maintenance' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <Wrench className="h-4 w-4" />
-              Maintenance
-            </Link>
-            
-            <div className="pt-6 pb-2">
-              <h4 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-                System
-              </h4>
+            <div>
+              <h1 className="text-xl font-semibold tracking-tight">
+                Nexus<span className="font-normal text-muted-foreground">MES</span>
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                Production Control
+              </p>
             </div>
-            <Link to="/admin/devices" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/admin/devices' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <Settings className="h-4 w-4" />
-              Devices
-            </Link>
-            <Link to="/admin/users" className={`flex items-center gap-3 rounded-sm px-3 py-2 text-sm font-medium transition-colors ${location.pathname === '/admin/users' ? 'bg-secondary text-foreground' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'}`}>
-              <User className="h-4 w-4" />
-              Users
-            </Link>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-2">
+            <NavLinks />
           </nav>
+
+          {/* User Section */}
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center text-foreground font-bold text-xs border border-border">
+              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
                 {user?.name?.charAt(0) || 'U'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate text-foreground">{user?.name}</p>
-                <p className="text-xs text-muted-foreground truncate">{user?.role}</p>
+                <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-red-50 transition-colors" onClick={logout}>
+            <Button variant="ghost" className="w-full justify-start" onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
             </Button>
@@ -74,26 +107,69 @@ export default function DashboardLayout() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto relative z-10 bg-background">
-          <header className="h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-8 sticky top-0 z-30">
-            <h2 className="text-lg font-medium tracking-tight text-foreground">
-              {location.pathname === '/' && 'Factory Overview'}
-              {location.pathname === '/spc' && 'SPC Analysis'}
-              {location.pathname === '/alarms' && 'Alarms & Events'}
-              {location.pathname === '/maintenance' && 'Maintenance Dashboard'}
-              {location.pathname.includes('/admin') && 'System Administration'}
-              {location.pathname.includes('/machine') && 'Machine Detail'}
-            </h2>
+          {/* Header */}
+          <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 lg:px-8 sticky top-0 z-30">
+            <div className="flex items-center gap-3">
+              {/* Mobile hamburger menu */}
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle navigation</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-64 p-0">
+                  {/* Mobile navigation header */}
+                  <div className="p-6 border-b border-border">
+                    <h1 className="text-xl font-semibold tracking-tight">
+                      Nexus<span className="font-normal text-muted-foreground">MES</span>
+                    </h1>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Production Control
+                    </p>
+                  </div>
+                  {/* Mobile navigation links */}
+                  <nav className="flex-1 p-4 space-y-2">
+                    <NavLinks onLinkClick={handleMobileNavClose} />
+                  </nav>
+                  {/* Mobile user section */}
+                  <div className="p-4 border-t border-border mt-auto">
+                    <div className="flex items-center gap-3 mb-4 px-2">
+                      <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
+                        {user?.name?.charAt(0) || 'U'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate text-foreground">{user?.name}</p>
+                        <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
+                      </div>
+                    </div>
+                    <Button variant="ghost" className="w-full justify-start" onClick={logout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <h2 className="text-lg font-semibold tracking-tight">
+                {location.pathname === '/' && 'Factory Overview'}
+                {location.pathname === '/spc' && 'SPC Analysis'}
+                {location.pathname === '/alarms' && 'Alarms & Events'}
+                {location.pathname === '/maintenance' && 'Maintenance Dashboard'}
+                {location.pathname.includes('/admin') && 'System Administration'}
+                {location.pathname.includes('/machine') && 'Machine Detail'}
+                {location.pathname === '/iot' && 'IoT Data Explorer'}
+              </h2>
+            </div>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-xs font-medium text-status-green bg-status-green/10 px-3 py-1 rounded-full border border-status-green/20">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-status-green"></span>
-                </span>
-                ONLINE
+              <div className="flex items-center gap-2 text-sm">
+                <Circle className="h-2 w-2 fill-green-500 text-green-500" />
+                <span className="text-muted-foreground hidden sm:inline">System Online</span>
               </div>
             </div>
           </header>
-          
-          <div className="p-8">
+
+          <div className="p-4 md:p-6 lg:p-8">
             <Outlet />
           </div>
         </main>

@@ -24,7 +24,7 @@ export function ZoneTemperatureGrid() {
         <CardTitle className="text-lg font-medium tracking-tight">Zone Temperatures</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
           {zones.map((zone) => (
             <div 
               key={zone.id}

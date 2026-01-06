@@ -18,29 +18,29 @@ const alarms = [
 export default function AlarmList() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Alarms & Events</h1>
-          <p className="text-muted-foreground">Real-time alarm monitoring and history</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Alarms & Events</h1>
+          <p className="text-sm text-muted-foreground">Real-time alarm monitoring and history</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" className="flex-1 sm:flex-initial">
             <Download className="mr-2 h-4 w-4" />
             Export History
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="col-span-1">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3">
+        <div className="md:col-span-1">
           <AlarmPareto />
         </div>
-        <Card className="col-span-2">
+        <Card className="md:col-span-2">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <CardTitle>Active & Recent Alarms</CardTitle>
-              <div className="flex gap-2">
-                <div className="relative w-64">
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-initial sm:w-64">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="Search alarms..." className="pl-8" />
                 </div>

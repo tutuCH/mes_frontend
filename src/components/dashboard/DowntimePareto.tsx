@@ -11,12 +11,13 @@ const data = [
 
 export function DowntimePareto() {
   return (
-    <Card className="col-span-4">
+    <Card className="col-span-full md:col-span-4">
       <CardHeader>
         <CardTitle>Top Downtime Reasons (Last 24h)</CardTitle>
       </CardHeader>
       <CardContent className="pl-2">
-        <ResponsiveContainer width="100%" height={350}>
+        <div className="h-[250px] sm:h-[300px] md:h-[350px]">
+          <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis 
@@ -39,7 +40,8 @@ export function DowntimePareto() {
             />
             <Bar dataKey="minutes" fill="#0f172a" radius={[4, 4, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )

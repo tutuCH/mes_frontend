@@ -7,12 +7,13 @@ interface TrendChartProps {
 
 export function TrendChart({ data }: TrendChartProps) {
   return (
-    <Card className="col-span-4">
+    <Card className="col-span-full md:col-span-4">
       <CardHeader>
         <CardTitle>Live Telemetry Trends</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
+        <div className="h-[250px] sm:h-[300px] md:h-[350px]">
+          <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="time" />
@@ -24,7 +25,8 @@ export function TrendChart({ data }: TrendChartProps) {
             <Line yAxisId="right" type="monotone" dataKey="pressure" stroke="#82ca9d" name="Pressure (bar)" />
             <Line yAxisId="right" type="monotone" dataKey="cycleTime" stroke="#ffc658" name="Cycle Time (s)" />
           </LineChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )
