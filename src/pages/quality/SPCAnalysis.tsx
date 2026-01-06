@@ -148,7 +148,7 @@ export default function SPCAnalysis() {
            </div>
         </div>
         <div className="col-span-1">
-          <ZoneTemperatureGrid />
+          <ZoneTemperatureGrid machineId={selectedMachineId} />
         </div>
       </div>
 
