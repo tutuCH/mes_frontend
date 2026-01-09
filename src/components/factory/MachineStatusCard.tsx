@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { X } from 'lucide-react'
+import { X, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getStatusColor, getStatusIcon } from '@/utils/gridUtils'
 import type { Machine } from '@/types/api'
@@ -10,6 +10,12 @@ interface MachineStatusCardProps {
   isConnected: boolean
   isDragging?: boolean
   onDelete?: (e: React.MouseEvent) => void
+  // Real-time data props
+  status?: string
+  hasAlert?: boolean
+  alertMessage?: string
+  alertSeverity?: string
+  lastUpdate?: string
 }
 
 export function MachineStatusCard({
@@ -17,10 +23,29 @@ export function MachineStatusCard({
   isConnected,
   isDragging = false,
   onDelete,
+  status: realtimeStatus,
+  hasAlert,
+  alertMessage,
+  alertSeverity,
+  lastUpdate,
 }: MachineStatusCardProps) {
-  const status = machine.status || 'offline'
-  const statusConfig = getStatusColor(status)
-  const StatusIcon = getStatusIcon(status)
+  // When connected via WebSocket, show as running regardless of actual status
+  const effectiveStatus = isConnected ? 'running' : (realtimeStatus || machine.status || 'offline')
+  const statusConfig = getStatusColor(effectiveStatus)
+  const StatusIcon = getStatusIcon(effectiveStatus)
+
+  // Format relative time (e.g., "2m ago", "just now")
+  const formatRelativeTime = (timestamp?: string): string => {
+    if (!timestamp) return ''
+    const now = Date.now()
+    const time = new Date(timestamp).getTime()
+    const diff = Math.floor((now - time) / 1000) // seconds
+
+    if (diff < 10) return 'now'
+    if (diff < 60) return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    return `${Math.floor(diff / 3600)}h ago`
+  }
 
   return (
     <Link
@@ -38,8 +63,8 @@ export function MachineStatusCard({
         isDragging && 'opacity-50',
         'bg-gradient-to-br ' + statusConfig.background
       )}
-      aria-label={`${machine.machineName}, status ${status}`}
-      title={`${machine.machineName} - ${status}`}
+      aria-label={`${machine.machineName}, status ${effectiveStatus}`}
+      title={`${machine.machineName} - ${effectiveStatus}`}
     >
       {/* Delete button (appears on hover) */}
       {onDelete && (
@@ -53,9 +78,18 @@ export function MachineStatusCard({
         </Button>
       )}
 
-      {/* Pulsing indicator for connected machines */}
-      {isConnected && (
-        <span className="absolute top-1 left-1 animate-pulse h-2 w-2 rounded-full bg-current" style={{ color: `hsl(var(--${statusConfig.dot.replace('bg-', '')}))` }} />
+      {/* Alert badge */}
+      {hasAlert && (
+        <div className="absolute top-0.5 right-0.5" title={alertMessage || 'Active alert'}>
+          <AlertTriangle
+            className={cn(
+              'h-3 w-3 animate-pulse',
+              alertSeverity === 'critical' ? 'text-red-500' :
+              alertSeverity === 'warning' ? 'text-yellow-500' :
+              'text-blue-500'
+            )}
+          />
+        </div>
       )}
 
       <div className="flex flex-col items-center justify-center w-full h-full">
@@ -68,6 +102,13 @@ export function MachineStatusCard({
         <span className="font-medium text-center text-[10px] sm:text-xs leading-tight max-w-full truncate px-1 text-foreground">
           {machine.machineName}
         </span>
+
+        {/* Last update timestamp */}
+        {lastUpdate && isConnected && (
+          <div className="text-[7px] sm:text-[8px] text-muted-foreground/70 mt-0.5">
+            {formatRelativeTime(lastUpdate)}
+          </div>
+        )}
       </div>
     </Link>
   )

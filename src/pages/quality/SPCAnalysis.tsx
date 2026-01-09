@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSelector } from 'react-redux'
 import { ControlChart } from '@/components/spc/ControlChart'
 import { MetricCategorySection } from '@/components/spc/MetricCategorySection'
@@ -9,13 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Download, Calendar, RefreshCcw, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
+import { Download, Calendar, RefreshCcw, ChevronDown, ChevronUp, Loader2, Play, Pause } from 'lucide-react'
 import { type RootState } from '@/store'
 import { api } from '@/services/api'
 import { socketService } from '@/services/socket'
 import { formatLocaleTime, formatLocaleString } from '@/utils/dateUtils'
 import { exportSPCDataToExcel } from '@/utils/exportExcel'
 import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 import { useTranslation } from 'react-i18next'
@@ -48,6 +49,22 @@ export default function SPCAnalysis() {
   const rowsPerPage = 10
   const [lastDataUpdate, setLastDataUpdate] = useState<Date | undefined>(undefined)
   const [isSubscribed, setIsSubscribed] = useState(false)
+
+  // Pause/resume real-time updates
+  const [isPaused, setIsPaused] = useState(false)
+
+  // Track if new data arrived (for visual indicator)
+  const [newDataArrived, setNewDataArrived] = useState(false)
+  const newDataTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (newDataTimeoutRef.current) {
+        clearTimeout(newDataTimeoutRef.current)
+      }
+    }
+  }, [])
 
 
 
@@ -92,6 +109,9 @@ export default function SPCAnalysis() {
 
   // WebSocket handlers for real-time updates
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
+    // Skip if paused
+    if (isPaused) return
+
     // Only process if it's for the selected machine
     if (payload.deviceId !== selectedMachine?.name) return
 
@@ -108,11 +128,47 @@ export default function SPCAnalysis() {
       return newData.slice(-50)  // Keep latest 50
     })
 
+    // Update table data if on tech or realtime tab (real-time table updates)
+    if (activeTab === 'tech' || activeTab === 'realtime') {
+      setRealtimeHistory(prev => {
+        const newRow = {
+          _time: normalized._time || normalized.time || payload.timestamp,
+          oil_temp: normalized.oil_temp,
+          temp_1: normalized.temp_1,
+          temp_2: normalized.temp_2,
+          temp_3: normalized.temp_3,
+          temp_4: normalized.temp_4,
+          temp_5: normalized.temp_5,
+          temp_6: normalized.temp_6,
+          temp_7: normalized.temp_7,
+          temp_8: normalized.temp_8,
+          temp_9: normalized.temp_9,
+          temp_10: normalized.temp_10,
+          pressure: normalized.pressure,
+          cycle_time: normalized.cycle_time
+        }
+        // Prepend new data, keep only current page size
+        return [newRow, ...prev.slice(0, rowsPerPage - 1)]
+      })
+    }
+
     // Update lastDataUpdate timestamp
     setLastDataUpdate(new Date(payload.timestamp))
-  }, [selectedMachine?.name])
+
+    // Show visual indicator that new data arrived
+    setNewDataArrived(true)
+    if (newDataTimeoutRef.current) {
+      clearTimeout(newDataTimeoutRef.current)
+    }
+    newDataTimeoutRef.current = setTimeout(() => {
+      setNewDataArrived(false)
+    }, 1000)
+  }, [selectedMachine?.name, activeTab, isPaused, rowsPerPage])
 
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
+    // Skip if paused
+    if (isPaused) return
+
     // Only process if it's for the selected machine
     if (payload.deviceId !== selectedMachine?.name) return
 
@@ -129,9 +185,57 @@ export default function SPCAnalysis() {
       return newData.slice(-50)  // Keep latest 50
     })
 
+    // Update table data if on SPC tab (real-time table updates)
+    if (activeTab === 'spc') {
+      setSpcHistory(prev => {
+        const newRow = {
+          _time: normalized._time || normalized.time || payload.timestamp,
+          cycle_time: normalized.cycle_time,
+          cycle_number: normalized.cycle_number,
+          injection_velocity_max: normalized.injection_velocity_max,
+          injection_pressure_max: normalized.injection_pressure_max,
+          injection_time: normalized.injection_time,
+          switch_pack_time: normalized.switch_pack_time,
+          switch_pack_pressure: normalized.switch_pack_pressure,
+          switch_pack_position: normalized.switch_pack_position,
+          plasticizing_time: normalized.plasticizing_time,
+          plasticizing_pressure_max: normalized.plasticizing_pressure_max,
+          temp_1: normalized.temp_1,
+          temp_2: normalized.temp_2,
+          temp_3: normalized.temp_3,
+          temp_4: normalized.temp_4,
+          temp_5: normalized.temp_5,
+          temp_6: normalized.temp_6,
+          temp_7: normalized.temp_7,
+          temp_8: normalized.temp_8,
+          temp_9: normalized.temp_9,
+          temp_10: normalized.temp_10,
+        }
+        // Prepend new data, keep only current page size
+        return [newRow, ...prev.slice(0, rowsPerPage - 1)]
+      })
+    }
+
     // Update lastDataUpdate timestamp
     setLastDataUpdate(new Date(payload.timestamp))
-  }, [selectedMachine?.name])
+
+    // Show visual indicator that new data arrived
+    setNewDataArrived(true)
+    if (newDataTimeoutRef.current) {
+      clearTimeout(newDataTimeoutRef.current)
+    }
+    newDataTimeoutRef.current = setTimeout(() => {
+      setNewDataArrived(false)
+    }, 1000)
+  }, [selectedMachine?.name, activeTab, isPaused, rowsPerPage])
+
+  // Use refs to stabilize WebSocket handlers (prevents re-subscription on callback changes)
+  const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate)
+  const handleSPCUpdateRef = useRef(handleSPCUpdate)
+
+  // Keep refs in sync with latest callbacks
+  handleRealtimeUpdateRef.current = handleRealtimeUpdate
+  handleSPCUpdateRef.current = handleSPCUpdate
 
   // Subscribe to machine and listen for WebSocket updates
   useEffect(() => {
@@ -141,20 +245,23 @@ export default function SPCAnalysis() {
     socketService.subscribeToMachine(selectedMachine.name)
     setIsSubscribed(true)
 
-    // Listen for realtime and SPC updates
-    socketService.on('realtime-update', handleRealtimeUpdate)
-    socketService.on('spc-update', handleSPCUpdate)
+    // Listen for realtime and SPC updates using ref pattern
+    const realtimeHandler = (...args: any[]) => handleRealtimeUpdateRef.current(...args)
+    const spcHandler = (...args: any[]) => handleSPCUpdateRef.current(...args)
+
+    socketService.on('realtime-update', realtimeHandler)
+    socketService.on('spc-update', spcHandler)
 
     return () => {
       // Unsubscribe from machine when changing machines or unmounting
       if (selectedMachine.name) {
         socketService.unsubscribeFromMachine(selectedMachine.name)
       }
-      socketService.off('realtime-update', handleRealtimeUpdate)
-      socketService.off('spc-update', handleSPCUpdate)
+      socketService.off('realtime-update', realtimeHandler)
+      socketService.off('spc-update', spcHandler)
       setIsSubscribed(false)
     }
-  }, [selectedMachineId, selectedMachine?.name, handleRealtimeUpdate, handleSPCUpdate])
+  }, [selectedMachineId, selectedMachine?.name]) // Removed handler dependencies
 
   // Fetch paginated table data based on active tab (server-side pagination)
   useEffect(() => {
@@ -432,11 +539,29 @@ export default function SPCAnalysis() {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('spc.title')}</h1>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-muted-foreground">{t('spc.subtitle', { machine: selectedMachine.name })}</p>
+            {isSubscribed && (
+              <>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-1 text-xs">
+                  {isPaused ? (
+                    <>
+                      <Pause className="h-3 w-3 text-amber-500" />
+                      <span className="text-amber-600">{t('common.paused')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className={cn("h-2 w-2 rounded-full", newDataArrived ? "bg-green-500 animate-pulse" : "bg-green-500")} />
+                      <span className="text-green-600">{t('common.live')}</span>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
             {lastUpdate && (
               <>
                 <span className="text-muted-foreground">•</span>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <RefreshCcw className="h-3 w-3" />
+                  <RefreshCcw className={cn("h-3 w-3", newDataArrived && "animate-spin")} />
                   <span>{t('spc.lastUpdated', { time: formatLocaleString(lastUpdate instanceof Date ? lastUpdate.toISOString() : lastUpdate, '--') })}</span>
                 </div>
               </>
@@ -455,6 +580,25 @@ export default function SPCAnalysis() {
             </SelectContent>
           </Select>
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-initial"
+              onClick={() => setIsPaused(!isPaused)}
+              disabled={!isSubscribed}
+            >
+              {isPaused ? (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  {t('common.resume')}
+                </>
+              ) : (
+                <>
+                  <Pause className="mr-2 h-4 w-4" />
+                  {t('common.pause')}
+                </>
+              )}
+            </Button>
             <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
               <Calendar className="mr-2 h-4 w-4" />
               {t('timeRange.last24Hours')}

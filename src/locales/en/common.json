@@ -25,7 +25,11 @@
     "refresh": "Refresh",
     "back": "Back",
     "submit": "Submit",
-    "retry": "Retry"
+    "retry": "Retry",
+    "live": "Live",
+    "pause": "Pause",
+    "paused": "Paused",
+    "resume": "Resume"
   },
   "spc": {
     "title": "SPC Analysis",

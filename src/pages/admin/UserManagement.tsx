@@ -177,7 +177,7 @@ export default function UserManagement() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{t(`users.roles.${user.role.toLowerCase()}`)}</TableCell>
+                        <TableCell>{t(`users.roles.${(user.role || 'Operator').toLowerCase()}`)}</TableCell>
                         <TableCell>
                           <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
                             {user.status || 'active'}

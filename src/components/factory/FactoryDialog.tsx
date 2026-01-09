@@ -21,6 +21,7 @@ interface FactoryDialogProps {
 
 interface FactoryFormData {
   factoryName: string
+  factoryIndex: number
   width: number
   height: number
 }
@@ -43,6 +44,7 @@ export function FactoryDialog({
   } = useForm<FactoryFormData>({
     defaultValues: {
       factoryName: factory.factoryName || '',
+      factoryIndex: factory.factoryIndex || 0,
       width: factory.factoryWidth || 10,
       height: factory.factoryHeight || 10,
     },
@@ -53,6 +55,7 @@ export function FactoryDialog({
     if (open) {
       reset({
         factoryName: factory.factoryName || '',
+        factoryIndex: factory.factoryIndex || 0,
         width: factory.factoryWidth || 10,
         height: factory.factoryHeight || 10,
       })
@@ -130,8 +133,9 @@ export function FactoryDialog({
       } else {
         await api.updateFactory(factory.factoryId, {
           factoryName: data.factoryName,
-          width: data.width.toString(),
-          height: data.height.toString(),
+          factoryIndex: data.factoryIndex,
+          width: data.width,
+          height: data.height,
         })
         toast.success('Factory updated successfully')
       }

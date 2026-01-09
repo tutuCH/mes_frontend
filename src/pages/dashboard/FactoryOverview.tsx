@@ -15,11 +15,14 @@ import { FactoryDialog } from '@/components/factory/FactoryDialog'
 import { getNumericIndex } from '@/utils/gridUtils'
 import { useWebSocketStatus } from '@/hooks/useWebSocketStatus'
 import type { Factory } from '@/types/api'
+import type { MachineState } from '@/types/machine'
 
 export default function FactoryOverview() {
   const { t } = useTranslation()
   const dispatch = useDispatch<AppDispatch>()
   const { factories, loading } = useSelector((state: RootState) => state.factories)
+  // Subscribe to real-time machine data from Redux
+  const machines = useSelector((state: RootState) => state.machines.machines)
 
   // Sync WebSocket status from socket service to Redux
   useWebSocketStatus()
@@ -140,6 +143,7 @@ export default function FactoryOverview() {
               key={factory.factoryId}
               factory={factory}
               machines={factory.machines || []}
+              realtimeMachines={machines}
               onRefresh={handleRefresh}
               onSettings={() => {
                 setSelectedFactory(factory)

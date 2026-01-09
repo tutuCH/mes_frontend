@@ -10,4 +10,18 @@ export interface MachineState {
   temperature: number
   oilTemp: number
   lastUpdate: string
+  // Alert fields
+  hasAlert?: boolean
+  alertType?: string
+  alertMessage?: string
+  alertSeverity?: 'info' | 'warning' | 'critical'
+}
+
+export interface MachineAlert {
+  type: string
+  severity: 'info' | 'warning' | 'critical'
+  message: string
+  threshold?: number
+  value?: number
+  timestamp: number
 }

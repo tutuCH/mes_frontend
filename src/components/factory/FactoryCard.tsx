@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card'
 import type { Factory, Machine } from '@/types/api'
+import type { MachineState } from '@/types/machine'
 import { FactoryHeader } from './FactoryHeader'
 import { FactoryControlsBar } from './FactoryControlsBar'
 import { BlueprintGrid } from './BlueprintGrid'
@@ -8,6 +9,7 @@ import { FactoryInstructionFooter } from './FactoryInstructionFooter'
 interface FactoryCardProps {
   factory: Factory
   machines: Machine[]
+  realtimeMachines?: Record<string, MachineState>
   onRefresh?: () => void
   onSettings?: () => void
   onDelete?: () => void
@@ -18,6 +20,7 @@ interface FactoryCardProps {
 export function FactoryCard({
   factory,
   machines,
+  realtimeMachines,
   onRefresh,
   onSettings,
   onDelete,
@@ -54,6 +57,7 @@ export function FactoryCard({
       <BlueprintGrid
         factory={factory}
         machines={machines}
+        realtimeMachines={realtimeMachines}
         onCellClick={handleCellClick}
         onMachineMove={handleMachineMove}
       />

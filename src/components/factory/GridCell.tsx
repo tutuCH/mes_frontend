@@ -10,6 +10,11 @@ interface GridCellProps {
   col: number
   machine: Machine | null
   isConnected: boolean
+  status?: string
+  hasAlert?: boolean
+  alertMessage?: string
+  alertSeverity?: string
+  lastUpdate?: string
   onCellClick: () => void
   onMachineDelete?: (_e: React.MouseEvent, machineId: number) => void
 }
@@ -19,6 +24,11 @@ export function GridCell({
   col,
   machine,
   isConnected,
+  status,
+  hasAlert,
+  alertMessage,
+  alertSeverity,
+  lastUpdate,
   onCellClick,
   onMachineDelete,
 }: GridCellProps) {
@@ -34,6 +44,11 @@ export function GridCell({
         <MachineStatusCard
           machine={machine}
           isConnected={isConnected}
+          status={status}
+          hasAlert={hasAlert}
+          alertMessage={alertMessage}
+          alertSeverity={alertSeverity}
+          lastUpdate={lastUpdate}
           onDelete={onMachineDelete ? (e) => onMachineDelete(e, machine.machineId) : undefined}
         />
       </div>

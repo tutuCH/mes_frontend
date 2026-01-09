@@ -73,9 +73,9 @@ export interface CreateFactoryRequest {
 
 export interface UpdateFactoryRequest {
   factoryName?: string;
-  factoryIndex?: string;
-  width?: string;
-  height?: string;
+  factoryIndex?: number;
+  width?: number;
+  height?: number;
 }
 
 // ============ Machine Types ============

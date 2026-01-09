@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -14,6 +14,7 @@ import { ColumnHeaders } from './ColumnHeaders'
 import { RowHeaders } from './RowHeaders'
 import { GridCell } from './GridCell'
 import type { Factory, Machine } from '@/types/api'
+import type { MachineState } from '@/types/machine'
 import { cn } from '@/lib/utils'
 import { useSelector } from 'react-redux'
 import { type RootState } from '@/store'
@@ -21,16 +22,41 @@ import { type RootState } from '@/store'
 interface BlueprintGridProps {
   factory: Factory
   machines: Machine[]
+  realtimeMachines?: Record<string, MachineState>
   onCellClick: (row: number, col: number) => void
   onMachineMove?: (machineId: number, newRow: number, newCol: number) => void
 }
 
-export function BlueprintGrid({ factory, machines, onCellClick, onMachineMove }: BlueprintGridProps) {
+export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick, onMachineMove }: BlueprintGridProps) {
   const gridWidth = factory.factoryWidth || 10
   const gridHeight = factory.factoryHeight || 10
 
   // Get subscribed machines to determine connection status
   const subscribedMachines = useSelector((state: RootState) => state.factories.subscribedMachines)
+
+  // Helper to merge static machine data with real-time data
+  const getMachineWithRealtimeData = useCallback((machine: Machine): Partial<MachineState> & { machine: Machine } => {
+    const realtime = realtimeMachines?.[machine.machineId.toString()]
+    return {
+      machine,
+      // Real-time data overrides
+      ...realtime,
+      // Always use the machine object as base
+      id: machine.machineId.toString(),
+      deviceId: realtime?.deviceId || machine.machineName,
+      name: realtime?.name || machine.machineName,
+      temperature: realtime?.temperature ?? 0,
+      oilTemp: realtime?.oilTemp ?? 0,
+      status: realtime?.status || machine.status,
+      opMode: realtime?.opMode || 'manual',
+      cycleTime: realtime?.cycleTime ?? 0,
+      efficiency: realtime?.efficiency ?? 0,
+      lastUpdate: realtime?.lastUpdate || new Date().toISOString(),
+      hasAlert: realtime?.hasAlert || false,
+      alertMessage: realtime?.alertMessage,
+      alertSeverity: realtime?.alertSeverity,
+    }
+  }, [realtimeMachines])
 
   // Create a map of machine positions
   const machinePositions = useMemo(() => {
@@ -98,16 +124,25 @@ export function BlueprintGrid({ factory, machines, onCellClick, onMachineMove }:
         // Check if machine is subscribed to WebSocket (not just if it exists in Redux)
         const isConnected = machine ? subscribedMachines.includes(machine.machineName) : false
 
+        // Merge with real-time data if available
+        const machineData = machine ? getMachineWithRealtimeData(machine) : null
+
         cells.push({
           row,
           col,
           machine: machine || null,
           isConnected,
+          // Pass real-time data to GridCell
+          status: machineData?.status,
+          hasAlert: machineData?.hasAlert || false,
+          alertMessage: machineData?.alertMessage,
+          alertSeverity: machineData?.alertSeverity,
+          lastUpdate: machineData?.lastUpdate,
         })
       }
     }
     return cells
-  }, [gridWidth, gridHeight, machinePositions, subscribedMachines, machines])
+  }, [gridWidth, gridHeight, machinePositions, subscribedMachines, machines, getMachineWithRealtimeData])
 
   return (
     <ScrollArea className="w-full rounded-md border">
@@ -149,13 +184,18 @@ export function BlueprintGrid({ factory, machines, onCellClick, onMachineMove }:
                   gridTemplateRows: `repeat(${gridHeight}, auto)`,
                 }}
               >
-                {gridCells.map(({ row, col, machine, isConnected }) => (
+                {gridCells.map(({ row, col, machine, isConnected, status, hasAlert, alertMessage, alertSeverity, lastUpdate }) => (
                   <GridCell
                     key={`${row}-${col}`}
                     row={row}
                     col={col}
                     machine={machine}
                     isConnected={isConnected}
+                    status={status}
+                    hasAlert={hasAlert}
+                    alertMessage={alertMessage}
+                    alertSeverity={alertSeverity}
+                    lastUpdate={lastUpdate}
                     onCellClick={() => onCellClick(row, col)}
                   />
                 ))}

@@ -71,10 +71,12 @@ export function getStatusColor(status: string | undefined): {
   icon: string
   dot: string
 } {
-  const statusLower = status?.toLowerCase() || 'offline'
+  // Handle undefined/null status - treat as offline
+  const statusLower = (status || 'offline').toLowerCase().trim()
 
   switch (statusLower) {
     case 'online':
+    case 'connected':
       return {
         border: 'border-teal-300',
         background: 'from-teal-50/80 to-teal-100/70',
@@ -105,6 +107,8 @@ export function getStatusColor(status: string | undefined): {
         dot: 'bg-red-500',
       }
     case 'offline':
+    case 'stopped':
+    case 'disconnected':
     default:
       return {
         border: 'border-gray-300',
@@ -119,10 +123,12 @@ export function getStatusColor(status: string | undefined): {
  * Get status icon component
  */
 export function getStatusIcon(status: string | undefined): LucideIcon {
-  const statusLower = status?.toLowerCase() || 'offline'
+  // Handle undefined/null status - treat as offline
+  const statusLower = (status || 'offline').toLowerCase().trim()
 
   switch (statusLower) {
     case 'online':
+    case 'connected':
       return CheckCircle2
     case 'running':
       return Cpu
@@ -133,6 +139,8 @@ export function getStatusIcon(status: string | undefined): LucideIcon {
     case 'alarm':
       return XCircle
     case 'offline':
+    case 'stopped':
+    case 'disconnected':
     default:
       return WifiOff
   }

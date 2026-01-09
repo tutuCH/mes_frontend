@@ -25,7 +25,11 @@
     "refresh": "刷新",
     "back": "返回",
     "submit": "提交",
-    "retry": "重試"
+    "retry": "重試",
+    "live": "即時",
+    "pause": "暫停",
+    "paused": "已暫停",
+    "resume": "繼續"
   },
   "spc": {
     "title": "SPC 分析",

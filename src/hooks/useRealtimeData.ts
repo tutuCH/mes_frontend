@@ -6,7 +6,7 @@ import { addSubscribedMachine, removeSubscribedMachine } from '@/store/slices/fa
 import { socketService } from '@/services/socket'
 import { normalizeRealtimeData, normalizeSPCData, mapToMachineStatus, mapToOpMode } from '@/utils/fieldMapping'
 import { toast } from 'sonner'
-import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineStatusEvent } from '@/types/api'
+import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineStatusEvent, MachineAlertEvent, AlarmUpdateEvent } from '@/types/api'
 
 export function useRealtimeData() {
   const dispatch = useDispatch<AppDispatch>()
@@ -107,6 +107,27 @@ export function useRealtimeData() {
     }))
   }, [dispatch])
 
+  const handleMachineAlert = useCallback((payload: MachineAlertEvent) => {
+    console.log('[useRealtimeData] ⚠️ machine-alert:', payload)
+    // Update machine status with alert info
+    dispatch(updateMachineStatus({
+      deviceId: payload.deviceId,
+      data: {
+        hasAlert: true,
+        alertType: payload.alertType,
+        alertMessage: payload.message,
+        alertSeverity: payload.alertType,
+        lastUpdate: payload.timestamp
+      }
+    }))
+  }, [dispatch])
+
+  const handleAlarmUpdate = useCallback((payload: AlarmUpdateEvent) => {
+    console.log('[useRealtimeData] 🚨 alarm-update:', payload)
+    // Alarm events are handled by useAlarms hook
+    // This handler is for logging and potential future integration
+  }, [])
+
   useEffect(() => {
     // Connect socket ONCE when hook mounts
     socketService.connect()
@@ -117,13 +138,17 @@ export function useRealtimeData() {
     socketService.on('realtime-update', handleRealtimeUpdate)
     socketService.on('spc-update', handleSPCUpdate)
     socketService.on('machine-status', handleMachineStatus)
+    socketService.on('machine-alert', handleMachineAlert)
+    socketService.on('alarm-update', handleAlarmUpdate)
 
     return () => {
       socketService.off('realtime-update', handleRealtimeUpdate)
       socketService.off('spc-update', handleSPCUpdate)
       socketService.off('machine-status', handleMachineStatus)
+      socketService.off('machine-alert', handleMachineAlert)
+      socketService.off('alarm-update', handleAlarmUpdate)
     }
-  }, [handleRealtimeUpdate, handleSPCUpdate, handleMachineStatus])
+  }, [handleRealtimeUpdate, handleSPCUpdate, handleMachineStatus, handleMachineAlert, handleAlarmUpdate])
 
   // Subscribe to machines when they are loaded AND socket is connected
   // This effect re-runs when either machines change OR socket becomes connected
