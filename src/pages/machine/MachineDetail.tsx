@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { type RootState } from '@/store'
 import { NowPanel } from '@/components/machine/NowPanel'
 import { TrendChart } from '@/components/machine/TrendChart'
@@ -11,6 +12,7 @@ import { Link } from 'react-router-dom'
 import { api } from '@/services/api'
 
 export default function MachineDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const machine = useSelector((state: RootState) => 
     state.machines.machines[id || '']
@@ -32,16 +34,16 @@ export default function MachineDetail() {
 
     fetchData()
   }, [id])
-
   const trendData = useMemo(() => {
     return historyData.map((d: any) => ({
-      time: new Date(d.time).toLocaleTimeString(),
-      temp: d.T1,
-      pressure: d.HP1, // Assuming HP1 is holding pressure
-      cycleTime: parseFloat(d.ECYCT)
-    })).reverse() // Assuming API returns newest first
+      time: new Date(d._time).toLocaleTimeString(),
+      temp: d.temp_1,
+      oilTemp: d.oil_temp,
+      pressure: d.pressure || null, // May not be available in all records
+      cycleTime: d.cycle_time || null // May not be available in realtime data
+    })).reverse() // API returns newest first, reverse for chronological order
   }, [historyData])
-
+  console.log('[MachineDetail] historyData:', historyData)
   // Mock events for now as we don't have an events API yet
   // In a real app, we would fetch these or derive them from status changes
   const events = useMemo(() => {
@@ -53,9 +55,9 @@ export default function MachineDetail() {
   if (!machine) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-2xl font-bold text-red-500">Machine Not Found</h2>
+        <h2 className="text-2xl font-bold text-red-500">{t('machine.notFound')}</h2>
         <Link to="/" className="text-blue-500 hover:underline mt-4 block">
-          Return to Dashboard
+          {t('machine.returnDashboard')}
         </Link>
       </div>
     )
@@ -72,7 +74,7 @@ export default function MachineDetail() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{machine.name}</h1>
           <div className="text-sm text-muted-foreground">
-            ID: {machine.id} | Status: <span className="uppercase font-semibold">{machine.status}</span>
+            {t('machine.id')}: {machine.id} | {t('machine.status')}: <span className="uppercase font-semibold">{machine.status}</span>
           </div>
         </div>
       </div>

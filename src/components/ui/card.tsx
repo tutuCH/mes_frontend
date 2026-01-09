@@ -4,16 +4,17 @@ import { cn } from "@/lib/utils"
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   elevated?: boolean
+  disableHover?: boolean
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, elevated = false, children, ...props }, ref) => (
+  ({ className, elevated = false, disableHover = false, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "relative rounded-xl bg-card text-card-foreground border border-border/50 transition-all duration-200 ease-smooth",
+        "relative rounded-xl bg-card text-card-foreground border border-border/50",
+        !disableHover && "transition-all duration-200 ease-smooth hover:-translate-y-0.5 hover:shadow-elevated hover:border-border",
         elevated ? "shadow-elevated" : "shadow-card",
-        "hover:-translate-y-0.5 hover:shadow-elevated hover:border-border",
         className
       )}
       {...props}

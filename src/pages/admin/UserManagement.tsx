@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -32,12 +33,14 @@ import {
 import { type AppDispatch, type RootState } from '@/store'
 import { fetchUsers, createUser, updateUser, deleteUser } from '@/store/slices/userSlice'
 import type { User, CreateUserRequest, UpdateUserRequest } from '@/types/api'
+import { getUserInitials, getUserDisplayName } from '@/utils/dateUtils'
 
 type UserRole = 'Admin' | 'Operator' | 'Maintenance' | 'Quality' | 'Viewer'
 
-const roles: UserRole[] = ['Admin', 'Operator', 'Maintenance', 'Quality', 'Viewer']
+const roleKeys: UserRole[] = ['Admin', 'Operator', 'Maintenance', 'Quality', 'Viewer']
 
 export default function UserManagement() {
+  const { t } = useTranslation()
   const dispatch = useDispatch<AppDispatch>()
   const { users, loading, error } = useSelector((state: RootState) => state.users)
 
@@ -99,7 +102,7 @@ export default function UserManagement() {
   const openEditDialog = (user: User) => {
     setSelectedUser(user)
     setFormData({
-      name: user.name,
+      name: user.name || '',
       email: user.email,
       password: '',
       role: user.role,
@@ -116,18 +119,18 @@ export default function UserManagement() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-sm text-muted-foreground">Manage system access and roles</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{t('users.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('users.subtitle')}</p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+          {t('users.addNew')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>{t('users.users')}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading && users.length === 0 ? (
@@ -136,9 +139,9 @@ export default function UserManagement() {
             </div>
           ) : error ? (
             <div className="text-center py-8 text-destructive">
-              <p>Failed to load users</p>
+              <p>{t('users.loadFailed')}</p>
               <Button variant="outline" className="mt-2" onClick={() => dispatch(fetchUsers())}>
-                Retry
+                {t('common.retry')}
               </Button>
             </div>
           ) : (
@@ -146,17 +149,17 @@ export default function UserManagement() {
               <Table className="min-w-[400px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="whitespace-nowrap">User</TableHead>
-                    <TableHead className="whitespace-nowrap">Role</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('users.users')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('users.role')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('alarms.tableHeaders.status')}</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{t('common.edit')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {users.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                        No users found
+                        {t('users.noUsers')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -165,16 +168,16 @@ export default function UserManagement() {
                         <TableCell>
                           <div className="flex items-center gap-2 sm:gap-3">
                             <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
-                              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
+                              <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="font-medium truncate">{user.name}</div>
+                              <div className="font-medium truncate">{getUserDisplayName(user)}</div>
                               <div className="text-xs text-muted-foreground truncate hidden sm:block">{user.email}</div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{user.role}</TableCell>
+                        <TableCell>{t(`users.roles.${user.role.toLowerCase()}`)}</TableCell>
                         <TableCell>
                           <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
                             {user.status || 'active'}
@@ -190,14 +193,14 @@ export default function UserManagement() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('common.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => openDeleteDialog(user)}
                                 className="text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                {t('common.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -216,52 +219,52 @@ export default function UserManagement() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Create a new user account with specified role.</DialogDescription>
+            <DialogTitle>{t('users.addNew')}</DialogTitle>
+            <DialogDescription>{t('users.addDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t('users.name')}</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter user name"
+                placeholder={t('users.namePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('users.email')}</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter email address"
+                placeholder={t('users.emailPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('users.password')}</Label>
               <Input
                 id="password"
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Enter password"
+                placeholder={t('users.passwordPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
+              <Label htmlFor="role">{t('users.role')}</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t('users.rolePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {roleKeys.map((role) => (
                     <SelectItem key={role} value={role}>
-                      {role}
+                      {t(`users.roles.${role.toLowerCase()}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -270,11 +273,11 @@ export default function UserManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleAddUser} disabled={isSubmitting || !formData.name || !formData.email || !formData.password}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add User
+              {t('users.addUser')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -284,21 +287,21 @@ export default function UserManagement() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user information and role.</DialogDescription>
+            <DialogTitle>{t('users.edit')}</DialogTitle>
+            <DialogDescription>{t('users.editDescription')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t('users.name')}</Label>
               <Input
                 id="edit-name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter user name"
+                placeholder={t('users.namePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email">{t('users.email')}</Label>
               <Input
                 id="edit-email"
                 type="email"
@@ -308,18 +311,18 @@ export default function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-role">Role</Label>
+              <Label htmlFor="edit-role">{t('users.role')}</Label>
               <Select
                 value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={t('users.rolePlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {roleKeys.map((role) => (
                     <SelectItem key={role} value={role}>
-                      {role}
+                      {t(`users.roles.${role.toLowerCase()}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -328,11 +331,11 @@ export default function UserManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleEditUser} disabled={isSubmitting || !formData.name}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {t('users.saveChanges')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -342,18 +345,18 @@ export default function UserManagement() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle>{t('users.delete')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedUser?.name}? This action cannot be undone.
+              {t('users.deleteConfirm', { user: selectedUser ? getUserDisplayName(selectedUser) : 'this user' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              {t('common.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

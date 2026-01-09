@@ -21,24 +21,7 @@ export function OEETiles() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {/* Overall OEE - N/A since Performance and Quality are not available */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Overall OEE</CardTitle>
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Activity className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <Circle className="h-2 w-2 fill-current text-muted-foreground" />
-            <div className="text-2xl font-semibold text-muted-foreground">N/A</div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">Requires Performance & Quality data</p>
-        </CardContent>
-      </Card>
-
+    <div className="grid grid-cols-2 gap-3 sm:gap-4">
       {/* Availability - Real data from machine status */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -53,40 +36,6 @@ export function OEETiles() {
             <div className="text-2xl font-semibold">{availability.toFixed(1)}%</div>
           </div>
           <p className="text-xs text-muted-foreground mt-1">{runningMachines}/{totalMachines} Running</p>
-        </CardContent>
-      </Card>
-
-      {/* Performance - N/A, no backend support */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Performance</CardTitle>
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Activity className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <Circle className="h-2 w-2 fill-current text-muted-foreground" />
-            <div className="text-2xl font-semibold text-muted-foreground">N/A</div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">Data not yet available</p>
-        </CardContent>
-      </Card>
-
-      {/* Quality - N/A, no backend support */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Quality</CardTitle>
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <CheckCircle className="h-4 w-4 text-primary" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-2">
-            <Circle className="h-2 w-2 fill-current text-muted-foreground" />
-            <div className="text-2xl font-semibold text-muted-foreground">N/A</div>
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">Data not yet available</p>
         </CardContent>
       </Card>
     </div>

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { type RootState } from '@/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { formatLocaleString } from '@/utils/dateUtils'
+import { Circle } from 'lucide-react'
 
 export function MachineHeatmap() {
   const machines = useSelector((state: RootState) => state.machines.machines)
@@ -18,6 +20,21 @@ export function MachineHeatmap() {
     }
   }
 
+  const getDataFreshnessColor = (lastUpdate: string | undefined) => {
+    if (!lastUpdate) return 'text-gray-400'
+
+    const now = Date.now()
+    const lastUpdateDate = new Date(lastUpdate).getTime()
+    const diff = now - lastUpdateDate
+
+    // Green if updated within 30 seconds
+    if (diff < 30000) return 'text-green-400'
+    // Yellow if updated within 5 minutes
+    if (diff < 300000) return 'text-yellow-400'
+    // Red if older than 5 minutes
+    return 'text-red-400'
+  }
+
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -29,15 +46,19 @@ export function MachineHeatmap() {
             <Link key={machine.id} to={`/machine/${machine.id}`}>
               <div
                 className={cn(
-                  "aspect-square rounded-lg flex flex-col items-center justify-center p-2",
+                  "aspect-square rounded-lg flex flex-col items-center justify-center p-2 relative",
                   "transition-all duration-200 ease-smooth cursor-pointer",
                   "hover:-translate-y-0.5 hover:shadow-card",
                   getStatusColor(machine.status)
                 )}
-                title={`${machine.name} - ${machine.status}`}
+                title={`${machine.name} - ${machine.status} - Last update: ${formatLocaleString(machine.lastUpdate, 'Never')}`}
               >
                 <div className="font-semibold text-lg">{machine.id.replace('M-', '')}</div>
                 <div className="text-[10px] font-medium mt-1 capitalize">{machine.status}</div>
+                <Circle className={cn(
+                  "absolute top-1 right-1 h-2 w-2 fill-current",
+                  getDataFreshnessColor(machine.lastUpdate)
+                )} />
               </div>
             </Link>
           ))}

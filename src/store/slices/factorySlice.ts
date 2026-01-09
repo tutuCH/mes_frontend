@@ -2,11 +2,50 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import { api } from '@/services/api'
 import type { Factory, CreateFactoryRequest, UpdateFactoryRequest } from '@/types/api'
 
+/**
+ * WebSocket event data types
+ */
+export interface RealtimeUpdateEvent {
+  devId: string
+  topic: 'realtime'
+  timestamp: number
+  Data: {
+    STS: number
+    OT?: number
+    OPM?: number
+    T1?: number
+    T2?: number
+    T3?: number
+    T4?: number
+    T5?: number
+    T6?: number
+    T7?: number
+  }
+}
+
+export interface SPCUpdateEvent {
+  devId: string
+  topic: 'spc'
+  timestamp: number
+  Data: {
+    CYCN?: number
+    ECYCT?: number
+  }
+}
+
 interface FactoriesState {
   factories: Factory[]
   selectedFactory: Factory | null
   loading: boolean
   error: string | null
+  // WebSocket state
+  websocketStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
+  realtimeEventCount: number
+  spcEventCount: number
+  lastRealtimeData: RealtimeUpdateEvent | null
+  lastSpcData: SPCUpdateEvent | null
+  subscribedMachines: string[]
+  websocketError: string | null
 }
 
 const initialState: FactoriesState = {
@@ -14,6 +53,14 @@ const initialState: FactoriesState = {
   selectedFactory: null,
   loading: false,
   error: null,
+  // WebSocket state
+  websocketStatus: 'disconnected',
+  realtimeEventCount: 0,
+  spcEventCount: 0,
+  lastRealtimeData: null,
+  lastSpcData: null,
+  subscribedMachines: [],
+  websocketError: null,
 }
 
 export const fetchFactories = createAsyncThunk(
@@ -68,6 +115,38 @@ const factorySlice = createSlice({
     },
     clearFactoryError: (state) => {
       state.error = null
+    },
+    // WebSocket actions
+    setWebSocketStatus: (state, action: PayloadAction<'connecting' | 'connected' | 'disconnected' | 'error'>) => {
+      state.websocketStatus = action.payload
+    },
+    incrementRealtimeCount: (state) => {
+      state.realtimeEventCount += 1
+    },
+    incrementSpcCount: (state) => {
+      state.spcEventCount += 1
+    },
+    setLastRealtime: (state, action: PayloadAction<RealtimeUpdateEvent>) => {
+      state.lastRealtimeData = action.payload
+    },
+    setLastSpc: (state, action: PayloadAction<SPCUpdateEvent>) => {
+      state.lastSpcData = action.payload
+    },
+    addSubscribedMachine: (state, action: PayloadAction<string>) => {
+      const deviceId = action.payload
+      if (!state.subscribedMachines.includes(deviceId)) {
+        state.subscribedMachines.push(deviceId)
+      }
+    },
+    removeSubscribedMachine: (state, action: PayloadAction<string>) => {
+      state.subscribedMachines = state.subscribedMachines.filter(id => id !== action.payload)
+    },
+    setWebSocketError: (state, action: PayloadAction<string | null>) => {
+      state.websocketError = action.payload
+    },
+    resetWebSocketCounts: (state) => {
+      state.realtimeEventCount = 0
+      state.spcEventCount = 0
     },
   },
   extraReducers: (builder) => {
@@ -162,5 +241,18 @@ const factorySlice = createSlice({
   },
 })
 
-export const { setSelectedFactory, clearFactoryError } = factorySlice.actions
+export const {
+  setSelectedFactory,
+  clearFactoryError,
+  setWebSocketStatus,
+  incrementRealtimeCount,
+  incrementSpcCount,
+  setLastRealtime,
+  setLastSpc,
+  addSubscribedMachine,
+  removeSubscribedMachine,
+  setWebSocketError,
+  resetWebSocketCounts,
+} = factorySlice.actions
+
 export default factorySlice.reducer

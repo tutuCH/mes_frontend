@@ -21,9 +21,14 @@ export function TrendChart({ data }: TrendChartProps) {
             <YAxis yAxisId="right" orientation="right" />
             <Tooltip />
             <Legend />
-            <Line yAxisId="left" type="monotone" dataKey="temp" stroke="#8884d8" name="Temp (°C)" />
-            <Line yAxisId="right" type="monotone" dataKey="pressure" stroke="#82ca9d" name="Pressure (bar)" />
-            <Line yAxisId="right" type="monotone" dataKey="cycleTime" stroke="#ffc658" name="Cycle Time (s)" />
+            <Line yAxisId="left" type="monotone" dataKey="temp" stroke="#8884d8" name="Zone 1 Temp (°C)" />
+            <Line yAxisId="left" type="monotone" dataKey="oilTemp" stroke="#ef4444" name="Oil Temp (°C)" />
+            {data.some(d => d.pressure !== null) && (
+              <Line yAxisId="right" type="monotone" dataKey="pressure" stroke="#82ca9d" name="Pressure (bar)" />
+            )}
+            {data.some(d => d.cycleTime !== null) && (
+              <Line yAxisId="right" type="monotone" dataKey="cycleTime" stroke="#ffc658" name="Cycle Time (s)" />
+            )}
           </LineChart>
           </ResponsiveContainer>
         </div>

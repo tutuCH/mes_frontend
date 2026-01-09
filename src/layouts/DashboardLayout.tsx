@@ -1,14 +1,21 @@
 import { useState } from 'react'
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom'
+import { useSelector } from 'react-redux'
 import { useAuth } from "@/context/AuthContext"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, User, Database, Circle, Menu } from 'lucide-react'
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
+import { type RootState } from '@/store'
+import { cn } from '@/lib/utils'
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const location = useLocation()
+  const { t } = useTranslation()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const websocketStatus = useSelector((state: RootState) => state.factories.websocketStatus)
 
   if (!user) {
     return <Navigate to="/login" replace />
@@ -30,37 +37,37 @@ export default function DashboardLayout() {
     <>
       <Link to="/" className={navLinkClass('/')} onClick={onLinkClick}>
         <LayoutDashboard className="h-4 w-4" />
-        Control Room
+        {t('navigation.controlRoom')}
       </Link>
       <Link to="/spc" className={navLinkClass('/spc')} onClick={onLinkClick}>
         <LineChart className="h-4 w-4" />
-        SPC Analysis
+        {t('navigation.spcAnalysis')}
       </Link>
       <Link to="/alarms" className={navLinkClass('/alarms')} onClick={onLinkClick}>
         <AlertTriangle className="h-4 w-4" />
-        Alarms
+        {t('navigation.alarms')}
       </Link>
       <Link to="/maintenance" className={navLinkClass('/maintenance')} onClick={onLinkClick}>
         <Wrench className="h-4 w-4" />
-        Maintenance
+        {t('navigation.maintenance')}
       </Link>
       <Link to="/iot" className={navLinkClass('/iot')} onClick={onLinkClick}>
         <Database className="h-4 w-4" />
-        IoT Data
+        {t('navigation.iotData')}
       </Link>
 
       <div className="pt-6 pb-2">
         <h4 className="px-4 text-label">
-          System
+          {t('system')}
         </h4>
       </div>
       <Link to="/admin/devices" className={navLinkClass('/admin/devices')} onClick={onLinkClick}>
         <Settings className="h-4 w-4" />
-        Devices
+        {t('navigation.devices')}
       </Link>
       <Link to="/admin/users" className={navLinkClass('/admin/users')} onClick={onLinkClick}>
         <User className="h-4 w-4" />
-        Users
+        {t('navigation.users')}
       </Link>
     </>
   )
@@ -74,10 +81,10 @@ export default function DashboardLayout() {
           <div className="p-6 border-b border-border">
             <div>
               <h1 className="text-xl font-semibold tracking-tight">
-                Nexus<span className="font-normal text-muted-foreground">MES</span>
+                {t('appName')}
               </h1>
               <p className="text-xs text-muted-foreground mt-1">
-                Production Control
+                {t('tagline')}
               </p>
             </div>
           </div>
@@ -100,7 +107,7 @@ export default function DashboardLayout() {
             </div>
             <Button variant="ghost" className="w-full justify-start" onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              {t('navigation.signOut')}
             </Button>
           </div>
         </aside>
@@ -122,10 +129,10 @@ export default function DashboardLayout() {
                   {/* Mobile navigation header */}
                   <div className="p-6 border-b border-border">
                     <h1 className="text-xl font-semibold tracking-tight">
-                      Nexus<span className="font-normal text-muted-foreground">MES</span>
+                      {t('appName')}
                     </h1>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Production Control
+                      {t('tagline')}
                     </p>
                   </div>
                   {/* Mobile navigation links */}
@@ -145,26 +152,36 @@ export default function DashboardLayout() {
                     </div>
                     <Button variant="ghost" className="w-full justify-start" onClick={logout}>
                       <LogOut className="mr-2 h-4 w-4" />
-                      Sign Out
+                      {t('navigation.signOut')}
                     </Button>
                   </div>
                 </SheetContent>
               </Sheet>
 
               <h2 className="text-lg font-semibold tracking-tight">
-                {location.pathname === '/' && 'Factory Overview'}
-                {location.pathname === '/spc' && 'SPC Analysis'}
-                {location.pathname === '/alarms' && 'Alarms & Events'}
-                {location.pathname === '/maintenance' && 'Maintenance Dashboard'}
-                {location.pathname.includes('/admin') && 'System Administration'}
-                {location.pathname.includes('/machine') && 'Machine Detail'}
-                {location.pathname === '/iot' && 'IoT Data Explorer'}
+                {location.pathname === '/' && t('dashboard.title')}
+                {location.pathname === '/spc' && t('spc.title')}
+                {location.pathname === '/alarms' && t('alarms.title')}
+                {location.pathname === '/maintenance' && t('maintenance.title')}
+                {location.pathname.includes('/admin') && t('system') + ' ' + t('navigation.users')}
+                {location.pathname.includes('/machine') && t('machine.notFound')}
+                {location.pathname === '/iot' && t('iot.title')}
               </h2>
             </div>
             <div className="flex items-center gap-4">
+              <LanguageSwitcher />
               <div className="flex items-center gap-2 text-sm">
-                <Circle className="h-2 w-2 fill-green-500 text-green-500" />
-                <span className="text-muted-foreground hidden sm:inline">System Online</span>
+                <Circle className={cn(
+                  "h-2 w-2",
+                  websocketStatus === 'connected' ? "fill-green-500 text-green-500" :
+                  websocketStatus === 'connecting' ? "fill-yellow-500 text-yellow-500" :
+                  "fill-gray-400 text-gray-400"
+                )} />
+                <span className="text-muted-foreground hidden sm:inline">
+                  {websocketStatus === 'connected' && t('factoryView.online')}
+                  {websocketStatus === 'connecting' && t('factoryView.connecting')}
+                  {websocketStatus === 'disconnected' && t('factoryView.offline')}
+                </span>
               </div>
             </div>
           </header>

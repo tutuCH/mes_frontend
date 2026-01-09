@@ -500,12 +500,15 @@ Common errors:
 All endpoints verify machine ownership via the JWT.
 
 #### GET /machines/:id/realtime-history
-Returns raw InfluxDB realtime data for the machine. Query params are accepted but not fully enforced.
+Returns paginated InfluxDB realtime data for the machine.
+
+**IMPORTANT**: Pagination is now enforced. You must implement pagination controls in your frontend.
 
 Query params:
-- `timeRange` (default `-1h`)
-- `limit`, `offset` (accepted but not applied to the Influx query)
-- `aggregate` (accepted but not applied)
+- `timeRange` (default `-1h`) - Time range for data retrieval
+- `limit` (default `50`, max `1000`) - Number of records per page
+- `offset` (default `0`) - Starting record position
+- `aggregate` (optional) - Aggregation window: `1m`, `5m`, `15m`, `30m`, `1h`, `6h`, `1d`
 
 Response (example):
 ```json
@@ -525,9 +528,10 @@ Response (example):
     }
   ],
   "pagination": {
-    "total": 1,
-    "limit": 1000,
-    "offset": 0
+    "total": 1250,
+    "limit": 50,
+    "offset": 0,
+    "hasMore": true
   },
   "metadata": {
     "deviceId": "Machine 1",
@@ -537,17 +541,35 @@ Response (example):
 }
 ```
 
+**Pagination Example:**
+```typescript
+const loadHistory = async (page = 0) => {
+  const limit = 50;
+  const offset = page * limit;
+  const res = await fetch(
+    `/machines/${id}/realtime-history?timeRange=-1h&limit=${limit}&offset=${offset}`
+  );
+  const { data, pagination } = await res.json();
+  console.log(`Loaded ${data.length} of ${pagination.total} records`);
+  return { data, hasMore: pagination.hasMore };
+};
+```
+
 Common errors:
 - `404 Not Found` if machine does not exist.
 - `401/403` if user does not own the machine.
+- `400 Bad Request` if limit exceeds 1000.
 
 #### GET /machines/:id/spc-history
-Returns raw InfluxDB SPC data for the machine.
+Returns paginated InfluxDB SPC data for the machine.
+
+**IMPORTANT**: Pagination is now enforced. You must implement pagination controls in your frontend.
 
 Query params:
-- `timeRange` (default `-1h`)
-- `limit`, `offset` (accepted but not applied)
-- `aggregate` (accepted but not applied)
+- `timeRange` (default `-1h`) - Time range for data retrieval
+- `limit` (default `50`, max `1000`) - Number of records per page
+- `offset` (default `0`) - Starting record position
+- `aggregate` (optional) - Aggregation window: `1m`, `5m`, `15m`, `30m`, `1h`, `6h`, `1d`
 
 Response (example):
 ```json
@@ -568,9 +590,10 @@ Response (example):
     }
   ],
   "pagination": {
-    "total": 1,
-    "limit": 1000,
-    "offset": 0
+    "total": 85,
+    "limit": 50,
+    "offset": 0,
+    "hasMore": true
   },
   "metadata": {
     "deviceId": "Machine 1",
@@ -623,6 +646,39 @@ Response (example):
   "totalRecords": 123
 }
 ```
+
+### Alarm Messages
+
+#### GET /machines/:id/alarms
+Returns alarm history from InfluxDB for the machine.
+
+Query params:
+- `timeRange` (default `-1h`)
+
+Response (example):
+```json
+{
+  "data": [
+    {
+      "_time": "2025-01-15T10:00:00.000Z",
+      "device_id": "Machine 1",
+      "topic": "wm",
+      "alarm_id": "1",
+      "alarm_message": "安全门未关"
+    }
+  ],
+  "metadata": {
+    "deviceId": "Machine 1",
+    "timeRange": "-1h"
+  }
+}
+```
+
+Common errors:
+- `401 Unauthorized` if token missing/invalid.
+- `404 Not Found` if machine does not exist.
+
+**Note**: Alarms are stored in InfluxDB with the measurement name `alarms`.
 
 ### User Management (Admin/Internal)
 
@@ -1353,6 +1409,21 @@ Alerts are generated server-side based on realtime data.
 }
 ```
 
+#### alarm-update
+Alarm/warning messages received from MQTT devices (`/wm` topic).
+
+```json
+{
+  "deviceId": "Machine 1",
+  "alarm": {
+    "id": 1,
+    "message": "安全门未关",
+    "timestamp": "2025-01-15 10:00:00"
+  },
+  "timestamp": "2025-01-15T10:00:00.000Z"
+}
+```
+
 #### pong
 ```json
 { "timestamp": "2025-01-15T10:00:00.000Z" }
@@ -1468,14 +1539,12 @@ SPC data:
 | Temperature zone 8 | `Data.ET8` | `temp_8` | Optional |
 | Temperature zone 9 | `Data.ET9` | `temp_9` | Optional |
 | Temperature zone 10 | `Data.ET10` | `temp_10` | Optional |
-
-**Additional SPC fields (WebSocket only, not stored in InfluxDB):**
-- `Data.EIPSE` - End injection position speed
-- `Data.EFCHT` - Fast cooling hold time
-- `Data.EIPSMIN` - Injection speed minimum
-- `Data.EOT` - Oil temperature (in SPC context)
-- `Data.EMOS` - Motor speed
-- `Data.EISS` - Injection speed
+| Injection pressure set | `Data.EIPSE` | `injection_pressure_set` | Optional |
+| Fill/cooling time | `Data.EFCHT` | `fill_cooling_time` | Optional |
+| Injection pressure set min | `Data.EIPSMIN` | `injection_pressure_set_min` | Optional |
+| Oil temperature (cycle) | `Data.EOT` | `oil_temperature_cycle` | Optional |
+| End mold open speed | `Data.EMOS` | `end_mold_open_speed` | Optional |
+| Injection start speed | `Data.EISS` | `injection_start_speed` | Optional |
 
 ### Field Availability Notes
 
@@ -1486,10 +1555,10 @@ SPC data:
 
 **SPC Data:**
 - **Required fields** (always present): `CYCN`, `ECYCT`, `EIVM`, `EIPM`, `ESIPT`, `ET1`, `ET2`, `ET3`
-- **Optional InfluxDB fields** (may be present): `ESIPP`, `ESIPS`, `EIPT`, `EPLST`, `EPLSPM`, `ET4`-`ET10`
-- **WebSocket-only fields** (not in InfluxDB): `EIPSE`, `EFCHT`, `EIPSMIN`, `EOT`, `EMOS`, `EISS`
+- **Optional InfluxDB fields** (may be present): `ESIPP`, `ESIPS`, `EIPT`, `EPLST`, `EPLSPM`, `EIPSE`, `EFCHT`, `EIPSMIN`, `EOT`, `EMOS`, `EISS`, `ET4`-`ET10`
 - Frontend should handle missing optional fields gracefully
 - All SPC field values are transmitted as strings in WebSocket payloads
+- All fields broadcast via WebSocket are now also stored in InfluxDB for historical analysis
 
 **Tech Data:**
 - Only available via Redis cache (accessed through `GET /machines/:id/status` which may include tech config)
@@ -1528,12 +1597,124 @@ WebSocket errors should be handled via the `error` event. Always resubscribe aft
 ## Best Practices and Pitfalls
 
 - Use `machineName` as `deviceId` for WebSocket subscriptions.
-- Do not rely on pagination for `/machines/:id/*-history` (limit/offset are currently ignored).
+- **Pagination is now enforced** for `/machines/:id/*-history` - implement pagination controls with `limit`, `offset`, and `hasMore` flag.
+- **Use WebSocket for live data** (≤5 minute time ranges) instead of polling the history endpoints.
 - Avoid using `/user` endpoints in frontend; they expose `password` fields and lack role checks.
 - WebSocket does not enforce auth; frontend should still enforce access by user.
 - When updating factories, send all numeric fields to avoid backend `undefined` handling errors.
 - Handle Stripe endpoints defensively (can return demo-mode errors in non-prod).
 - Keep WebSocket connections under 5 per IP (tab explosion will disconnect).
+
+## Real-Time Data via WebSocket
+
+### Recommendation: Use WebSocket for Recent Data
+
+For time ranges of **5 minutes or less**, use WebSocket subscriptions instead of polling the API. This provides instant updates and significantly reduces API load.
+
+### WebSocket Connection
+
+```typescript
+import { io } from 'socket.io-client';
+
+const socket = io(API_URL, {
+  transports: ['websocket'],
+  autoConnect: true,
+});
+```
+
+### Subscribe to Machine Updates
+
+```typescript
+// Subscribe to real-time updates for a specific machine
+socket.emit('subscribe-machine', { deviceId: 'Machine 1' });
+
+// Receive real-time data
+socket.on('realtime-update', (payload) => {
+  console.log('Real-time update:', payload);
+  // payload: { deviceId, data: { OT, ASTS, OPM, STS, T1-T7 }, timestamp }
+  updateDashboard(payload);
+});
+
+// Receive SPC updates
+socket.on('spc-update', (payload) => {
+  console.log('SPC update:', payload);
+  // payload: { deviceId, data: { CYCN, ECYCT, EIVM, ET1-ET10, ... }, timestamp }
+  updateSPCChart(payload);
+});
+
+// Handle errors
+socket.on('error', (error) => {
+  console.error('WebSocket error:', error);
+});
+
+// Unsubscribe when done
+socket.emit('unsubscribe-machine', { deviceId: 'Machine 1' });
+```
+
+### Recommended Architecture
+
+1. **Initial Load**: Fetch last 1 hour of data via paginated API
+2. **Live Updates**: Subscribe to WebSocket for real-time data
+3. **Hybrid Approach**:
+   - Use API for historical data (timeRange > -5m)
+   - Use WebSocket for recent data (timeRange <= -5m)
+   - No polling needed - updates are pushed instantly
+
+### Migration from Polling to WebSocket
+
+**Before (polling - slow):**
+```typescript
+setInterval(() => {
+  fetch(`/machines/${id}/realtime-history?timeRange=-5m`)
+    .then(res => res.json())
+    .then(data => updateChart(data));
+}, 5000); // Poll every 5 seconds
+```
+
+**After (WebSocket - instant):**
+```typescript
+// Subscribe once
+socket.emit('subscribe-machine', { deviceId: id });
+
+// Receive instant updates
+socket.on('realtime-update', (payload) => {
+  if (payload.deviceId === id) {
+    updateChart(payload.data); // No polling needed!
+  }
+});
+```
+
+## Data Aggregation
+
+For long time ranges, use the `aggregate` parameter to downsample data:
+
+### When to Use Aggregation
+
+- **Time range > 1 hour**: Use `aggregate=5m` or `aggregate=15m`
+- **Time range > 6 hours**: Use `aggregate=1h` or `aggregate=6h`
+- **Time range > 24 hours**: Use `aggregate=1h` or `aggregate=1d`
+
+### Example Usage
+
+```typescript
+// Fetch 24 hours of data, downsampled to 15-minute intervals
+const timeRange = '-24h';
+const aggregate = '15m';
+
+const res = await fetch(
+  `/machines/${id}/realtime-history?timeRange=${timeRange}&aggregate=${aggregate}`
+);
+const { data, aggregation } = await res.json();
+// Result: ~96 records instead of ~1440 records (if 1-min intervals)
+```
+
+### Aggregation Windows
+
+- `1m`, `5m`, `15m`, `30m` - For short to medium time ranges
+- `1h`, `6h` - For long time ranges
+- `1d` - For very long time ranges (weeks)
+
+Aggregated queries return significantly fewer records while preserving trends.
 
 ## Example Frontend Snippets
 

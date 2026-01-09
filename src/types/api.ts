@@ -32,7 +32,7 @@ export interface AuthResponse {
 // ============ User Types ============
 export interface User {
   id: number;
-  name: string;
+  name?: string;
   email: string;
   role: 'Admin' | 'Operator' | 'Maintenance' | 'Quality' | 'Viewer';
   status?: 'active' | 'inactive';
@@ -58,8 +58,8 @@ export interface Factory {
   factoryId: number;
   factoryName: string;
   factoryIndex: string;
-  width: string;
-  height: string;
+  factoryWidth: number;
+  factoryHeight: number;
   createdAt: string;
   machines?: Machine[];
 }
@@ -103,11 +103,77 @@ export interface UpdateMachineRequest {
   status?: string;
 }
 
+// ============ Tech Configuration Types ============
+// Tech configuration stored in Redis cache (TTL: 1 hour)
+// Available via GET /machines/:id/status
+export interface TechConfiguration {
+  // Temperature Setpoints (TS1-TS10)
+  TS1?: number;
+  TS2?: number;
+  TS3?: number;
+  TS4?: number;
+  TS5?: number;
+  TS6?: number;
+  TS7?: number;
+  TS8?: number;
+  TS9?: number;
+  TS10?: number;
+
+  // Injection Pressure Steps (IP1-IP10)
+  IP1?: number;
+  IP2?: number;
+  IP3?: number;
+  IP4?: number;
+  IP5?: number;
+  IP6?: number;
+  IP7?: number;
+  IP8?: number;
+  IP9?: number;
+  IP10?: number;
+
+  // Injection Velocity Steps (IV1-IV10)
+  IV1?: number;
+  IV2?: number;
+  IV3?: number;
+  IV4?: number;
+  IV5?: number;
+  IV6?: number;
+  IV7?: number;
+  IV8?: number;
+  IV9?: number;
+  IV10?: number;
+
+  // Injection Stroke Steps (IS1-IS10)
+  IS1?: number;
+  IS2?: number;
+  IS3?: number;
+  IS4?: number;
+  IS5?: number;
+  IS6?: number;
+  IS7?: number;
+  IS8?: number;
+  IS9?: number;
+  IS10?: number;
+
+  // Injection Time Steps (IT1-IT10)
+  IT1?: number;
+  IT2?: number;
+  IT3?: number;
+  IT4?: number;
+  IT5?: number;
+  IT6?: number;
+  IT7?: number;
+  IT8?: number;
+  IT9?: number;
+  IT10?: number;
+}
+
 export interface MachineStatus {
   machineId: number;
   status: string;
   lastUpdate: string;
   data?: Record<string, unknown>;
+  techConfiguration?: TechConfiguration;  // Tech config from Redis cache
 }
 
 // ============ Realtime Data Types ============
@@ -120,10 +186,12 @@ export interface RealtimeDataPoint {
   temp_4?: number;
   temp_5?: number;
   temp_6?: number;
+  temp_7?: number;      // Temperature Zone 7
   pressure?: number;
   cycle_time?: number;
-  status?: string;
-  op_mode?: string;
+  auto_start?: number;  // Auto Start flag (0/1)
+  status?: number;      // Status (numeric code)
+  operate_mode?: number; // Operation Mode (numeric code)
 }
 
 export interface RealtimeHistoryResponse {
@@ -143,12 +211,29 @@ export interface RealtimeHistoryResponse {
 // ============ SPC Data Types ============
 export interface SPCDataPoint {
   time: string;
+  // Required fields (always present in backend)
+  cycle_number?: number;
   cycle_time?: number;
-  shot_weight?: number;
-  pack_pressure?: number;
-  cooling_time?: number;
-  melt_temp?: number;
-  mold_temp?: number;
+  injection_velocity_max?: number;
+  injection_pressure_max?: number;
+  switch_pack_time?: number;
+  temp_1?: number;  // Temperature Zones 1-3 (always in SPC)
+  temp_2?: number;
+  temp_3?: number;
+
+  // Optional InfluxDB fields
+  switch_pack_pressure?: number;
+  switch_pack_position?: number;
+  injection_time?: number;
+  plasticizing_time?: number;
+  plasticizing_pressure_max?: number;
+  temp_4?: number;   // Temperature Zones 4-10 (optional)
+  temp_5?: number;
+  temp_6?: number;
+  temp_7?: number;
+  temp_8?: number;
+  temp_9?: number;
+  temp_10?: number;
 }
 
 export interface SPCHistoryResponse {
@@ -198,16 +283,18 @@ export interface RealtimeUpdateEvent {
   deviceId: string;
   timestamp: string;
   Data: {
-    OT?: number;   // Oil Temperature
-    T1?: number;   // Temperature Zone 1
-    T2?: number;   // Temperature Zone 2
-    T3?: number;   // Temperature Zone 3
-    T4?: number;   // Temperature Zone 4
-    T5?: number;   // Temperature Zone 5
-    T6?: number;   // Temperature Zone 6
-    PR?: number;   // Pressure
-    STS?: string;  // Status
-    OPM?: string;  // Operation Mode
+    OT?: number;    // Oil Temperature
+    T1?: number;    // Temperature Zone 1
+    T2?: number;    // Temperature Zone 2
+    T3?: number;    // Temperature Zone 3
+    T4?: number;    // Temperature Zone 4
+    T5?: number;    // Temperature Zone 5
+    T6?: number;    // Temperature Zone 6
+    T7?: number;    // Temperature Zone 7
+    PR?: number;    // Pressure
+    ASTS?: number;  // Auto Start (0/1)
+    STS?: number;   // Status (numeric: 0=stopped, 1=idle, 2=running, 3=error, 4=maintenance)
+    OPM?: number;   // Operation Mode (numeric: 1=manual, 2=semi-auto, 3=auto)
     ECYCT?: number; // Cycle Time
   };
 }
@@ -216,12 +303,37 @@ export interface SPCUpdateEvent {
   deviceId: string;
   timestamp: string;
   Data: {
-    ECYCT?: number;  // Cycle Time
-    SW?: number;     // Shot Weight
-    PP?: number;     // Pack Pressure
-    CT?: number;     // Cooling Time
-    MT?: number;     // Melt Temperature
-    MDT?: number;    // Mold Temperature
+    // REQUIRED FIELDS (always present)
+    CYCN: string;      // Cycle Number
+    ECYCT: string;     // Cycle Time
+    EIVM: string;      // Injection Velocity Max
+    EIPM: string;      // Injection Pressure Max
+    ESIPT: string;     // Switch Pack Time
+    ET1: string;       // Temperature Zone 1
+    ET2: string;       // Temperature Zone 2
+    ET3: string;       // Temperature Zone 3
+
+    // OPTIONAL INFLUXDB FIELDS (may be present)
+    ESIPP?: string;    // Switch Pack Pressure
+    ESIPS?: string;    // Switch Pack Position
+    EIPT?: string;     // Injection Time
+    EPLST?: string;    // Plasticizing Time
+    EPLSPM?: string;   // Plasticizing Pressure Max
+    ET4?: string;      // Temperature Zone 4
+    ET5?: string;      // Temperature Zone 5
+    ET6?: string;      // Temperature Zone 6
+    ET7?: string;      // Temperature Zone 7
+    ET8?: string;      // Temperature Zone 8
+    ET9?: string;      // Temperature Zone 9
+    ET10?: string;     // Temperature Zone 10
+
+    // WEBSOCKET-ONLY FIELDS (not in InfluxDB)
+    EIPSE?: string;    // End Injection Position Speed
+    EFCHT?: string;    // Fast Cooling Hold Time
+    EIPSMIN?: string;  // Injection Speed Minimum
+    EOT?: string;      // Oil Temperature (SPC context)
+    EMOS?: string;     // Motor Speed
+    EISS?: string;     // Injection Speed
   };
 }
 
@@ -256,4 +368,41 @@ export interface HistoryQueryParams extends PaginationParams {
   start?: string;
   end?: string;
   aggregate?: 'none' | '1m' | '5m' | '15m' | '1h';
+}
+
+// ============ Alarm Types ============
+export interface AlarmDataPoint {
+  _time: string;
+  device_id: string;
+  topic: string;
+  alarm_id: string;
+  alarm_message: string;
+}
+
+export interface AlarmHistoryResponse {
+  data: AlarmDataPoint[];
+  metadata: {
+    deviceId: string;
+    timeRange: string;
+  };
+}
+
+export interface AlarmUpdateEvent {
+  deviceId: string;
+  alarm: {
+    id: string;
+    message: string;
+    timestamp: string;
+  };
+  timestamp: string;
+}
+
+// Normalized alarm for frontend use
+export interface Alarm {
+  id: string;
+  timestamp: string;
+  deviceId: string;
+  message: string;
+  severity: 'critical' | 'warning' | 'info';
+  status: 'active' | 'acknowledged' | 'resolved';
 }

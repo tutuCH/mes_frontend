@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { api } from '@/services/api'
 import { Loader2 } from 'lucide-react'
-import type { RealtimeDataPoint } from '@/types/api'
+import type { RealtimeDataPoint, SPCDataPoint } from '@/types/api'
 
 interface ZoneTemperatureGridProps {
   machineId?: string | number
+  dataSource?: 'realtime' | 'spc'  // Default: 'realtime' (7 zones) or 'spc' (10 zones)
 }
 
 interface ZoneData {
@@ -16,7 +17,7 @@ interface ZoneData {
   status: 'normal' | 'warning' | 'critical' | 'unavailable'
 }
 
-export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
+export function ZoneTemperatureGrid({ machineId, dataSource = 'realtime' }: ZoneTemperatureGridProps) {
   const [zones, setZones] = useState<ZoneData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +26,7 @@ export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
     const fetchTemperatureData = async () => {
       if (!machineId) {
         // No machine selected, show all zones as unavailable
-        setZones(generateZonesWithData(null))
+        setZones(generateZonesWithData(null, dataSource))
         setLoading(false)
         return
       }
@@ -34,18 +35,20 @@ export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
         setLoading(true)
         setError(null)
 
-        const response = await api.getRealtimeHistory(machineId, { limit: 1 })
-        const latest = response.data?.[0]
-
-        if (latest) {
-          setZones(generateZonesWithData(latest))
+        // Fetch based on dataSource
+        if (dataSource === 'spc') {
+          const response = await api.getSPCHistory(machineId, { limit: 1 })
+          const latest = response.data?.[0]
+          setZones(generateZonesWithData(latest || null, 'spc'))
         } else {
-          setZones(generateZonesWithData(null))
+          const response = await api.getRealtimeHistory(machineId, { limit: 1 })
+          const latest = response.data?.[0]
+          setZones(generateZonesWithData(latest || null, 'realtime'))
         }
       } catch (err) {
         console.error('Failed to fetch temperature data:', err)
         setError('Failed to load temperature data')
-        setZones(generateZonesWithData(null))
+        setZones(generateZonesWithData(null, dataSource))
       } finally {
         setLoading(false)
       }
@@ -56,7 +59,7 @@ export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
     // Refresh every 30 seconds
     const interval = setInterval(fetchTemperatureData, 30000)
     return () => clearInterval(interval)
-  }, [machineId])
+  }, [machineId, dataSource])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -79,33 +82,27 @@ export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
     return 'normal'
   }
 
-  const generateZonesWithData = (data: RealtimeDataPoint | null): ZoneData[] => {
+  const generateZonesWithData = (data: RealtimeDataPoint | SPCDataPoint | null, source: 'realtime' | 'spc'): ZoneData[] => {
     const target = 220
 
-    // Backend provides temp_1 through temp_6
-    const realZones: ZoneData[] = [
-      { id: 'Z-1', temp: data?.temp_1 ?? null, target, status: 'normal' },
-      { id: 'Z-2', temp: data?.temp_2 ?? null, target, status: 'normal' },
-      { id: 'Z-3', temp: data?.temp_3 ?? null, target, status: 'normal' },
-      { id: 'Z-4', temp: data?.temp_4 ?? null, target, status: 'normal' },
-      { id: 'Z-5', temp: data?.temp_5 ?? null, target, status: 'normal' },
-      { id: 'Z-6', temp: data?.temp_6 ?? null, target, status: 'normal' },
-    ]
+    // Determine how many zones to show based on data source
+    const zoneCount = source === 'spc' ? 10 : 7
 
-    // Calculate status for real zones
-    realZones.forEach(zone => {
-      zone.status = getStatusFromTemp(zone.temp, zone.target)
-    })
+    const zones: ZoneData[] = []
 
-    // Add zones 7-16 as unavailable (backend doesn't provide these)
-    const unavailableZones: ZoneData[] = Array.from({ length: 10 }, (_, i) => ({
-      id: `Z-${i + 7}`,
-      temp: null,
-      target,
-      status: 'unavailable' as const,
-    }))
+    for (let i = 1; i <= zoneCount; i++) {
+      const tempKey = `temp_${i}` as keyof (RealtimeDataPoint | SPCDataPoint)
+      const temp = data?.[tempKey] as number | undefined
 
-    return [...realZones, ...unavailableZones]
+      zones.push({
+        id: `Z-${i}`,
+        temp: temp ?? null,
+        target,
+        status: getStatusFromTemp(temp ?? null, target)
+      })
+    }
+
+    return zones
   }
 
   if (loading) {
@@ -123,10 +120,14 @@ export function ZoneTemperatureGrid({ machineId }: ZoneTemperatureGridProps) {
     )
   }
 
+  const zoneCountLabel = dataSource === 'spc' ? '10 Zones' : '7 Zones'
+
   return (
     <Card className="muji-card shadow-none">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium tracking-tight">Zone Temperatures</CardTitle>
+        <CardTitle className="text-lg font-medium tracking-tight">
+          Zone Temperatures ({dataSource === 'spc' ? 'SPC' : 'Realtime'} - {zoneCountLabel})
+        </CardTitle>
         {error && <p className="text-xs text-destructive mt-1">{error}</p>}
       </CardHeader>
       <CardContent>

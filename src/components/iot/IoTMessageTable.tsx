@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { Search, Clock, Database, Tag } from 'lucide-react'
+import { formatLocaleString } from '@/utils/dateUtils'
 
 interface IoTMessageTableProps {
   data: ParsedIoTMessage[]
@@ -131,10 +132,10 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
                         <TableCell className="font-mono text-xs whitespace-nowrap text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3 w-3" />
-                            {new Date(msg.ts).toLocaleString()}
+                            {formatLocaleString(msg.payload._time, '--')}
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">{msg.deviceId}</TableCell>
+                        <TableCell className="font-medium">{msg.payload.device_id}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`capitalize ${getBadgeColor(msg.msgType)} border-0`}>
                             {msg.msgType}

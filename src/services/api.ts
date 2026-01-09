@@ -22,6 +22,7 @@ import type {
   CreateSubscriptionRequest,
   HealthStatus,
   ApiError,
+  AlarmHistoryResponse,
 } from '@/types/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -325,6 +326,20 @@ class ApiClient {
       method: 'DELETE',
     });
     toast.success('User deleted successfully');
+  }
+
+  // ============ Alarm Endpoints ============
+  async getMachineAlarms(
+    machineId: number | string,
+    timeRange: string = '-1h'
+  ): Promise<AlarmHistoryResponse> {
+    const queryParams = new URLSearchParams();
+    if (timeRange) queryParams.set('timeRange', timeRange);
+
+    const queryString = queryParams.toString();
+    return this.request<AlarmHistoryResponse>(
+      `/machines/${machineId}/alarms${queryString ? `?${queryString}` : ''}`
+    );
   }
 
   // ============ Subscription Endpoints ============

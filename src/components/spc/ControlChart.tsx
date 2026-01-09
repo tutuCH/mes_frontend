@@ -18,7 +18,7 @@ export function ControlChart({ title, data, ucl, lcl, mean, unit }: ControlChart
       </CardHeader>
       <CardContent>
         <div className="h-[220px] sm:h-[260px] md:h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <ComposedChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="id" hide />

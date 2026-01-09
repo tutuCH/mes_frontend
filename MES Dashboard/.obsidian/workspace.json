@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Backend Integration Guide.md",
+                "file": "Settings Page Migration Specification.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Backend Integration Guide"
+              "title": "Settings Page Migration Specification"
             }
           }
         ]
@@ -40,7 +40,7 @@
             "state": {
               "type": "file-explorer",
               "state": {
-                "sortOrder": "alphabetical",
+                "sortOrder": "byModifiedTime",
                 "autoReveal": false
               },
               "icon": "lucide-folder-closed",
@@ -78,7 +78,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "5f777c1a4e2399f9",
@@ -185,7 +186,13 @@
   },
   "active": "465c5e8c10ae6444",
   "lastOpenFiles": [
-    "Untitled.base",
+    "Factory Page Migration Specification.md",
+    "Settings Page Migration Specification.md",
+    "SPC Analysis Page.md",
+    "List of Features & Bugs.md",
+    "2026-01-06.md",
+    "Untitled.canvas",
+    "Base Note.base",
     "Backend Integration Guide.md"
   ]
 }
