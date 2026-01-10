@@ -9,6 +9,7 @@
     "iotData": "IoT Data",
     "devices": "Devices",
     "users": "Users",
+    "settings": "Settings",
     "signOut": "Sign Out"
   },
   "system": "System",
@@ -243,13 +244,99 @@
       "viewer": "Viewer"
     }
   },
-  "login": {
+  "auth": {
     "title": "Sign in to MES",
     "subtitle": "Enter your credentials to access the dashboard",
+    "signUp": "Sign Up",
+    "signIn": "Sign In",
+    "createAccount": "Create Account",
+    "createAccountSubtitle": "Enter your information to get started",
+    "signUpSubtitle": "Enter your information to get started",
+    "namePlaceholder": "Enter your full name",
+    "emailPlaceholder": "Enter your email address",
+    "passwordPlaceholder": "Enter a secure password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "resetPasswordSubtitle": "Enter your new password below",
+    "forgotPasswordTitle": "Forgot Password",
+    "forgotPasswordSubtitle": "Enter your email to receive a password reset link",
+    "name": "Name",
     "email": "Email",
     "password": "Password",
-    "signIn": "Sign In",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "sendResetLink": "Send Reset Link",
+    "sending": "Sending...",
+    "resetting": "Resetting...",
+    "creatingAccount": "Creating account...",
     "signingIn": "Signing in...",
+    "alreadyHaveAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "backToLogin": "Back to Login",
+    "orContinueWith": "Or continue with",
+    "continueWithGoogle": "Continue with Google",
+    "googleNotConfigured": "Google Sign-In not configured",
+    "googleSignInFailed": "Google Sign-In failed",
+    "acceptTerms": "I accept the",
+    "termsOfService": "Terms of Service",
+    "and": "and",
+    "privacyPolicy": "Privacy Policy",
+    "termsRequired": "You must accept the terms and conditions",
+    "checkYourEmail": "Check Your Email",
+    "verificationEmailSent": "We've sent a verification email to {{email}}. Please check your inbox and follow the instructions to verify your account.",
+    "verificationInstructions": "Once verified, you can sign in to your account.",
+    "signUpFailed": "Failed to create account. Please try again.",
+    "passwordStrength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong",
+      "requirements": "Password requirements:",
+      "length": "At least 8 characters",
+      "uppercase": "One uppercase letter",
+      "lowercase": "One lowercase letter",
+      "number": "One number",
+      "special": "One special character (!@#$%^&*)"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "nameMinLength": "Name must be at least 2 characters",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordWeak": "Password is too weak",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "termsRequired": "You must accept the terms and conditions"
+    },
+    "signUpSuccess": "Account Created!",
+    "signUpSuccessMessage": "Please check your email to verify your account before signing in.",
+    "forgotPasswordSuccess": "Reset Link Sent!",
+    "forgotPasswordSuccessMessage": "If an account exists with {{email}}, you will receive a password reset link shortly.",
+    "resetPasswordSuccess": "Password Reset!",
+    "resetPasswordSuccessMessage": "Your password has been successfully reset. You can now sign in with your new password.",
+    "verifyingEmail": "Verifying Email",
+    "pleaseWait": "Please wait while we verify your email address...",
+    "emailVerified": "Email Verified!",
+    "emailVerifiedMessage": "Your email has been successfully verified.",
+    "canNowLogin": "You can now sign in to your account.",
+    "verificationFailed": "Verification Failed",
+    "verificationFailedHelp": "The verification link may have expired or is invalid. Please try signing up again or contact support.",
+    "verificationLinkExpired": "This verification link has expired.",
+    "invalidVerificationLink": "This verification link is invalid.",
+    "emailAlreadyVerified": "This email has already been verified.",
+    "noVerificationToken": "No Verification Token",
+    "noVerificationTokenMessage": "No verification token was provided. Please check your email for the verification link.",
+    "goToLogin": "Go to Login",
+    "createNewAccount": "Create a new account",
+    "accessDenied": "Access Denied",
+    "accessDeniedMessage": "You don't have permission to access this page.",
+    "accessDeniedHelp": "Please contact your administrator if you believe this is a mistake.",
+    "goToDashboard": "Go to Dashboard",
+    "goBack": "Go Back",
+    "invalidOrExpiredToken": "Invalid or Expired Token",
+    "invalidOrExpiredTokenMessage": "This password reset link is invalid or has expired. Please request a new one.",
     "failed": "Failed to sign in"
   },
   "dashboard": {
@@ -276,5 +363,168 @@
     "reconnected": "Reconnected to real-time server",
     "reconnectFailed": "Failed to reconnect. Please refresh the page.",
     "socketError": "Socket error"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your profile, users, devices, and billing",
+    "tabs": {
+      "personal": "Personal",
+      "users": "Users",
+      "devices": "Devices",
+      "payment": "Payment"
+    },
+    "personal": {
+      "personalInfo": {
+        "title": "Personal Information",
+        "description": "Update your personal details",
+        "name": "Name",
+        "email": "Email",
+        "saveChanges": "Save Changes",
+        "updating": "Updating..."
+      },
+      "changePassword": {
+        "title": "Change Password",
+        "description": "Enter your current and new password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm Password",
+        "change": "Change Password",
+        "changing": "Changing...",
+        "errors": {
+          "passwordMismatch": "Passwords do not match",
+          "minLength": "Password must be at least 8 characters",
+          "required": "This field is required"
+        }
+      },
+      "appSettings": {
+        "title": "Application Settings",
+        "description": "Configure your application preferences",
+        "language": {
+          "title": "Language",
+          "current": "Current language: {{lang}}",
+          "switch": "Switch Language"
+        },
+        "logout": {
+          "title": "Logout",
+          "description": "Sign out of your account",
+          "button": "Logout"
+        }
+      },
+      "alerts": {
+        "profileUpdated": "Profile updated successfully",
+        "passwordChanged": "Password changed successfully",
+        "updateFailed": "Failed to update profile"
+      }
+    },
+    "payment": {
+      "title": "Billing & Subscription",
+      "description": "Manage your subscription plan and payment methods",
+      "demoMode": "Demo Mode: Stripe is not configured. You can view plans but cannot make actual purchases.",
+      "loadFailed": "Failed to load billing information",
+      "currentPlan": "Current Plan",
+      "currentPlanDescription": "Your active subscription and billing details",
+      "availablePlans": "Available Plans",
+      "plansDescription": "Choose a plan that fits your needs",
+      "paymentMethods": "Payment Methods",
+      "paymentMethodsDescription": "Manage your saved payment methods",
+      "noActiveSubscription": "No active subscription",
+      "card": "Card",
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "canceled": "Canceled",
+        "past_due": "Past Due",
+        "trialing": "Trial",
+        "unpaid": "Unpaid"
+      },
+      "manageBilling": "Manage Billing",
+      "manageBillingDescription": "Update payment methods, view invoices, and manage subscription",
+      "selectPlan": "Select Plan",
+      "currentPlanLabel": "Current",
+      "popular": "Popular",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "maxMachines": "{{count}} machines",
+      "maxUsers": "{{count}} users",
+      "checkoutFailed": "Failed to proceed to checkout. Please try again.",
+      "portalFailed": "Failed to open billing portal. Please try again.",
+      "portalNotConfigured": "Billing portal is not configured. Please contact support.",
+      "portalUnauthorized": "You don't have permission to access the billing portal.",
+      "cancelSubscription": "Cancel Subscription",
+      "cancelSubscriptionDescription": "Your subscription will remain active until the end of the current billing period.",
+      "cancellationScheduled": "Subscription will be canceled at period end",
+      "cancellationFailed": "Failed to cancel subscription. Please try again.",
+      "noPaymentMethods": "No payment methods found",
+      "addPaymentMethod": "Add Payment Method",
+      "defaultMethod": "Default",
+      "expires": "Expires {{month}}/{{year}}",
+      "endingIn": "Ending in {{last4}}",
+      "managePaymentMethodsNote": "You can manage your payment methods in the billing portal.",
+      "upgradeDialog": {
+        "title": "Confirm Plan Change",
+        "description": "You are changing to the {{plan}} plan.",
+        "confirm": "Proceed to Checkout",
+        "cancel": "Cancel"
+      },
+      "cancelDialog": {
+        "title": "Cancel Subscription?",
+        "description": "Are you sure you want to cancel your subscription? You will lose access to premium features at the end of the current billing period.",
+        "confirm": "Cancel Subscription",
+        "cancel": "Keep Subscription"
+      },
+      "periodEnd": "Period ends: {{date}}",
+      "trialEnd": "Trial ends: {{date}}",
+      "renewalDate": "Next billing date: {{date}}",
+      "errors": {
+        "cardDeclined": "Your card was declined. Please try a different payment method.",
+        "insufficientFunds": "Insufficient funds. Please try a different payment method.",
+        "expiredCard": "Your card has expired. Please update your payment method.",
+        "incorrectCvc": "Your card's security code is incorrect. Please try again.",
+        "processingError": "A payment processing error occurred. Please try again.",
+        "rateLimitError": "Too many requests. Please wait a moment and try again.",
+        "networkError": "Network error. Please check your connection and try again.",
+        "unknownError": "An unexpected error occurred. Please try again or contact support."
+      },
+      "checkout": {
+        "success": "Payment successful! Your subscription is now active.",
+        "canceled": "Payment was canceled. You can try again anytime.",
+        "processing": "Processing your payment...",
+        "redirecting": "Redirecting to checkout..."
+      },
+      "invoices": {
+        "title": "Invoice History",
+        "description": "View and download your past invoices",
+        "noInvoices": "No invoices yet",
+        "invoiceNumber": "Invoice",
+        "dueDate": "Due date",
+        "status": {
+          "paid": "Paid",
+          "open": "Open",
+          "draft": "Draft",
+          "void": "Void",
+          "uncollectible": "Uncollectible"
+        },
+        "download": "Download PDF"
+      },
+      "usage": {
+        "title": "Usage Metrics",
+        "description": "Your current usage against plan limits",
+        "machines": "{{used}} of {{limit}} machines",
+        "users": "{{used}} of {{limit}} users",
+        "unlimited": "Unlimited",
+        "approachingLimit": "You are approaching your plan limit. Consider upgrading to avoid interruption.",
+        "atLimit": "You have reached your plan limit. Please upgrade to continue using all features."
+      },
+      "coupon": {
+        "title": "Promo Code",
+        "label": "Enter promo code",
+        "apply": "Apply",
+        "remove": "Remove",
+        "applied": "Discount applied",
+        "invalid": "Invalid promo code",
+        "expired": "Promo code has expired",
+        "description": "Have a promo code? Enter it here"
+      }
+    }
   }
 }

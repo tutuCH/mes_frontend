@@ -3,6 +3,7 @@ import machineReducer from './slices/machineSlice'
 import factoryReducer from './slices/factorySlice'
 import userReducer from './slices/userSlice'
 import alarmReducer from './slices/alarmSlice'
+import paymentReducer from './slices/paymentSlice'
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     factories: factoryReducer,
     users: userReducer,
     alarms: alarmReducer,
+    payment: paymentReducer,
   },
 })
 

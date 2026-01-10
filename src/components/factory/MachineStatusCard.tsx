@@ -9,6 +9,7 @@ interface MachineStatusCardProps {
   machine: Machine
   isConnected: boolean
   isDragging?: boolean
+  onLinkClick?: (e: React.MouseEvent) => void
   onDelete?: (e: React.MouseEvent) => void
   // Real-time data props
   status?: string
@@ -22,6 +23,7 @@ export function MachineStatusCard({
   machine,
   isConnected,
   isDragging = false,
+  onLinkClick,
   onDelete,
   status: realtimeStatus,
   hasAlert,
@@ -50,6 +52,7 @@ export function MachineStatusCard({
   return (
     <Link
       to={`/machine/${machine.machineId}`}
+      onClick={onLinkClick}
       className={cn(
         'w-full h-full',
         'flex flex-col items-center justify-center',

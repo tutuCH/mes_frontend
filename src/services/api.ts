@@ -5,9 +5,12 @@ import type {
   SignUpRequest,
   SignUpResponse,
   AuthResponse,
+  BackendUser,
   User,
   CreateUserRequest,
   UpdateUserRequest,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
   Factory,
   CreateFactoryRequest,
   UpdateFactoryRequest,
@@ -23,6 +26,14 @@ import type {
   HealthStatus,
   ApiError,
   AlarmHistoryResponse,
+  BillingSubscription,
+  BillingPlan,
+  PaymentMethod,
+  CheckoutSessionRequest,
+  CheckoutSessionResponse,
+  PortalSessionRequest,
+  PortalSessionResponse,
+  BillingDemoInfo,
 } from '@/types/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -145,7 +156,7 @@ class ApiClient {
   }
 
   async signUp(data: SignUpRequest): Promise<SignUpResponse> {
-    const response = await this.request<SignUpResponse>('/auth/signup', {
+    const response = await this.request<SignUpResponse>('/auth/sign-up', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -153,8 +164,25 @@ class ApiClient {
     return response;
   }
 
-  async getProfile(): Promise<User> {
-    return this.request<User>('/auth/profile');
+  async getProfile(): Promise<BackendUser> {
+    return this.request<BackendUser>('/auth/profile');
+  }
+
+  async updateProfile(data: UpdateProfileRequest): Promise<BackendUser> {
+    const response = await this.request<BackendUser>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    toast.success('Profile updated successfully');
+    return response;
+  }
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    await this.request<void>('/auth/change-password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    toast.success('Password changed successfully');
   }
 
   async verifyEmail(token: string): Promise<AuthResponse> {
@@ -175,6 +203,19 @@ class ApiClient {
       body: JSON.stringify({ token, password }),
     });
     toast.success('Password reset successful');
+    return response;
+  }
+
+  async googleLogin(idToken: string): Promise<LoginResponse> {
+    const response = await this.request<LoginResponse>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
+      skipErrorToast: true,
+    });
+    if (response.access_token) {
+      this.setToken(response.access_token);
+      toast.success('Login successful');
+    }
     return response;
   }
 
@@ -361,6 +402,95 @@ class ApiClient {
       method: 'DELETE',
     });
     toast.success('Subscription removed successfully');
+  }
+
+  // ============ Billing/Subscription Endpoints ============
+
+  async getCurrentSubscription(): Promise<BillingSubscription | BillingDemoInfo> {
+    return this.request<BillingSubscription | BillingDemoInfo>('/api/subscription/current');
+  }
+
+  async getBillingPlans(): Promise<BillingPlan[]> {
+    const response = await this.request<{ plans: BillingPlan[] }>('/api/subscription/plans');
+    return response.plans;
+  }
+
+  async getPaymentMethods(): Promise<PaymentMethod[]> {
+    return this.request<PaymentMethod[]>('/api/subscription/payment-methods');
+  }
+
+  async createCheckoutSession(data: CheckoutSessionRequest & {
+    idempotencyKey?: string;
+    metadata?: Record<string, string>;
+  }): Promise<CheckoutSessionResponse> {
+    const body: Record<string, any> = {
+      planId: data.planId,
+      successUrl: data.successUrl,
+      cancelUrl: data.cancelUrl,
+    };
+
+    // Add idempotency key if provided (for Stripe best practices)
+    if (data.idempotencyKey) {
+      body.idempotencyKey = data.idempotencyKey;
+    }
+
+    // Add metadata if provided (for debugging and audit)
+    if (data.metadata) {
+      body.metadata = data.metadata;
+    }
+
+    return this.request<CheckoutSessionResponse>('/api/subscription/create-checkout-session', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async createPortalSession(data: PortalSessionRequest): Promise<PortalSessionResponse> {
+    return this.request<PortalSessionResponse>('/api/subscription/create-portal-session', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async cancelBillingSubscription(subscriptionId: string): Promise<void> {
+    await this.request<void>(`/api/subscription/${subscriptionId}`, {
+      method: 'DELETE',
+    });
+    toast.success('Subscription will be canceled at period end');
+  }
+
+  // ============ Additional Payment Endpoints ============
+  // Note: These endpoints may not be implemented in the backend yet
+  // They are included for future enhancement
+
+  async getInvoices(): Promise<import('@/types/api').Invoice[]> {
+    try {
+      return await this.request<import('@/types/api').Invoice[]>('/api/subscription/invoices');
+    } catch (error) {
+      console.warn('getInvoices endpoint not available yet:', error);
+      return [];
+    }
+  }
+
+  async getUsage(): Promise<import('@/types/api').UsageMetrics | null> {
+    try {
+      return await this.request<import('@/types/api').UsageMetrics>('/api/subscription/usage');
+    } catch (error) {
+      console.warn('getUsage endpoint not available yet:', error);
+      return null;
+    }
+  }
+
+  async applyCoupon(code: string): Promise<{ discount?: any }> {
+    try {
+      return await this.request<{ discount?: any }>('/api/subscription/coupon', {
+        method: 'POST',
+        body: JSON.stringify({ code }),
+      });
+    } catch (error) {
+      console.warn('applyCoupon endpoint not available yet:', error);
+      return {};
+    }
   }
 
   // ============ Health Endpoints ============

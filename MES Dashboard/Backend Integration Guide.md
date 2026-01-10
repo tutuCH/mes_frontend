@@ -77,7 +77,16 @@ If your frontend runs on a new domain, add it to the CORS list.
 - JWT-based auth.
 - No refresh token flow.
 - Every non-`@Public()` endpoint requires `Authorization: Bearer <token>`.
-- JWT payload includes `sub` (userId) and `username`.
+- JWT payload includes `sub` (userId as string), `email`, and `role` (accessLevel).
+
+### Password Requirements
+
+All password fields must meet the following requirements:
+- Minimum 8 characters
+- At least 1 uppercase letter (A-Z)
+- At least 1 lowercase letter (a-z)
+- At least 1 number (0-9)
+- At least 1 special character (@$!%*?&)
 
 ### Auth Endpoints
 
@@ -88,7 +97,7 @@ Request:
 ```json
 {
   "email": "user@example.com",
-  "password": "password123"
+  "password": "Password123!"
 }
 ```
 
@@ -96,12 +105,21 @@ Response:
 ```json
 {
   "access_token": "<jwt>",
-  "userId": "1"
+  "user": {
+    "userId": 1,
+    "username": "John Doe",
+    "email": "user@example.com",
+    "accessLevel": "admin",
+    "status": "active",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-09T12:30:00.000Z"
+  }
 }
 ```
 
 Common errors:
 - `401 Unauthorized` if credentials are invalid.
+- `400 Bad Request` if validation fails.
 
 #### POST /auth/sign-up
 Start signup by creating a verification token. The response includes a verification link (email sending is currently disabled).
@@ -110,10 +128,17 @@ Request:
 ```json
 {
   "email": "user@example.com",
-  "password": "password123",
-  "username": "jdoe"
+  "password": "Password123!",
+  "username": "John Doe",
+  "role": "operator"
 }
 ```
+
+Field validation:
+- `username`: 2-50 characters, required
+- `email`: Valid email format, required
+- `password`: Must meet password requirements (see above), required
+- `role`: Optional, defaults to "operator"
 
 Response:
 ```json
@@ -125,6 +150,7 @@ Response:
 
 Common errors:
 - `409 Conflict` if username is missing or email already exists.
+- `400 Bad Request` if password doesn't meet requirements.
 
 #### GET /auth/verify-email
 Complete signup and create the user.
@@ -136,7 +162,15 @@ Response (success):
 ```json
 {
   "access_token": "<jwt>",
-  "userId": "1",
+  "user": {
+    "userId": 2,
+    "username": "John Doe",
+    "email": "user@example.com",
+    "accessLevel": "operator",
+    "status": "active",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-09T12:30:00.000Z"
+  },
   "status": "success",
   "message": "Account verified successfully."
 }
@@ -151,20 +185,82 @@ Response (failure):
 ```
 
 #### GET /auth/profile
-Returns the JWT payload (no DB lookup).
+Get the current authenticated user's profile.
 
 Response:
 ```json
 {
   "userId": 1,
-  "username": "jdoe"
+  "username": "John Doe",
+  "email": "user@example.com",
+  "accessLevel": "admin",
+  "status": "active",
+  "stripeCustomerId": null,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-09T12:30:00.000Z"
 }
 ```
 
 Common errors:
 - `401 Unauthorized` if missing/invalid token.
 
-#### POST /auth/forget-password
+#### PUT /auth/profile
+Update the current authenticated user's profile.
+
+Request:
+```json
+{
+  "name": "John Smith",
+  "email": "newemail@example.com"
+}
+```
+
+Field validation:
+- `name`: Maps to `username`, 2-50 characters, optional
+- `email`: Valid email format, optional
+
+Response:
+```json
+{
+  "userId": 1,
+  "username": "John Smith",
+  "email": "newemail@example.com",
+  "accessLevel": "admin",
+  "status": "active",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-09T12:35:00.000Z"
+}
+```
+
+Common errors:
+- `401 Unauthorized` if missing/invalid token.
+- `404 Not Found` if user doesn't exist.
+- `409 Conflict` if email is already in use.
+- `400 Bad Request` if validation fails.
+
+#### PUT /auth/change-password
+Change the current authenticated user's password.
+
+Request:
+```json
+{
+  "currentPassword": "OldPassword123!",
+  "newPassword": "NewPassword456!"
+}
+```
+
+Response:
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+Common errors:
+- `401 Unauthorized` if current password is incorrect.
+- `400 Bad Request` if new password doesn't meet requirements.
+
+#### POST /auth/forgot-password
 Sends a reset link by email.
 
 Request:
@@ -182,13 +278,16 @@ Response:
 }
 ```
 
-#### POST /auth/reset-password/:token
-Reset password using token.
+Note: Always returns success response to prevent email enumeration.
+
+#### POST /auth/reset-password
+Reset password using token from email.
 
 Request:
 ```json
 {
-  "password": "newpassword123"
+  "token": "<reset_token_from_email>",
+  "password": "NewPassword123!"
 }
 ```
 
@@ -196,7 +295,15 @@ Response (success):
 ```json
 {
   "access_token": "<jwt>",
-  "userId": "1",
+  "user": {
+    "userId": 1,
+    "username": "John Doe",
+    "email": "user@example.com",
+    "accessLevel": "admin",
+    "status": "active",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-09T12:40:00.000Z"
+  },
   "status": "success",
   "message": "Password reset successfully."
 }

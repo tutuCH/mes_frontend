@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, User, Database, Circle, Menu } from 'lucide-react'
+import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, Database, Circle, Menu } from 'lucide-react'
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { type RootState } from '@/store'
 import { cn } from '@/lib/utils'
@@ -61,13 +61,9 @@ export default function DashboardLayout() {
           {t('system')}
         </h4>
       </div>
-      <Link to="/admin/devices" className={navLinkClass('/admin/devices')} onClick={onLinkClick}>
+      <Link to="/settings" className={navLinkClass('/settings')} onClick={onLinkClick}>
         <Settings className="h-4 w-4" />
-        {t('navigation.devices')}
-      </Link>
-      <Link to="/admin/users" className={navLinkClass('/admin/users')} onClick={onLinkClick}>
-        <User className="h-4 w-4" />
-        {t('navigation.users')}
+        {t('navigation.settings')}
       </Link>
     </>
   )
@@ -163,6 +159,7 @@ export default function DashboardLayout() {
                 {location.pathname === '/spc' && t('spc.title')}
                 {location.pathname === '/alarms' && t('alarms.title')}
                 {location.pathname === '/maintenance' && t('maintenance.title')}
+                {location.pathname === '/settings' && t('settings.title')}
                 {location.pathname.includes('/admin') && t('system') + ' ' + t('navigation.users')}
                 {location.pathname.includes('/machine') && t('machine.notFound')}
                 {location.pathname === '/iot' && t('iot.title')}

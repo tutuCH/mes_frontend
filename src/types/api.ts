@@ -9,32 +9,47 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   access_token: string;
-  user: User;
+  user: BackendUser;
 }
 
 export interface SignUpRequest {
-  name: string;
+  username: string;  // backend expects 'username'
   email: string;
   password: string;
   role?: string;
 }
 
 export interface SignUpResponse {
-  message: string;
-  user: User;
+  status: string;
+  message: string;  // includes verification link
 }
 
 export interface AuthResponse {
   access_token: string;
-  user: User;
+  user: BackendUser;
+  status?: string;
+  message?: string;
 }
 
 // ============ User Types ============
-export interface User {
-  id: number;
-  name?: string;
+// Backend-native user response (from API)
+export interface BackendUser {
+  userId: number;
+  username: string;
   email: string;
-  role: 'Admin' | 'Operator' | 'Maintenance' | 'Quality' | 'Viewer';
+  accessLevel: 'admin' | 'operator' | 'maintenance' | 'quality' | 'viewer';
+  status?: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+  stripeCustomerId?: string | null;
+}
+
+// Frontend user type (for internal use - maps backend fields to frontend conventions)
+export interface User {
+  id: number;       // mapped from userId
+  name: string;     // mapped from username
+  email: string;
+  role: 'admin' | 'operator' | 'manager';  // mapped from accessLevel
   status?: 'active' | 'inactive';
   createdAt?: string;
   updatedAt?: string;
@@ -51,6 +66,16 @@ export interface UpdateUserRequest {
   name?: string;
   role?: string;
   status?: string;
+}
+
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
 }
 
 // ============ Factory Types ============
@@ -405,4 +430,67 @@ export interface Alarm {
   message: string;
   severity: 'critical' | 'warning' | 'info';
   status: 'active' | 'acknowledged' | 'resolved';
+}
+
+// ============ Billing/Subscription Types ============
+// NOTE: These types are for Stripe billing subscriptions,
+// distinct from machine subscriptions (Subscription type above)
+
+export interface BillingSubscription {
+  subscriptionId: string;
+  status: 'active' | 'inactive' | 'canceled' | 'past_due' | 'trialing' | 'unpaid';
+  planId: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+  trialEnd?: string;
+}
+
+export interface BillingPlan {
+  planId: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  interval: 'month' | 'year';
+  features: string[];
+  popular?: boolean;
+  maxMachines?: number;
+  maxUsers?: number;
+}
+
+export interface PaymentMethod {
+  id: string;
+  type: 'card' | 'bank_account';
+  brand?: string;
+  last4: string;
+  expMonth?: number;
+  expYear?: number;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface CheckoutSessionRequest {
+  planId: string;
+  successUrl: string;
+  cancelUrl: string;
+}
+
+export interface CheckoutSessionResponse {
+  sessionId: string;
+  url: string;
+}
+
+export interface PortalSessionRequest {
+  returnUrl: string;
+}
+
+export interface PortalSessionResponse {
+  url: string;
+}
+
+export interface BillingDemoInfo {
+  isDemo: true;
+  message: string;
+  demoPlans: BillingPlan[];
 }
