@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { X, AlertTriangle } from 'lucide-react'
+import { X, AlertTriangle, GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getStatusColor, getStatusIcon } from '@/utils/gridUtils'
 import type { Machine } from '@/types/api'
@@ -11,6 +11,7 @@ interface MachineStatusCardProps {
   isDragging?: boolean
   onLinkClick?: (e: React.MouseEvent) => void
   onDelete?: (e: React.MouseEvent) => void
+  onHandleRef?: (element: HTMLElement | null) => void
   // Real-time data props
   status?: string
   hasAlert?: boolean
@@ -25,6 +26,7 @@ export function MachineStatusCard({
   isDragging = false,
   onLinkClick,
   onDelete,
+  onHandleRef,
   status: realtimeStatus,
   hasAlert,
   alertMessage,
@@ -58,7 +60,7 @@ export function MachineStatusCard({
         'flex flex-col items-center justify-center',
         'p-1 sm:p-2',
         'border border-dashed',
-        'rounded-xl',
+        'rounded-md',
         'transition-all duration-200 ease-out',
         'hover:shadow-md hover:-translate-y-0.5',
         'relative group',
@@ -69,6 +71,23 @@ export function MachineStatusCard({
       aria-label={`${machine.machineName}, status ${effectiveStatus}`}
       title={`${machine.machineName} - ${effectiveStatus}`}
     >
+      {/* Drag handle - top left corner */}
+      <div
+        ref={onHandleRef}
+        className={cn(
+          'absolute top-0 left-0 p-0.5 sm:p-1',
+          'cursor-grab active:cursor-grabbing',
+          'opacity-0 group-hover:opacity-100',
+          'transition-opacity duration-200',
+          'hover:bg-black/5 rounded-tl-xl',
+          'z-10'
+        )}
+        aria-label="Drag to move"
+        title="Drag to move"
+      >
+        <GripVertical className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground/50" />
+      </div>
+
       {/* Delete button (appears on hover) */}
       {onDelete && (
         <Button

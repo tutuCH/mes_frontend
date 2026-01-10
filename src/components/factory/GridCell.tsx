@@ -1,10 +1,11 @@
-import { useDroppable, useDraggable } from '@dnd-kit/core'
-import { useRef, useCallback } from 'react'
+import { useRef, useEffect } from 'react'
+import { Droppable, Draggable } from '@dnd-kit/dom'
 import { cn } from '@/lib/utils'
 import { getCellSizeClass, getCoordinate } from '@/utils/gridUtils'
 import { EmptyGridCell } from './EmptyGridCell'
 import { MachineStatusCard } from './MachineStatusCard'
 import type { Machine } from '@/types/api'
+import { useDragDrop } from '@/context/DragDropContext'
 
 interface GridCellProps {
   row: number
@@ -20,8 +21,6 @@ interface GridCellProps {
   onMachineDelete?: (_e: React.MouseEvent, machineId: number) => void
 }
 
-const DRAG_THRESHOLD = 8 // Distance in pixels to distinguish drag from click
-
 export function GridCell({
   row,
   col,
@@ -36,113 +35,93 @@ export function GridCell({
   onMachineDelete,
 }: GridCellProps) {
   const coordinate = getCoordinate(row, col)
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: `cell-${row}-${col}`,
-    data: { row, col, coordinate },
-  })
+  const { manager, setActiveMachine } = useDragDrop()
+
+  const cellRef = useRef<HTMLDivElement>(null)
+  const handleRef = useRef<HTMLElement>(null)
+  const droppableRef = useRef<Droppable | null>(null)
+  const draggableRef = useRef<Draggable | null>(null)
+
+  // Register as droppable on mount
+  useEffect(() => {
+    if (!cellRef.current) return
+
+    const droppable = new Droppable(
+      {
+        id: `cell-${row}-${col}`,
+        element: cellRef.current,
+        data: { row, col, coordinate },
+      },
+      manager
+    )
+
+    droppableRef.current = droppable
+
+    return () => {
+      droppable.unregister()
+      droppableRef.current = null
+    }
+  }, [manager, row, col, coordinate])
 
   // Empty cell
   if (!machine) {
     return (
-      <div className={cn(getCellSizeClass(), 'p-0.5')} ref={setDroppableRef}>
+      <div className={cn(getCellSizeClass(), 'p-0.5')} ref={cellRef}>
         <EmptyGridCell
           row={row}
           col={col}
           coordinate={coordinate}
           onClick={onCellClick}
-          isOver={isOver}
+          isOver={false}
         />
       </div>
     )
   }
 
-  // Machine cell (draggable)
-  return <MachineCell machine={machine} row={row} col={col} isConnected={isConnected} status={status} hasAlert={hasAlert} alertMessage={alertMessage} alertSeverity={alertSeverity} lastUpdate={lastUpdate} onMachineDelete={onMachineDelete} setDroppableRef={setDroppableRef} />
-}
+  // Machine cell (draggable with handle)
+  useEffect(() => {
+    if (!cellRef.current || !handleRef.current) return
 
-interface MachineCellProps {
-  machine: Machine
-  row: number
-  col: number
-  isConnected: boolean
-  status?: string
-  hasAlert?: boolean
-  alertMessage?: string
-  alertSeverity?: string
-  lastUpdate?: string
-  onMachineDelete?: (_e: React.MouseEvent, machineId: number) => void
-  setDroppableRef: (node: HTMLElement | null) => void
-}
+    const draggable = new Draggable(
+      {
+        id: machine.machineId,
+        element: cellRef.current,
+        handle: handleRef.current,
+        feedback: 'clone',
+        data: { machine },
+      },
+      manager
+    )
 
-function MachineCell({
-  machine,
-  isConnected,
-  status,
-  hasAlert,
-  alertMessage,
-  alertSeverity,
-  lastUpdate,
-  onMachineDelete,
-  setDroppableRef,
-}: MachineCellProps) {
-  const dragStartPos = useRef<{ x: number; y: number } | null>(null)
-  const combinedRef = useRef<HTMLElement | null>(null)
+    draggableRef.current = draggable
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setDraggableRef,
-    isDragging,
-  } = useDraggable({
-    id: machine.machineId,
-    data: { machine },
-  })
-
-  // Combine refs for both draggable and droppable
-  const setCombinedRef = useCallback((node: HTMLElement | null) => {
-    combinedRef.current = node
-    setDraggableRef(node)
-    setDroppableRef(node)
-  }, [setDraggableRef, setDroppableRef])
-
-  // Track pointer position to distinguish drag from click
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    dragStartPos.current = { x: e.clientX, y: e.clientY }
-    listeners?.onPointerDown?.(e)
-  }, [listeners])
-
-  // Prevent navigation if a drag occurred
-  const handleLinkClick = useCallback((e: React.MouseEvent) => {
-    if (!dragStartPos.current) return
-
-    const dx = e.clientX - dragStartPos.current.x
-    const dy = e.clientY - dragStartPos.current.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-
-    if (distance > DRAG_THRESHOLD) {
-      e.preventDefault()
+    // Set active machine on drag start
+    const handleDragStart = () => {
+      setActiveMachine(machine)
     }
-    dragStartPos.current = null
-  }, [])
+
+    manager.monitor.addEventListener('dragstart', handleDragStart)
+
+    return () => {
+      manager.monitor.removeEventListener('dragstart', handleDragStart)
+      draggable.unregister()
+      draggableRef.current = null
+    }
+  }, [manager, machine, setActiveMachine])
 
   return (
-    <div
-      className={cn(getCellSizeClass(), 'p-0.5')}
-      ref={setCombinedRef}
-      {...attributes}
-      {...listeners}
-      onPointerDown={handlePointerDown}
-    >
+    <div className={cn(getCellSizeClass(), 'p-0.5')} ref={cellRef}>
       <MachineStatusCard
         machine={machine}
         isConnected={isConnected}
-        isDragging={isDragging}
-        onLinkClick={handleLinkClick}
         status={status}
         hasAlert={hasAlert}
         alertMessage={alertMessage}
         alertSeverity={alertSeverity}
         lastUpdate={lastUpdate}
+        onHandleRef={(element) => {
+          handleRef.current = element
+        }}
         onDelete={onMachineDelete ? (e) => onMachineDelete(e, machine.machineId) : undefined}
       />
     </div>

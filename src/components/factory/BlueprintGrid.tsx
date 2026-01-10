@@ -1,14 +1,5 @@
-import { useMemo, useState, useCallback } from 'react'
-import {
-  DndContext,
-  DragOverlay,
-  pointerWithin,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  type DragEndEvent,
-  type DragStartEvent,
-} from '@dnd-kit/core'
+import { useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ColumnHeaders } from './ColumnHeaders'
 import { RowHeaders } from './RowHeaders'
@@ -16,9 +7,9 @@ import { GridCell } from './GridCell'
 import { MachineStatusCard } from './MachineStatusCard'
 import type { Factory, Machine } from '@/types/api'
 import type { MachineState } from '@/types/machine'
-import { cn } from '@/lib/utils'
 import { useSelector } from 'react-redux'
 import { type RootState } from '@/store'
+import { DragDropProvider, useDragDrop } from '@/context/DragDropContext'
 
 interface BlueprintGridProps {
   factory: Factory
@@ -40,11 +31,17 @@ interface MachineCellData {
   lastUpdate?: string
 }
 
-export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick, onMachineMove }: BlueprintGridProps) {
+function BlueprintGridContent({
+  factory,
+  machines,
+  realtimeMachines,
+  onCellClick,
+}: Omit<BlueprintGridProps, 'onMachineMove'>) {
   const gridWidth = factory.factoryWidth || 10
   const gridHeight = factory.factoryHeight || 10
 
   const subscribedMachines = useSelector((state: RootState) => state.factories.subscribedMachines)
+  const { activeMachine, isDragging } = useDragDrop()
 
   // Map of machine positions by grid coordinate
   const machinePositions = useMemo(() => {
@@ -63,31 +60,6 @@ export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick
     })
     return positions
   }, [machines, gridWidth])
-
-  // Drag-and-drop sensors and state
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 1 },
-    })
-  )
-
-  const [activeMachine, setActiveMachine] = useState<Machine | null>(null)
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const machine = machines.find((m) => m.machineId === event.active.id)
-    if (machine) setActiveMachine(machine)
-  }, [machines])
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveMachine(null)
-
-    if (!event.over || !onMachineMove) return
-
-    const match = event.over.id.toString().match(/^cell-(\d+)-(\d+)$/)
-    if (!match) return
-
-    onMachineMove(event.active.id as number, parseInt(match[1]), parseInt(match[2]))
-  }, [onMachineMove])
 
   // Generate grid cells with real-time data
   const gridCells = useMemo(() => {
@@ -119,8 +91,7 @@ export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick
       <MachineStatusCard
         machine={activeMachine}
         isConnected={subscribedMachines.includes(activeMachine.machineName)}
-        isDragging={false}
-        onLinkClick={(e) => e.preventDefault()}
+        isDragging={true}
         status={realtimeMachines?.[activeMachine.machineId.toString()]?.status || activeMachine.status}
         hasAlert={realtimeMachines?.[activeMachine.machineId.toString()]?.hasAlert || false}
         alertMessage={realtimeMachines?.[activeMachine.machineId.toString()]?.alertMessage}
@@ -131,12 +102,7 @@ export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick
   ) : null
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={pointerWithin}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <>
       <ScrollArea className="w-full rounded-md border">
         <div className="p-2 sm:p-4">
           <div className="relative">
@@ -158,10 +124,7 @@ export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick
               <RowHeaders height={gridHeight} />
 
               <div
-                className={cn(
-                  'grid gap-1 rounded-md p-1 sm:p-2 shadow-sm',
-                  onMachineMove && 'cursor-move'
-                )}
+                className="grid gap-1 rounded-md p-1 sm:p-2 shadow-sm"
                 style={{
                   gridTemplateColumns: `repeat(${gridWidth}, minmax(4rem, 6rem))`,
                   gridTemplateRows: `repeat(${gridHeight}, auto)`,
@@ -188,7 +151,16 @@ export function BlueprintGrid({ factory, machines, realtimeMachines, onCellClick
         </div>
       </ScrollArea>
 
-      <DragOverlay>{dragOverlay}</DragOverlay>
-    </DndContext>
+      {/* Drag overlay - rendered at document body level for proper positioning */}
+      {isDragging && dragOverlay && createPortal(dragOverlay, document.body)}
+    </>
+  )
+}
+
+export function BlueprintGrid(props: BlueprintGridProps) {
+  return (
+    <DragDropProvider onMachineMove={props.onMachineMove}>
+      <BlueprintGridContent {...props} />
+    </DragDropProvider>
   )
 }
