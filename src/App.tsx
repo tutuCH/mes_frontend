@@ -5,6 +5,7 @@ import LoadingScreen from "@/components/ui/LoadingScreen"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { Toaster } from "sonner"
 import { GlobalWebSocketManager } from "@/components/GlobalWebSocketManager"
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { I18nextProvider } from "react-i18next"
 import { LanguageProvider } from "@/contexts/LanguageContext"
 import i18n from "@/i18n/config"
@@ -46,9 +47,11 @@ function App() {
 
                   {/* Protected routes INSIDE GlobalWebSocketManager - WebSocket connects after login */}
                   <Route path="/" element={
-                    <GlobalWebSocketManager>
-                      <DashboardLayout />
-                    </GlobalWebSocketManager>
+                    <ProtectedRoute>
+                      <GlobalWebSocketManager>
+                        <DashboardLayout />
+                      </GlobalWebSocketManager>
+                    </ProtectedRoute>
                   }>
                     <Route index element={<FactoryOverview />} />
                     <Route path="machine/:id" element={<MachineDetail />} />

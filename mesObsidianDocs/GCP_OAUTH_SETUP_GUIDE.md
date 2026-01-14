@@ -7,7 +7,7 @@
 | **GCP Project ID** | `harrytucvmesdashbaord` |
 | **Project Name** | `harrytuCvMesDashbaord` |
 | **OAuth Client Name** | `mesDashboardDit` |
-| **Client ID** | `783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com` |
+| **Client ID** | `your-google-client-id.apps.googleusercontent.com` |
 | **Client Secret** | `<CLIENT_SECRET_KEY_****tDVL>` |
 | **Authorized JavaScript Origins** | `http://localhost:5173` |
 | **Authorized Redirect URIs** | ⚠️ **NOT SET** |
@@ -53,7 +53,7 @@ VITE_API_URL=http://localhost:3000
 VITE_WS_URL=http://localhost:3000
 
 # Google OAuth (Frontend)
-VITE_GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 ```bash
@@ -62,7 +62,7 @@ VITE_API_URL=https://your-api-domain.com
 VITE_WS_URL=https://your-api-domain.com
 
 # Google OAuth (Frontend)
-VITE_GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
 #### Backend Environment Variables
@@ -71,7 +71,7 @@ VITE_GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleu
 # .env (Backend)
 
 # Google OAuth (Backend - PKCE Flow)
-GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=<CLIENT_SECRET_KEY_****tDVL>
 GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
 
@@ -259,7 +259,7 @@ Before deploying to production:
 ```bash
 # Open this URL in your browser
 https://accounts.google.com/o/oauth2/v2/auth?
-  client_id=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com&
+  client_id=your-google-client-id.apps.googleusercontent.com&
   redirect_uri=http://localhost:5173/auth/callback&
   response_type=code&
   scope=email%20profile&
@@ -274,7 +274,7 @@ https://accounts.google.com/o/oauth2/v2/auth?
 ```bash
 # Frontend
 echo $VITE_GOOGLE_CLIENT_ID
-# Should output: 783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+# Should output: your-google-client-id.apps.googleusercontent.com
 
 # Backend
 echo $GOOGLE_CLIENT_SECRET
@@ -323,12 +323,12 @@ echo $GOOGLE_CLIENT_SECRET
 cat > .env.development << EOF
 VITE_API_URL=http://localhost:3000
 VITE_WS_URL=http://localhost:3000
-VITE_GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 EOF
 
 # 2. Set up backend environment (replace with actual secrets)
 cat > .env << EOF
-GOOGLE_CLIENT_ID=783822294762-01s3o41674u5lk07vvrbmho3lih7keab.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=<CLIENT_SECRET_KEY_****tDVL>
 GOOGLE_REDIRECT_URI=http://localhost:5173/auth/callback
 JWT_SECRET=$(openssl rand -hex 64)
