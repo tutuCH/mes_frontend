@@ -2,16 +2,20 @@ import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineAlertEvent, MachineStatusEvent, AlarmUpdateEvent } from '@/types/api';
 import { t } from '@/utils/i18n';
+import { createLogger } from '@/utils/logger';
 
+const logger = createLogger('WebSocket');
 const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
 type SocketEventData = RealtimeUpdateEvent | SPCUpdateEvent | MachineAlertEvent | MachineStatusEvent | AlarmUpdateEvent | unknown;
 
+type EventCallback = (data: SocketEventData) => void;
+
 class SocketService {
   private socket: Socket | null = null;
-  private listeners: Map<string, Function[]> = new Map();
+  private listeners: Map<string, EventCallback[]> = new Map();
   private subscribedMachines: Set<string> = new Set();
   private connectionStatus: ConnectionStatus = 'disconnected';
   private reconnectAttempts = 0;
@@ -37,7 +41,7 @@ class SocketService {
   connect() {
     // Prevent multiple simultaneous connections
     if (this.socket?.connected || this.isConnecting) {
-      console.log('[WebSocket] Connection already in progress or established');
+      logger.debug('Connection already in progress or established');
       return;
     }
 
@@ -46,8 +50,7 @@ class SocketService {
 
     // Get auth token for WebSocket authentication
     const token = localStorage.getItem('auth_token');
-    console.log('[WebSocket] Connecting to', SOCKET_URL);
-    console.log('[WebSocket] Auth token present:', !!token);
+    logger.debug('Connecting to', SOCKET_URL, 'with auth:', !!token);
 
     this.socket = io(SOCKET_URL, {
       transports: ['websocket'],
@@ -61,28 +64,28 @@ class SocketService {
 
     // Set up ALL event handlers BEFORE connecting
     this.socket.on('connect', () => {
-      console.log('[WebSocket] ✅ Connected to WebSocket server');
+      logger.info('Connected to WebSocket server');
       this.isConnecting = false;
       this.setConnectionStatus('connected');
       this.reconnectAttempts = 0;
 
       // Send ping immediately to keep connection alive
       this.socket?.emit('ping');
-      console.log('[WebSocket] 📡 Initial ping sent');
+      logger.debug('Initial ping sent');
 
       // Start keep-alive interval
       this.startKeepAlive();
 
       // Resubscribe to all machines on reconnection
       const machinesToResubscribe = this.getSubscribedMachines();
-      console.log('[WebSocket] Resubscribing to', machinesToResubscribe.length, 'machines:', machinesToResubscribe);
+      logger.debug('Resubscribing to', machinesToResubscribe.length, 'machines:', machinesToResubscribe);
       this.resubscribeAll();
 
       toast.success(t('websocket.connected'), { duration: 1000 });
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('Disconnected from WebSocket server:', reason);
+      logger.debug('Disconnected from WebSocket server:', reason);
       this.setConnectionStatus('disconnected');
       this.isConnecting = false;
       this.stopKeepAlive(); // Stop keep-alive on disconnect
@@ -96,7 +99,7 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('WebSocket connection error:', error);
+      logger.error('WebSocket connection error:', error);
       this.isConnecting = false;
       this.reconnectAttempts++;
 
@@ -106,25 +109,25 @@ class SocketService {
     });
 
     this.socket.io.on('reconnect_attempt', (attemptNumber) => {
-      console.log(`Reconnection attempt ${attemptNumber}`);
+      logger.debug(`Reconnection attempt ${attemptNumber}`);
       this.setConnectionStatus('reconnecting');
     });
 
     this.socket.io.on('reconnect', () => {
-      console.log('Reconnected to WebSocket server');
+      logger.info('Reconnected to WebSocket server');
       this.setConnectionStatus('connected');
       toast.success(t('websocket.reconnected'), { duration: 1000 });
     });
 
     this.socket.io.on('reconnect_failed', () => {
-      console.error('Failed to reconnect to WebSocket server');
+      logger.error('Failed to reconnect to WebSocket server');
       this.setConnectionStatus('disconnected');
       toast.error(t('websocket.reconnectFailed'), { duration: 1000 });
     });
 
     // Data events
     this.socket.on('realtime-update', (data: RealtimeUpdateEvent) => {
-      console.log('[WebSocket] 📊 realtime-update received:', {
+      logger.debug('realtime-update received:', {
         deviceId: data.deviceId,
         timestamp: data.timestamp,
         dataKeys: Object.keys(data.data || {}),
@@ -134,7 +137,7 @@ class SocketService {
     });
 
     this.socket.on('spc-update', (data: SPCUpdateEvent) => {
-      console.log('[WebSocket] 📈 spc-update received:', {
+      logger.debug('spc-update received:', {
         deviceId: data.deviceId,
         timestamp: data.timestamp,
         dataKeys: Object.keys(data.data || {}),
@@ -144,7 +147,7 @@ class SocketService {
     });
 
     this.socket.on('machine-status', (data: MachineStatusEvent) => {
-      console.log('[WebSocket] ⚙️ machine-status received:', {
+      logger.debug('machine-status received:', {
         deviceId: data.deviceId,
         status: data.status,
         source: data.source
@@ -175,12 +178,12 @@ class SocketService {
     });
 
     this.socket.on('subscription-confirmed', (data: { deviceId: string }) => {
-      console.log('[WebSocket] ✅ Subscription confirmed for', data.deviceId, '(Total subscribed:', this.getSubscribedMachines().length, ')');
+      logger.debug('Subscription confirmed for', data.deviceId, '(Total subscribed:', this.getSubscribedMachines().length, ')');
       this.emit('subscription-confirmed', data);
     });
 
     this.socket.on('error', (error: { message: string }) => {
-      console.error('WebSocket error:', error);
+      logger.error('WebSocket error:', error);
       this.emit('error', error);
       toast.error(`${t('websocket.socketError')}: ${error.message}`);
     });
@@ -206,7 +209,7 @@ class SocketService {
     this.keepAliveInterval = setInterval(() => {
       if (this.socket?.connected) {
         this.socket.emit('ping');
-        console.log('[WebSocket] 📡 Keep-alive ping sent');
+        logger.debug('Keep-alive ping sent');
       }
     }, 30000); // Every 30 seconds
   }
@@ -230,10 +233,10 @@ class SocketService {
   subscribeToMachine(deviceId: string) {
     this.subscribedMachines.add(deviceId);
     if (this.socket?.connected) {
-      console.log('[WebSocket] 📡 Subscribing to machine:', deviceId);
+      logger.debug('Subscribing to machine:', deviceId);
       this.socket.emit('subscribe-machine', { deviceId });
     } else {
-      console.log('[WebSocket] ⏳ Cannot subscribe to', deviceId, '- socket not connected');
+      logger.debug('Cannot subscribe to', deviceId, '- socket not connected');
     }
   }
 
@@ -252,14 +255,14 @@ class SocketService {
     return Array.from(this.subscribedMachines);
   }
 
-  on(event: string, callback: Function) {
+  on(event: string, callback: EventCallback) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)?.push(callback);
   }
 
-  off(event: string, callback: Function) {
+  off(event: string, callback: EventCallback) {
     if (!this.listeners.has(event)) return;
     const callbacks = this.listeners.get(event)?.filter(cb => cb !== callback);
     this.listeners.set(event, callbacks || []);

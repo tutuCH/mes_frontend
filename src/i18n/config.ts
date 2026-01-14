@@ -29,7 +29,7 @@ i18n
     defaultNS: 'common',
     ns: ['common'],
     interpolation: {
-      escapeValue: false // React already escapes
+      escapeValue: true // Enable escaping to prevent XSS in translation content
     },
     react: {
       useSuspense: false

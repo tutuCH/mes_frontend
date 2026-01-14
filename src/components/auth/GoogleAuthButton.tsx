@@ -170,6 +170,11 @@ function GoogleLoginButton({
     onError: () => {
       onError?.(t('auth.googleSignInFailed'))
     },
+    // Note: Currently using implicit flow for compatibility.
+    // To migrate to PKCE (authorization code flow):
+    // 1. Change flow to 'authorization-code' or 'pkce'
+    // 2. Update backend to handle authorization code exchange
+    // 3. Update onSuccess to handle code instead of access_token
     flow: 'implicit',
   })
 

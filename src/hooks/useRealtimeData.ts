@@ -6,7 +6,10 @@ import { addSubscribedMachine, removeSubscribedMachine } from '@/store/slices/fa
 import { socketService } from '@/services/socket'
 import { normalizeRealtimeData, normalizeSPCData, mapToMachineStatus, mapToOpMode } from '@/utils/fieldMapping'
 import { toast } from 'sonner'
+import { createLogger } from '@/utils/logger'
 import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineStatusEvent, MachineAlertEvent, AlarmUpdateEvent } from '@/types/api'
+
+const logger = createLogger('useRealtimeData')
 
 export function useRealtimeData() {
   const dispatch = useDispatch<AppDispatch>()
@@ -19,7 +22,7 @@ export function useRealtimeData() {
   )
 
   useEffect(() => {
-    console.log('[useRealtimeData] Fetching machines...')
+    logger.debug('Fetching machines...')
     dispatch(fetchMachines())
   }, [dispatch])
 
@@ -27,7 +30,7 @@ export function useRealtimeData() {
   useEffect(() => {
     const unsubscribe = socketService.onStatusChange((status) => {
       const connected = status === 'connected'
-      console.log('[useRealtimeData] Socket status changed:', status, '→ isConnected:', connected)
+      logger.debug('Socket status changed:', status, '→ isConnected:', connected)
       setIsSocketConnected(connected)
     })
     return unsubscribe
@@ -46,8 +49,8 @@ export function useRealtimeData() {
   }, [error, dispatch])
 
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
-    console.log('[useRealtimeData] 📊 Processing realtime-update for', payload.deviceId)
-    console.log('[useRealtimeData] Raw payload structure:', {
+    logger.debug('Processing realtime-update for', payload.deviceId)
+    logger.debug('Raw payload structure:', {
       hasData: !!(payload as any).data,
       hasDataObject: !!payload.Data,
       deviceId: payload.deviceId,
@@ -59,7 +62,7 @@ export function useRealtimeData() {
     // Use field mapping to normalize the data
     const normalized = normalizeRealtimeData(payload)
 
-    console.log('[useRealtimeData] → Normalized data:', {
+    logger.debug('Normalized data:', {
       deviceId: normalized.deviceId,
       time: normalized.time,
       temp_1: normalized.temp_1,
@@ -108,7 +111,7 @@ export function useRealtimeData() {
   }, [dispatch])
 
   const handleMachineAlert = useCallback((payload: MachineAlertEvent) => {
-    console.log('[useRealtimeData] ⚠️ machine-alert:', payload)
+    logger.debug('machine-alert:', payload)
     // Update machine status with alert info
     dispatch(updateMachineStatus({
       deviceId: payload.deviceId,
@@ -123,7 +126,7 @@ export function useRealtimeData() {
   }, [dispatch])
 
   const handleAlarmUpdate = useCallback((payload: AlarmUpdateEvent) => {
-    console.log('[useRealtimeData] 🚨 alarm-update:', payload)
+    logger.debug('alarm-update:', payload)
     // Alarm events are handled by useAlarms hook
     // This handler is for logging and potential future integration
   }, [])
@@ -155,12 +158,12 @@ export function useRealtimeData() {
   useEffect(() => {
     // Only subscribe if socket is connected
     if (!isSocketConnected) {
-      console.log('[useRealtimeData] Socket not connected, skipping subscriptions')
+      logger.debug('Socket not connected, skipping subscriptions')
       return
     }
 
     const machineIds = Object.keys(machines)
-    console.log('[useRealtimeData] Subscribing to machines. Socket connected:', isSocketConnected, ', Machines:', machineIds.length)
+    logger.debug('Subscribing to machines. Socket connected:', isSocketConnected, ', Machines:', machineIds.length)
 
     // Subscribe to new machines using deviceId (which is the machineName from backend)
     machineIds.forEach(id => {
@@ -168,7 +171,7 @@ export function useRealtimeData() {
       const deviceId = machine?.deviceId || id
 
       if (!subscribedRef.current.has(deviceId)) {
-        console.log('[useRealtimeData] Subscribing to new machine:', deviceId, '(ID:', id, ')')
+        logger.debug('Subscribing to new machine:', deviceId, '(ID:', id, ')')
         socketService.subscribeToMachine(deviceId)
         subscribedRef.current.add(deviceId)
         dispatch(addSubscribedMachine(deviceId))
@@ -180,14 +183,14 @@ export function useRealtimeData() {
       // Find if this deviceId still exists in the machines object
       const stillExists = Object.values(machines).some(m => m.deviceId === deviceId)
       if (!stillExists) {
-        console.log('[useRealtimeData] Unsubscribing from removed machine:', deviceId)
+        logger.debug('Unsubscribing from removed machine:', deviceId)
         socketService.unsubscribeFromMachine(deviceId)
         subscribedRef.current.delete(deviceId)
         dispatch(removeSubscribedMachine(deviceId))
       }
     })
 
-    console.log('[useRealtimeData] Total subscribed machines:', subscribedRef.current.size)
+    logger.debug('Total subscribed machines:', subscribedRef.current.size)
   }, [machines, isSocketConnected, dispatch])
 
   // Sync existing socket service subscriptions to Redux when socket connects
@@ -196,7 +199,7 @@ export function useRealtimeData() {
     if (isSocketConnected) {
       const currentlySubscribed = socketService.getSubscribedMachines()
       if (currentlySubscribed.length > 0) {
-        console.log('[useRealtimeData] Syncing existing subscriptions to Redux:', currentlySubscribed)
+        logger.debug('Syncing existing subscriptions to Redux:', currentlySubscribed)
         currentlySubscribed.forEach(machineName => {
           subscribedRef.current.add(machineName)
           dispatch(addSubscribedMachine(machineName))
