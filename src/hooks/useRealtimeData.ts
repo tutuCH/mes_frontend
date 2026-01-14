@@ -237,7 +237,7 @@ export function useMachineRealtimeData(machineId: string | number) {
         temperature: normalized.temp_1,
         oilTemp: normalized.oil_temp,
         status: mapToMachineStatus(normalized.status),
-        opMode: mapToOpMode(normalized.op_mode),
+        opMode: mapToOpMode(normalized.operate_mode),
         lastUpdate: normalized.time
       }
     }))

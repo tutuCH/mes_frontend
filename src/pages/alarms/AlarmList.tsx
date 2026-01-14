@@ -11,7 +11,6 @@ import { Search, Filter, Download, Loader2 } from 'lucide-react';
 import { useAlarms } from '@/hooks/useAlarms';
 import { formatLocaleString } from '@/utils/dateUtils';
 import { type RootState } from '@/store';
-import type { Alarm } from '@/types/api';
 
 export default function AlarmList() {
   const { t } = useTranslation()
@@ -31,7 +30,7 @@ export default function AlarmList() {
   }, [machineList, selectedMachineId]);
 
   // Fetch alarms for selected machine
-  const { alarms, loading } = useAlarms(selectedMachineId, '-24h');
+  const { alarms, loading } = useAlarms({ machineId: selectedMachineId, timeRange: '-24h' });
 
   // Filter alarms
   const filteredAlarms = useMemo(() => {

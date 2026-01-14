@@ -37,7 +37,7 @@ const normalizeSubscriptionStatus = (status: string | undefined | null): string 
 
   const normalizedStatus = statusMap[status.toLowerCase()] || 'inactive'
 
-  if (process.env.NODE_ENV === 'development' && !statusMap[status.toLowerCase()]) {
+  if (import.meta.env.DEV && !statusMap[status.toLowerCase()]) {
     console.warn('[Payment] Unknown subscription status:', status, '→ Normalized to:', normalizedStatus)
   }
 
@@ -350,7 +350,7 @@ export function PaymentSettingsTab() {
                     const currentPlanId = subscription.planId
 
                     // Debug logging (can be removed after fix is verified)
-                    if (process.env.NODE_ENV === 'development') {
+                    if (import.meta.env.DEV) {
                       console.log('[Payment Debug] Comparing plans:', {
                         currentPlanId,
                         checkingPlanId: plan.planId,

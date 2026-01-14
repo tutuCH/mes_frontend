@@ -5,36 +5,9 @@ import type {
   BillingPlan,
   PaymentMethod,
   BillingDemoInfo,
+  Invoice,
+  UsageMetrics,
 } from '@/types/api'
-
-// Types for state that aren't in api.ts yet
-export interface Invoice {
-  id: string
-  subscriptionId: string
-  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible'
-  amountDue: number
-  amountPaid: number
-  currency: string
-  dueDate?: string
-  periodStart: string
-  periodEnd: string
-  invoicePdf?: string
-  hostedInvoiceUrl?: string
-  created: string
-}
-
-export interface UsageMetrics {
-  machines: {
-    used: number
-    limit: number | null
-  }
-  users: {
-    used: number
-    limit: number | null
-  }
-  periodStart: string
-  periodEnd: string
-}
 
 export type CheckoutStatus = 'idle' | 'redirecting' | 'success' | 'canceled' | 'failed'
 

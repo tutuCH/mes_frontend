@@ -2,16 +2,23 @@ import { useEffect, useCallback, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import type { AppDispatch, RootState } from '@/store'
 import { fetchBillingData } from '@/store/slices/paymentSlice'
-import type { BillingPlan } from '@/types/api'
+import type {
+  BillingPlan,
+  BillingSubscription,
+  BillingDemoInfo,
+  PaymentMethod,
+  Invoice,
+  UsageMetrics,
+} from '@/types/api'
 import { isInTrial, daysUntil } from '@/utils/paymentUtils'
 
 export interface UsePaymentStateReturn {
   // Data
-  subscription: import('@/store/slices/paymentSlice').BillingSubscription | import('@/store/slices/paymentSlice').BillingDemoInfo | null
+  subscription: BillingSubscription | BillingDemoInfo | null
   plans: BillingPlan[]
-  paymentMethods: import('@/types/api').PaymentMethod[]
-  invoices: import('@/store/slices/paymentSlice').Invoice[]
-  usage: import('@/store/slices/paymentSlice').UsageMetrics | null
+  paymentMethods: PaymentMethod[]
+  invoices: Invoice[]
+  usage: UsageMetrics | null
 
   // UI State
   loading: boolean
@@ -61,29 +68,34 @@ export function usePaymentState(): UsePaymentStateReturn {
     return subscription !== null && 'isDemo' in subscription
   }, [subscription])
 
+  const isDemoSubscription = useCallback(
+    (value: BillingSubscription | BillingDemoInfo): value is BillingDemoInfo => 'isDemo' in value,
+    []
+  )
+
   // Get current plan
   const currentPlan = useMemo(() => {
-    if (!subscription || isDemoMode) return null
+    if (!subscription || isDemoSubscription(subscription)) return null
     return plans.find((p) => p.planId === subscription.planId) || null
-  }, [subscription, plans, isDemoMode])
+  }, [subscription, plans, isDemoSubscription])
 
   // Check if in trial period
   const isInTrialPeriod = useMemo(() => {
-    if (!subscription || isDemoMode) return false
+    if (!subscription || isDemoSubscription(subscription)) return false
     return isInTrial(subscription)
-  }, [subscription, isDemoMode])
+  }, [subscription, isDemoSubscription])
 
   // Days until trial ends
   const daysUntilTrialEnd = useMemo(() => {
-    if (!subscription || isDemoMode || !subscription.trialEnd) return null
+    if (!subscription || isDemoSubscription(subscription) || !subscription.trialEnd) return null
     return daysUntil(subscription.trialEnd)
-  }, [subscription, isDemoMode])
+  }, [subscription, isDemoSubscription])
 
   // Days until period ends
   const daysUntilPeriodEnd = useMemo(() => {
-    if (!subscription || isDemoMode || !subscription.currentPeriodEnd) return null
+    if (!subscription || isDemoSubscription(subscription) || !subscription.currentPeriodEnd) return null
     return daysUntil(subscription.currentPeriodEnd)
-  }, [subscription, isDemoMode])
+  }, [subscription, isDemoSubscription])
 
   return {
     // Data

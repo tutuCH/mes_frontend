@@ -61,7 +61,7 @@ export function usePaymentCheckout(): UsePaymentCheckoutReturn {
         const { successUrl, cancelUrl } = buildCheckoutUrls()
 
         // Generate metadata for debugging
-        const userId = getCurrentUserId()
+        const userId = getCurrentUserId() ?? undefined
         const metadata = generateCheckoutMetadata(plan.planId, userId, {
           couponCode: couponCode || '',
         })

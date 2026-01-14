@@ -9,9 +9,18 @@ const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
-type SocketEventData = RealtimeUpdateEvent | SPCUpdateEvent | MachineAlertEvent | MachineStatusEvent | AlarmUpdateEvent | unknown;
+type SocketEventMap = {
+  'realtime-update': RealtimeUpdateEvent;
+  'spc-update': SPCUpdateEvent;
+  'machine-alert': MachineAlertEvent;
+  'machine-status': MachineStatusEvent;
+  'alarm-update': AlarmUpdateEvent;
+  'subscription-confirmed': { deviceId: string };
+  'error': { message: string };
+};
 
-type EventCallback = (data: SocketEventData) => void;
+type SocketEventKey = keyof SocketEventMap;
+type EventCallback = (data: any) => void;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -22,7 +31,7 @@ class SocketService {
   private maxReconnectAttempts = 10;
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private isConnecting: boolean = false;
-  private keepAliveInterval: NodeJS.Timeout | null = null;
+  private keepAliveInterval: ReturnType<typeof setInterval> | null = null;
 
   getConnectionStatus(): ConnectionStatus {
     return this.connectionStatus;
@@ -127,21 +136,23 @@ class SocketService {
 
     // Data events
     this.socket.on('realtime-update', (data: RealtimeUpdateEvent) => {
+      const payloadData = data.Data ?? data.data;
       logger.debug('realtime-update received:', {
         deviceId: data.deviceId,
         timestamp: data.timestamp,
-        dataKeys: Object.keys(data.data || {}),
-        hasData: !!data.data
+        dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
+        hasData: !!payloadData
       });
       this.emit('realtime-update', data);
     });
 
     this.socket.on('spc-update', (data: SPCUpdateEvent) => {
+      const payloadData = data.Data ?? data.data;
       logger.debug('spc-update received:', {
         deviceId: data.deviceId,
         timestamp: data.timestamp,
-        dataKeys: Object.keys(data.data || {}),
-        hasData: !!data.data
+        dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
+        hasData: !!payloadData
       });
       this.emit('spc-update', data);
     });
@@ -255,20 +266,23 @@ class SocketService {
     return Array.from(this.subscribedMachines);
   }
 
-  on(event: string, callback: EventCallback) {
+  on<K extends SocketEventKey>(event: K, callback: (data: SocketEventMap[K]) => void): void;
+  on(event: string, callback: EventCallback): void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)?.push(callback);
   }
 
-  off(event: string, callback: EventCallback) {
+  off<K extends SocketEventKey>(event: K, callback: (data: SocketEventMap[K]) => void): void;
+  off(event: string, callback: EventCallback): void {
     if (!this.listeners.has(event)) return;
     const callbacks = this.listeners.get(event)?.filter(cb => cb !== callback);
     this.listeners.set(event, callbacks || []);
   }
 
-  private emit(event: string, data: SocketEventData) {
+  private emit<K extends SocketEventKey>(event: K, data: SocketEventMap[K]): void;
+  private emit(event: string, data: unknown): void {
     this.listeners.get(event)?.forEach(callback => callback(data));
   }
 

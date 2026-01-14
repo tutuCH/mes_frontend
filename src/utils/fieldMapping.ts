@@ -14,6 +14,9 @@ export const REALTIME_FIELD_MAP: Record<string, string> = {
   'T5': 'temp_5',
   'T6': 'temp_6',
   'T7': 'temp_7',      // Added: Temperature Zone 7
+  'T8': 'temp_8',
+  'T9': 'temp_9',
+  'T10': 'temp_10',
   'PR': 'pressure',
   'ASTS': 'auto_start', // Added: Auto Start flag
   'STS': 'status',
@@ -103,7 +106,8 @@ export const STATUS_MAP_REVERSE: Record<string, string> = Object.fromEntries(
  * Handles both MQTT format (nested Data object) and InfluxDB format (flat structure)
  */
 export function normalizeRealtimeData(wsData: RealtimeUpdateEvent): RealtimeDataPoint & { deviceId: string } {
-  const { deviceId, timestamp, Data } = wsData;
+  const { deviceId, timestamp } = wsData;
+  const mqttData: NonNullable<RealtimeUpdateEvent['Data']> = wsData.Data ?? {};
 
   const normalized: RealtimeDataPoint & { deviceId: string } = {
     deviceId,
@@ -124,6 +128,9 @@ export function normalizeRealtimeData(wsData: RealtimeUpdateEvent): RealtimeData
     if (influxData.temp_5 !== undefined) normalized.temp_5 = influxData.temp_5;
     if (influxData.temp_6 !== undefined) normalized.temp_6 = influxData.temp_6;
     if (influxData.temp_7 !== undefined) normalized.temp_7 = influxData.temp_7;
+    if (influxData.temp_8 !== undefined) normalized.temp_8 = influxData.temp_8;
+    if (influxData.temp_9 !== undefined) normalized.temp_9 = influxData.temp_9;
+    if (influxData.temp_10 !== undefined) normalized.temp_10 = influxData.temp_10;
     if (influxData.pressure !== undefined) normalized.pressure = influxData.pressure;
     if (influxData.cycle_time !== undefined) normalized.cycle_time = influxData.cycle_time;
     if (influxData.auto_start !== undefined) normalized.auto_start = influxData.auto_start;
@@ -131,19 +138,22 @@ export function normalizeRealtimeData(wsData: RealtimeUpdateEvent): RealtimeData
     if (influxData.operate_mode !== undefined) normalized.operate_mode = influxData.operate_mode;
   } else {
     // MQTT format - map MQTT field names to normalized format
-    if (Data.OT !== undefined) normalized.oil_temp = Data.OT;
-    if (Data.T1 !== undefined) normalized.temp_1 = Data.T1;
-    if (Data.T2 !== undefined) normalized.temp_2 = Data.T2;
-    if (Data.T3 !== undefined) normalized.temp_3 = Data.T3;
-    if (Data.T4 !== undefined) normalized.temp_4 = Data.T4;
-    if (Data.T5 !== undefined) normalized.temp_5 = Data.T5;
-    if (Data.T6 !== undefined) normalized.temp_6 = Data.T6;
-    if (Data.T7 !== undefined) normalized.temp_7 = Data.T7;
-    if (Data.PR !== undefined) normalized.pressure = Data.PR;
-    if (Data.ECYCT !== undefined) normalized.cycle_time = Data.ECYCT;
-    if (Data.ASTS !== undefined) normalized.auto_start = Data.ASTS;
-    if (Data.STS !== undefined) normalized.status = Data.STS;
-    if (Data.OPM !== undefined) normalized.operate_mode = Data.OPM;
+    if (mqttData.OT !== undefined) normalized.oil_temp = mqttData.OT;
+    if (mqttData.T1 !== undefined) normalized.temp_1 = mqttData.T1;
+    if (mqttData.T2 !== undefined) normalized.temp_2 = mqttData.T2;
+    if (mqttData.T3 !== undefined) normalized.temp_3 = mqttData.T3;
+    if (mqttData.T4 !== undefined) normalized.temp_4 = mqttData.T4;
+    if (mqttData.T5 !== undefined) normalized.temp_5 = mqttData.T5;
+    if (mqttData.T6 !== undefined) normalized.temp_6 = mqttData.T6;
+    if (mqttData.T7 !== undefined) normalized.temp_7 = mqttData.T7;
+    if (mqttData.T8 !== undefined) normalized.temp_8 = mqttData.T8;
+    if (mqttData.T9 !== undefined) normalized.temp_9 = mqttData.T9;
+    if (mqttData.T10 !== undefined) normalized.temp_10 = mqttData.T10;
+    if (mqttData.PR !== undefined) normalized.pressure = mqttData.PR;
+    if (mqttData.ECYCT !== undefined) normalized.cycle_time = mqttData.ECYCT;
+    if (mqttData.ASTS !== undefined) normalized.auto_start = mqttData.ASTS;
+    if (mqttData.STS !== undefined) normalized.status = mqttData.STS;
+    if (mqttData.OPM !== undefined) normalized.operate_mode = mqttData.OPM;
   }
 
   return normalized;
@@ -155,7 +165,8 @@ export function normalizeRealtimeData(wsData: RealtimeUpdateEvent): RealtimeData
  * Handles both MQTT format (nested Data object) and InfluxDB format (flat structure)
  */
 export function normalizeSPCData(wsData: SPCUpdateEvent): SPCDataPoint & { deviceId: string } {
-  const { deviceId, timestamp, Data } = wsData;
+  const { deviceId, timestamp } = wsData;
+  const mqttData = wsData.Data;
 
   const normalized: SPCDataPoint & { deviceId: string } = {
     deviceId,
@@ -190,30 +201,30 @@ export function normalizeSPCData(wsData: SPCUpdateEvent): SPCDataPoint & { devic
     if (influxData.temp_8 !== undefined) normalized.temp_8 = influxData.temp_8;
     if (influxData.temp_9 !== undefined) normalized.temp_9 = influxData.temp_9;
     if (influxData.temp_10 !== undefined) normalized.temp_10 = influxData.temp_10;
-  } else {
+  } else if (mqttData) {
     // MQTT format - map MQTT field names and parse strings to numbers
-    if (Data.CYCN !== undefined) normalized.cycle_number = parseFloat(Data.CYCN);
-    if (Data.ECYCT !== undefined) normalized.cycle_time = parseFloat(Data.ECYCT);
-    if (Data.EIVM !== undefined) normalized.injection_velocity_max = parseFloat(Data.EIVM);
-    if (Data.EIPM !== undefined) normalized.injection_pressure_max = parseFloat(Data.EIPM);
-    if (Data.ESIPT !== undefined) normalized.switch_pack_time = parseFloat(Data.ESIPT);
-    if (Data.ET1 !== undefined) normalized.temp_1 = parseFloat(Data.ET1);
-    if (Data.ET2 !== undefined) normalized.temp_2 = parseFloat(Data.ET2);
-    if (Data.ET3 !== undefined) normalized.temp_3 = parseFloat(Data.ET3);
+    if (mqttData.CYCN !== undefined) normalized.cycle_number = parseFloat(mqttData.CYCN);
+    if (mqttData.ECYCT !== undefined) normalized.cycle_time = parseFloat(mqttData.ECYCT);
+    if (mqttData.EIVM !== undefined) normalized.injection_velocity_max = parseFloat(mqttData.EIVM);
+    if (mqttData.EIPM !== undefined) normalized.injection_pressure_max = parseFloat(mqttData.EIPM);
+    if (mqttData.ESIPT !== undefined) normalized.switch_pack_time = parseFloat(mqttData.ESIPT);
+    if (mqttData.ET1 !== undefined) normalized.temp_1 = parseFloat(mqttData.ET1);
+    if (mqttData.ET2 !== undefined) normalized.temp_2 = parseFloat(mqttData.ET2);
+    if (mqttData.ET3 !== undefined) normalized.temp_3 = parseFloat(mqttData.ET3);
 
     // Parse and map optional InfluxDB fields
-    if (Data.ESIPP !== undefined) normalized.switch_pack_pressure = parseFloat(Data.ESIPP);
-    if (Data.ESIPS !== undefined) normalized.switch_pack_position = parseFloat(Data.ESIPS);
-    if (Data.EIPT !== undefined) normalized.injection_time = parseFloat(Data.EIPT);
-    if (Data.EPLST !== undefined) normalized.plasticizing_time = parseFloat(Data.EPLST);
-    if (Data.EPLSPM !== undefined) normalized.plasticizing_pressure_max = parseFloat(Data.EPLSPM);
-    if (Data.ET4 !== undefined) normalized.temp_4 = parseFloat(Data.ET4);
-    if (Data.ET5 !== undefined) normalized.temp_5 = parseFloat(Data.ET5);
-    if (Data.ET6 !== undefined) normalized.temp_6 = parseFloat(Data.ET6);
-    if (Data.ET7 !== undefined) normalized.temp_7 = parseFloat(Data.ET7);
-    if (Data.ET8 !== undefined) normalized.temp_8 = parseFloat(Data.ET8);
-    if (Data.ET9 !== undefined) normalized.temp_9 = parseFloat(Data.ET9);
-    if (Data.ET10 !== undefined) normalized.temp_10 = parseFloat(Data.ET10);
+    if (mqttData.ESIPP !== undefined) normalized.switch_pack_pressure = parseFloat(mqttData.ESIPP);
+    if (mqttData.ESIPS !== undefined) normalized.switch_pack_position = parseFloat(mqttData.ESIPS);
+    if (mqttData.EIPT !== undefined) normalized.injection_time = parseFloat(mqttData.EIPT);
+    if (mqttData.EPLST !== undefined) normalized.plasticizing_time = parseFloat(mqttData.EPLST);
+    if (mqttData.EPLSPM !== undefined) normalized.plasticizing_pressure_max = parseFloat(mqttData.EPLSPM);
+    if (mqttData.ET4 !== undefined) normalized.temp_4 = parseFloat(mqttData.ET4);
+    if (mqttData.ET5 !== undefined) normalized.temp_5 = parseFloat(mqttData.ET5);
+    if (mqttData.ET6 !== undefined) normalized.temp_6 = parseFloat(mqttData.ET6);
+    if (mqttData.ET7 !== undefined) normalized.temp_7 = parseFloat(mqttData.ET7);
+    if (mqttData.ET8 !== undefined) normalized.temp_8 = parseFloat(mqttData.ET8);
+    if (mqttData.ET9 !== undefined) normalized.temp_9 = parseFloat(mqttData.ET9);
+    if (mqttData.ET10 !== undefined) normalized.temp_10 = parseFloat(mqttData.ET10);
   }
 
   return normalized;
@@ -225,7 +236,9 @@ export function normalizeSPCData(wsData: SPCUpdateEvent): SPCDataPoint & { devic
 export function normalizeHistoryData(data: RealtimeDataPoint[]): RealtimeDataPoint[] {
   return data.map(point => ({
     ...point,
-    status: point.status ? (STATUS_MAP[point.status] || point.status) : undefined,
+    status: point.status !== undefined && point.status !== null
+      ? (STATUS_MAP[String(point.status)] || point.status)
+      : undefined,
   }));
 }
 

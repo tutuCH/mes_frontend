@@ -44,9 +44,9 @@ export function FactoryDialog({
   } = useForm<FactoryFormData>({
     defaultValues: {
       factoryName: factory.factoryName || '',
-      factoryIndex: factory.factoryIndex || 0,
-      width: factory.factoryWidth || 10,
-      height: factory.factoryHeight || 10,
+      factoryIndex: Number(factory.factoryIndex || 0),
+      width: Number(factory.factoryWidth || 10),
+      height: Number(factory.factoryHeight || 10),
     },
   })
 
@@ -55,9 +55,9 @@ export function FactoryDialog({
     if (open) {
       reset({
         factoryName: factory.factoryName || '',
-        factoryIndex: factory.factoryIndex || 0,
-        width: factory.factoryWidth || 10,
-        height: factory.factoryHeight || 10,
+        factoryIndex: Number(factory.factoryIndex || 0),
+        width: Number(factory.factoryWidth || 10),
+        height: Number(factory.factoryHeight || 10),
       })
     }
   }, [open, factory, reset])
@@ -98,8 +98,8 @@ export function FactoryDialog({
   }
 
   const validateFactorySize = (): boolean => {
-    const newWidth = watchedWidth
-    const newHeight = watchedHeight
+    const newWidth = watchedWidth || 0
+    const newHeight = watchedHeight || 0
     const totalCells = newWidth * newHeight
 
     // Check if factory can accommodate existing machines
@@ -125,7 +125,7 @@ export function FactoryDialog({
       if (isCreateMode) {
         await api.createFactory({
           factoryName: data.factoryName,
-          factoryIndex: '0',
+          factoryIndex: data.factoryIndex.toString(),
           width: data.width.toString(),
           height: data.height.toString(),
         })
@@ -187,7 +187,7 @@ export function FactoryDialog({
                     type="number"
                     min={1}
                     max={26}
-                    {...register('width', validationRules.width)}
+                    {...register('width', { ...validationRules.width, valueAsNumber: true })}
                     className={cn(errors.width && 'border-red-500')}
                   />
                   {errors.width && (
@@ -201,7 +201,7 @@ export function FactoryDialog({
                     id="height"
                     type="number"
                     min={1}
-                    {...register('height', validationRules.height)}
+                    {...register('height', { ...validationRules.height, valueAsNumber: true })}
                     className={cn(errors.height && 'border-red-500')}
                   />
                   {errors.height && (

@@ -10,10 +10,19 @@ const logger = createLogger('WSConnectionManager')
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting'
 
-type EventCallback = (data: unknown) => void
+type SocketEventName =
+  | 'realtime-update'
+  | 'spc-update'
+  | 'machine-alert'
+  | 'machine-status'
+  | 'alarm-update'
+  | 'subscription-confirmed'
+  | 'error'
+
+type EventCallback = (data: any) => void
 
 interface Subscription {
-  event: string
+  event: SocketEventName
   callback: EventCallback
   subscriberId: string
   component: string
@@ -22,7 +31,7 @@ interface Subscription {
 class WebSocketConnectionManager {
   private static instance: WebSocketConnectionManager | null = null
   private connectionPromise: Promise<void> | null = null
-  private subscriptions: Map<string, Set<Subscription>> = new Map()
+  private subscriptions: Map<SocketEventName, Set<Subscription>> = new Map()
   private subscriberIdCounter = 0
   private connectionStatus: ConnectionStatus = 'disconnected'
 
@@ -119,7 +128,7 @@ class WebSocketConnectionManager {
    * @param componentName - Name of the component subscribing (for debugging)
    * @returns Unsubscribe function
    */
-  subscribe(event: string, callback: EventCallback, componentName = 'Unknown'): () => void {
+  subscribe(event: SocketEventName, callback: EventCallback, componentName = 'Unknown'): () => void {
     const subscriberId = `${componentName}-${this.subscriberIdCounter++}`
 
     logger.debug('Subscribing to event:', event, 'for component:', componentName, 'id:', subscriberId)
@@ -161,7 +170,7 @@ class WebSocketConnectionManager {
    * @param event - Event name to unsubscribe from
    * @param subscriberId - ID of the subscriber to remove
    */
-  private unsubscribe(event: string, subscriberId: string): void {
+  private unsubscribe(event: SocketEventName, subscriberId: string): void {
     const eventSubscriptions = this.subscriptions.get(event)
     if (!eventSubscriptions) return
 
@@ -201,14 +210,14 @@ class WebSocketConnectionManager {
   /**
    * Get all subscriptions
    */
-  getSubscriptions(): Map<string, Set<Subscription>> {
+  getSubscriptions(): Map<SocketEventName, Set<Subscription>> {
     return new Map(this.subscriptions)
   }
 
   /**
    * Get subscription count for an event
    */
-  getSubscriptionCount(event: string): number {
+  getSubscriptionCount(event: SocketEventName): number {
     return this.subscriptions.get(event)?.size || 0
   }
 

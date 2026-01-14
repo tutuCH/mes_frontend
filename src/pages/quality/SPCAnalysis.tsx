@@ -55,7 +55,7 @@ export default function SPCAnalysis() {
 
   // Track if new data arrived (for visual indicator)
   const [newDataArrived, setNewDataArrived] = useState(false)
-  const newDataTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const newDataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function SPCAnalysis() {
       const newData = [...prev, {
         id: prev.length + 1,
         value: normalized.temp_1 || normalized.oil_temp || 0,
-        timestamp: normalized._time || normalized.time || payload.timestamp
+        timestamp: normalized.time || payload.timestamp
       }]
       return newData.slice(-50)  // Keep latest 50
     })
@@ -132,7 +132,7 @@ export default function SPCAnalysis() {
     if (activeTab === 'tech' || activeTab === 'realtime') {
       setRealtimeHistory(prev => {
         const newRow = {
-          _time: normalized._time || normalized.time || payload.timestamp,
+          _time: normalized.time || payload.timestamp,
           oil_temp: normalized.oil_temp,
           temp_1: normalized.temp_1,
           temp_2: normalized.temp_2,
@@ -180,7 +180,7 @@ export default function SPCAnalysis() {
       const newData = [...prev, {
         id: prev.length + 1,
         value: normalized.cycle_time || 0,
-        timestamp: normalized._time || normalized.time || payload.timestamp
+        timestamp: normalized.time || payload.timestamp
       }]
       return newData.slice(-50)  // Keep latest 50
     })
@@ -189,7 +189,7 @@ export default function SPCAnalysis() {
     if (activeTab === 'spc') {
       setSpcHistory(prev => {
         const newRow = {
-          _time: normalized._time || normalized.time || payload.timestamp,
+          _time: normalized.time || payload.timestamp,
           cycle_time: normalized.cycle_time,
           cycle_number: normalized.cycle_number,
           injection_velocity_max: normalized.injection_velocity_max,
@@ -246,8 +246,8 @@ export default function SPCAnalysis() {
     setIsSubscribed(true)
 
     // Listen for realtime and SPC updates using ref pattern
-    const realtimeHandler = (...args: any[]) => handleRealtimeUpdateRef.current(...args)
-    const spcHandler = (...args: any[]) => handleSPCUpdateRef.current(...args)
+    const realtimeHandler = (payload: RealtimeUpdateEvent) => handleRealtimeUpdateRef.current(payload)
+    const spcHandler = (payload: SPCUpdateEvent) => handleSPCUpdateRef.current(payload)
 
     socketService.on('realtime-update', realtimeHandler)
     socketService.on('spc-update', spcHandler)

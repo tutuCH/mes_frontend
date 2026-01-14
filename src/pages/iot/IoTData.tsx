@@ -18,16 +18,24 @@ export default function IoTData() {
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
     console.log('[IoTData] Received realtime-update:', payload)
 
-    // Extract device_id and _time from the data object
-    const deviceId = payload.data?.device_id || payload.deviceId
-    const timestamp = payload.data?._time || payload.timestamp || new Date().toISOString()
+    const rawData = (payload.data ?? {}) as Record<string, unknown>
+    const deviceId = (typeof rawData.device_id === 'string' ? rawData.device_id : undefined) || payload.deviceId
+    const timestamp = (typeof rawData._time === 'string' ? rawData._time : undefined)
+      || payload.timestamp
+      || new Date().toISOString()
+    const qos = rawData.qos !== undefined ? String(rawData.qos) : '0'
+    const retain = rawData.retain !== undefined ? String(rawData.retain) : 'false'
+    const topic = typeof rawData.topic === 'string' ? rawData.topic : 'realtime'
+    const payloadData = rawData.payload ?? (Object.keys(rawData).length > 0 ? rawData : payload.Data ?? {})
 
     // Convert WebSocket event to ParsedIoTMessage format
     const newMessage: ParsedIoTMessage = {
       deviceId: deviceId,
-      topic: payload.data?.topic || 'realtime',
+      topic,
       msgType: 'realtime',
-      payload: payload.data || {},
+      payload: payloadData,
+      qos,
+      retain,
       ts: timestamp,
     }
 
@@ -54,16 +62,24 @@ export default function IoTData() {
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
     console.log('[IoTData] Received spc-update:', payload)
 
-    // Extract device_id and _time from the data object
-    const deviceId = payload.data?.device_id || payload.deviceId
-    const timestamp = payload.data?._time || payload.timestamp || new Date().toISOString()
+    const rawData = (payload.data ?? {}) as Record<string, unknown>
+    const deviceId = (typeof rawData.device_id === 'string' ? rawData.device_id : undefined) || payload.deviceId
+    const timestamp = (typeof rawData._time === 'string' ? rawData._time : undefined)
+      || payload.timestamp
+      || new Date().toISOString()
+    const qos = rawData.qos !== undefined ? String(rawData.qos) : '0'
+    const retain = rawData.retain !== undefined ? String(rawData.retain) : 'false'
+    const topic = typeof rawData.topic === 'string' ? rawData.topic : 'spc'
+    const payloadData = rawData.payload ?? (Object.keys(rawData).length > 0 ? rawData : payload.Data ?? {})
 
     // Convert WebSocket event to ParsedIoTMessage format
     const newMessage: ParsedIoTMessage = {
       deviceId: deviceId,
-      topic: payload.data?.topic || 'spc',
+      topic,
       msgType: 'spc',
-      payload: payload.data || {},
+      payload: payloadData,
+      qos,
+      retain,
       ts: timestamp,
     }
 

@@ -53,7 +53,7 @@ function formatPrefix(level: LogLevel): string {
  * Logger class with environment-aware logging
  */
 class Logger {
-  private log(level: LogLevel, args: unknown[]): void {
+  private write(level: LogLevel, args: unknown[]): void {
     if (!shouldLog()) return
 
     const sanitizedArgs = args.map(sanitize)
@@ -64,17 +64,17 @@ class Logger {
 
   /** Standard log message */
   log(...args: unknown[]): void {
-    this.log('log', args)
+    this.write('log', args)
   }
 
   /** Info level message */
   info(...args: unknown[]): void {
-    this.log('info', args)
+    this.write('info', args)
   }
 
   /** Warning message */
   warn(...args: unknown[]): void {
-    this.log('warn', args)
+    this.write('warn', args)
   }
 
   /** Error message (always logged, even in production for errors) */
@@ -88,7 +88,7 @@ class Logger {
   /** Debug message (development only) */
   debug(...args: unknown[]): void {
     if (!isDevelopment) return
-    this.log('debug', args)
+    this.write('debug', args)
   }
 
   /**
@@ -103,7 +103,11 @@ class Logger {
  * Scoped logger with automatic prefix for specific modules
  */
 class ScopedLogger {
-  constructor(private scope: string) {}
+  private scope: string
+
+  constructor(scope: string) {
+    this.scope = scope
+  }
 
   private formatMessage(message: string): string {
     return `[${this.scope}] ${message}`

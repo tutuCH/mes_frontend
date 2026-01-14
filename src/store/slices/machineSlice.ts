@@ -59,7 +59,7 @@ export const fetchMachines = createAsyncThunk(
                 : 'manual',
               cycleCount: 0,
               efficiency: 0,
-              lastUpdate: historyData?._time ?? new Date().toISOString()
+              lastUpdate: historyData?.time ?? new Date().toISOString()
             }
 
             console.log(`[fetchMachines] Initialized machine ${machine.machineId}:`, {

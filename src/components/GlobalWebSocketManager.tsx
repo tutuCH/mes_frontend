@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { useRealtimeData } from '@/hooks/useRealtimeData'
 
 /**
@@ -13,7 +13,7 @@ import { useRealtimeData } from '@/hooks/useRealtimeData'
  * - Does NOT disconnect on unmount (connection persists across navigation)
  * - Handles WebSocket events for realtime updates
  */
-export function GlobalWebSocketManager({ children }: { children: React.ReactNode }) {
+export function GlobalWebSocketManager({ children }: { children: ReactNode }) {
   // Initialize WebSocket connection and fetch machines
   // This will run once when the app starts and persist across all pages
   useRealtimeData()

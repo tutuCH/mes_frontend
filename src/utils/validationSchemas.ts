@@ -61,7 +61,10 @@ export const machineNameSchema = z.string()
  */
 export const ipAddressSchema = z.string()
   .min(1, 'IP address is required')
-  .ip({ version: 'v4', message: 'Invalid IPv4 address' })
+  .regex(
+    /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/,
+    'Invalid IPv4 address'
+  )
 
 /**
  * Login request validation schema
@@ -175,7 +178,7 @@ export const createUserSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: nameSchema,
-  role: z.enum(['user', 'admin'], { required_error: 'Role is required' }),
+  role: z.enum(['user', 'admin'] as const),
   permissions: z.array(z.string()).optional(),
 })
 

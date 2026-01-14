@@ -212,11 +212,14 @@ export interface RealtimeDataPoint {
   temp_5?: number;
   temp_6?: number;
   temp_7?: number;      // Temperature Zone 7
+  temp_8?: number;      // Temperature Zone 8 (optional)
+  temp_9?: number;      // Temperature Zone 9 (optional)
+  temp_10?: number;     // Temperature Zone 10 (optional)
   pressure?: number;
   cycle_time?: number;
   auto_start?: number;  // Auto Start flag (0/1)
-  status?: number;      // Status (numeric code)
-  operate_mode?: number; // Operation Mode (numeric code)
+  status?: number | string;      // Status (numeric code or string)
+  operate_mode?: number | string; // Operation Mode (numeric code or string)
 }
 
 export interface RealtimeHistoryResponse {
@@ -307,7 +310,7 @@ export interface SubscribeMachinePayload {
 export interface RealtimeUpdateEvent {
   deviceId: string;
   timestamp: string;
-  Data: {
+  Data?: {
     OT?: number;    // Oil Temperature
     T1?: number;    // Temperature Zone 1
     T2?: number;    // Temperature Zone 2
@@ -316,18 +319,28 @@ export interface RealtimeUpdateEvent {
     T5?: number;    // Temperature Zone 5
     T6?: number;    // Temperature Zone 6
     T7?: number;    // Temperature Zone 7
+    T8?: number;    // Temperature Zone 8
+    T9?: number;    // Temperature Zone 9
+    T10?: number;   // Temperature Zone 10
     PR?: number;    // Pressure
     ASTS?: number;  // Auto Start (0/1)
     STS?: number;   // Status (numeric: 0=stopped, 1=idle, 2=running, 3=error, 4=maintenance)
     OPM?: number;   // Operation Mode (numeric: 1=manual, 2=semi-auto, 3=auto)
     ECYCT?: number; // Cycle Time
   };
+  data?: RealtimeDataPoint & {
+    device_id?: string;
+    _time?: string;
+    topic?: string;
+    qos?: string | number;
+    retain?: string | boolean;
+  };
 }
 
 export interface SPCUpdateEvent {
   deviceId: string;
   timestamp: string;
-  Data: {
+  Data?: {
     // REQUIRED FIELDS (always present)
     CYCN: string;      // Cycle Number
     ECYCT: string;     // Cycle Time
@@ -360,6 +373,13 @@ export interface SPCUpdateEvent {
     EMOS?: string;     // Motor Speed
     EISS?: string;     // Injection Speed
   };
+  data?: SPCDataPoint & {
+    device_id?: string;
+    _time?: string;
+    topic?: string;
+    qos?: string | number;
+    retain?: string | boolean;
+  };
 }
 
 export interface MachineAlertEvent {
@@ -374,6 +394,7 @@ export interface MachineStatusEvent {
   deviceId: string;
   status: 'running' | 'idle' | 'stopped' | 'error' | 'maintenance';
   timestamp: string;
+  source?: string;
 }
 
 // ============ API Error Types ============
@@ -493,4 +514,32 @@ export interface BillingDemoInfo {
   isDemo: true;
   message: string;
   demoPlans: BillingPlan[];
+}
+
+export interface Invoice {
+  id: string;
+  subscriptionId: string;
+  status: 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
+  amountDue: number;
+  amountPaid: number;
+  currency: string;
+  dueDate?: string;
+  periodStart: string;
+  periodEnd: string;
+  invoicePdf?: string;
+  hostedInvoiceUrl?: string;
+  created: string;
+}
+
+export interface UsageMetrics {
+  machines: {
+    used: number;
+    limit: number | null;
+  };
+  users: {
+    used: number;
+    limit: number | null;
+  };
+  periodStart: string;
+  periodEnd: string;
 }

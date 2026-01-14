@@ -15,7 +15,6 @@ import { FactoryDialog } from '@/components/factory/FactoryDialog'
 import { getNumericIndex } from '@/utils/gridUtils'
 import { useWebSocketStatus } from '@/hooks/useWebSocketStatus'
 import type { Factory } from '@/types/api'
-import type { MachineState } from '@/types/machine'
 
 export default function FactoryOverview() {
   const { t } = useTranslation()
