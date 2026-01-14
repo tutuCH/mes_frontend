@@ -200,6 +200,9 @@
   },
   "active": "2a5b23335086d113",
   "lastOpenFiles": [
+    "Security Audit Report.md",
+    "Google SSO Setup Guide.md",
+    "Backend API Specification - Authentication.md",
     "BACKEND_SECURITY_IMPLEMENTATION.md",
     "GCP_OAUTH_SETUP_GUIDE.md",
     "Settings Page Migration Specification.md",

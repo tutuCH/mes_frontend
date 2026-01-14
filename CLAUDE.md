@@ -154,4 +154,4 @@ Always import types from `@/types/api` when working with API/WebSocket data.
 
 ### Important Note
 - avoid using native emoji, use lucide-react icon instead
-- for all documents generation and retrieval, always do under the folder /MES Dashboard
+- for all documents generation and retrieval, always do under the folder /mesObsidianDocs
