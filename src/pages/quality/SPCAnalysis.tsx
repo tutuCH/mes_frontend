@@ -65,6 +65,17 @@ export default function SPCAnalysis() {
   }
   // ================================================
 
+  // ========== INGESTION THROTTLE (Task 3) ==========
+  // Throttle enqueue rate to reduce per-message allocations
+  const INGESTION_THROTTLE_MS = 250 // Enqueue at most every 250ms
+  const lastRealtimeIngestRef = useRef<number>(Date.now())
+  const lastSpcIngestRef = useRef<number>(Date.now())
+  const pendingRealtimePayloadRef = useRef<RealtimeUpdateEvent | null>(null)
+  const pendingSpcPayloadRef = useRef<SPCUpdateEvent | null>(null)
+  const realtimeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const spcTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ================================================
+
   // Track if new data arrived (for visual indicator)
   const [newDataArrived, setNewDataArrived] = useState(false)
   const newDataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -202,11 +213,17 @@ export default function SPCAnalysis() {
       if (newDataTimeoutRef.current) {
         clearTimeout(newDataTimeoutRef.current)
       }
+      if (realtimeTimerRef.current) {
+        clearTimeout(realtimeTimerRef.current)
+      }
+      if (spcTimerRef.current) {
+        clearTimeout(spcTimerRef.current)
+      }
       throttledProcessQueue.cancel?.()
     }
   }, [throttledProcessQueue])
 
-  // WebSocket handlers for real-time updates
+  // WebSocket handlers for real-time updates (with ingestion throttle - Task 3)
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
     // Skip if paused
     if (isPaused) return
@@ -214,50 +231,37 @@ export default function SPCAnalysis() {
     // Only process if it's for the selected machine
     if (payload.deviceId !== selectedMachine?.name) return
 
-    // Normalize data
-    const normalized = normalizeRealtimeData(payload)
-
-    // Queue the updates using bounded push (Task 2)
-    pushBounded(
-      updateQueueRef.current.chartRealtime,
-      {
-        id: updateQueueRef.current.chartRealtime.length + 1,
-        value: normalized.temp_1 || normalized.oil_temp || 0,
-        timestamp: normalized.time || payload.timestamp
-      },
-      MAX_QUEUE_SIZE
-    )
-
-    // Queue table update if on relevant tab
-    if (activeTab === 'tech' || activeTab === 'realtime') {
+    // Process function (inlined to avoid circular dependency)
+    const processRealtime = () => {
+      const p = pendingRealtimePayloadRef.current
+      if (!p) return
+      const normalized = normalizeRealtimeData(p)
       pushBounded(
-        updateQueueRef.current.tableRealtime,
-        {
-          _time: normalized.time || payload.timestamp,
-          oil_temp: normalized.oil_temp,
-          temp_1: normalized.temp_1,
-          temp_2: normalized.temp_2,
-          temp_3: normalized.temp_3,
-          temp_4: normalized.temp_4,
-          temp_5: normalized.temp_5,
-          temp_6: normalized.temp_6,
-          temp_7: normalized.temp_7,
-          temp_8: normalized.temp_8,
-          temp_9: normalized.temp_9,
-          temp_10: normalized.temp_10,
-          pressure: normalized.pressure,
-          cycle_time: normalized.cycle_time
-        },
+        updateQueueRef.current.chartRealtime,
+        { id: updateQueueRef.current.chartRealtime.length + 1, value: normalized.temp_1 || normalized.oil_temp || 0, timestamp: normalized.time || p.timestamp },
         MAX_QUEUE_SIZE
       )
+      if (activeTab === 'tech' || activeTab === 'realtime') {
+        pushBounded(updateQueueRef.current.tableRealtime, { _time: normalized.time || p.timestamp, oil_temp: normalized.oil_temp, temp_1: normalized.temp_1, temp_2: normalized.temp_2, temp_3: normalized.temp_3, temp_4: normalized.temp_4, temp_5: normalized.temp_5, temp_6: normalized.temp_6, temp_7: normalized.temp_7, temp_8: normalized.temp_8, temp_9: normalized.temp_9, temp_10: normalized.temp_10, pressure: normalized.pressure, cycle_time: normalized.cycle_time }, MAX_QUEUE_SIZE)
+      }
+      updateQueueRef.current.lastUpdate = new Date(p.timestamp)
+      pendingRealtimePayloadRef.current = null
+      throttledProcessQueue()
     }
 
-    // Queue timestamp update
-    updateQueueRef.current.lastUpdate = new Date(payload.timestamp)
+    // Store latest payload
+    pendingRealtimePayloadRef.current = payload
+    const now = Date.now()
+    const timeSinceLastIngest = now - lastRealtimeIngestRef.current
 
-    // Trigger throttled processing
-    throttledProcessQueue()
-  }, [selectedMachine?.name, activeTab, isPaused, throttledProcessQueue])
+    if (timeSinceLastIngest >= INGESTION_THROTTLE_MS) {
+      lastRealtimeIngestRef.current = now
+      processRealtime()
+    } else if (!realtimeTimerRef.current) {
+      const delay = INGESTION_THROTTLE_MS - timeSinceLastIngest
+      realtimeTimerRef.current = setTimeout(() => { lastRealtimeIngestRef.current = Date.now(); realtimeTimerRef.current = null; processRealtime() }, delay)
+    }
+  }, [selectedMachine?.name, isPaused, activeTab, throttledProcessQueue])
 
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
     // Skip if paused
@@ -266,57 +270,37 @@ export default function SPCAnalysis() {
     // Only process if it's for the selected machine
     if (payload.deviceId !== selectedMachine?.name) return
 
-    // Normalize the SPC data
-    const normalized = normalizeSPCData(payload)
-
-    // Queue the chart update using bounded push (Task 2)
-    pushBounded(
-      updateQueueRef.current.chartSpc,
-      {
-        id: updateQueueRef.current.chartSpc.length + 1,
-        value: normalized.cycle_time || 0,
-        timestamp: normalized.time || payload.timestamp
-      },
-      MAX_QUEUE_SIZE
-    )
-
-    // Queue table update if on SPC tab
-    if (activeTab === 'spc') {
+    // Process function (inlined to avoid circular dependency)
+    const processSpc = () => {
+      const p = pendingSpcPayloadRef.current
+      if (!p) return
+      const normalized = normalizeSPCData(p)
       pushBounded(
-        updateQueueRef.current.tableSpc,
-        {
-          _time: normalized.time || payload.timestamp,
-          cycle_time: normalized.cycle_time,
-          cycle_number: normalized.cycle_number,
-          injection_velocity_max: normalized.injection_velocity_max,
-          injection_pressure_max: normalized.injection_pressure_max,
-          injection_time: normalized.injection_time,
-          switch_pack_time: normalized.switch_pack_time,
-          switch_pack_pressure: normalized.switch_pack_pressure,
-          switch_pack_position: normalized.switch_pack_position,
-          plasticizing_time: normalized.plasticizing_time,
-          plasticizing_pressure_max: normalized.plasticizing_pressure_max,
-          temp_1: normalized.temp_1,
-          temp_2: normalized.temp_2,
-          temp_3: normalized.temp_3,
-          temp_4: normalized.temp_4,
-          temp_5: normalized.temp_5,
-          temp_6: normalized.temp_6,
-          temp_7: normalized.temp_7,
-          temp_8: normalized.temp_8,
-          temp_9: normalized.temp_9,
-          temp_10: normalized.temp_10,
-        },
+        updateQueueRef.current.chartSpc,
+        { id: updateQueueRef.current.chartSpc.length + 1, value: normalized.cycle_time || 0, timestamp: normalized.time || p.timestamp },
         MAX_QUEUE_SIZE
       )
+      if (activeTab === 'spc') {
+        pushBounded(updateQueueRef.current.tableSpc, { _time: normalized.time || p.timestamp, cycle_time: normalized.cycle_time, cycle_number: normalized.cycle_number, injection_velocity_max: normalized.injection_velocity_max, injection_pressure_max: normalized.injection_pressure_max, injection_time: normalized.injection_time, switch_pack_time: normalized.switch_pack_time, switch_pack_pressure: normalized.switch_pack_pressure, switch_pack_position: normalized.switch_pack_position, plasticizing_time: normalized.plasticizing_time, plasticizing_pressure_max: normalized.plasticizing_pressure_max, temp_1: normalized.temp_1, temp_2: normalized.temp_2, temp_3: normalized.temp_3, temp_4: normalized.temp_4, temp_5: normalized.temp_5, temp_6: normalized.temp_6, temp_7: normalized.temp_7, temp_8: normalized.temp_8, temp_9: normalized.temp_9, temp_10: normalized.temp_10 }, MAX_QUEUE_SIZE)
+      }
+      updateQueueRef.current.lastUpdate = new Date(p.timestamp)
+      pendingSpcPayloadRef.current = null
+      throttledProcessQueue()
     }
 
-    // Queue timestamp update
-    updateQueueRef.current.lastUpdate = new Date(payload.timestamp)
+    // Store latest payload
+    pendingSpcPayloadRef.current = payload
+    const now = Date.now()
+    const timeSinceLastIngest = now - lastSpcIngestRef.current
 
-    // Trigger throttled processing
-    throttledProcessQueue()
-  }, [selectedMachine?.name, activeTab, isPaused, throttledProcessQueue])
+    if (timeSinceLastIngest >= INGESTION_THROTTLE_MS) {
+      lastSpcIngestRef.current = now
+      processSpc()
+    } else if (!spcTimerRef.current) {
+      const delay = INGESTION_THROTTLE_MS - timeSinceLastIngest
+      spcTimerRef.current = setTimeout(() => { lastSpcIngestRef.current = Date.now(); spcTimerRef.current = null; processSpc() }, delay)
+    }
+  }, [selectedMachine?.name, isPaused, activeTab, throttledProcessQueue])
 
   // Use refs to stabilize WebSocket handlers (prevents re-subscription on callback changes)
   const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate)
