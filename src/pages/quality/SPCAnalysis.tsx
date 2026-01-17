@@ -54,6 +54,17 @@ export default function SPCAnalysis() {
   // Pause/resume real-time updates
   const [isPaused, setIsPaused] = useState(false)
 
+  // ========== BOUNDED QUEUE UTILITY (Task 2) ==========
+  // Fixed-size ring buffer to prevent unbounded queue growth
+  const MAX_QUEUE_SIZE = 100 // Maximum items per queue
+  function pushBounded<T>(buffer: T[], item: T, max: number): void {
+    if (buffer.length >= max) {
+      buffer.shift() // Remove oldest item
+    }
+    buffer.push(item)
+  }
+  // ================================================
+
   // Track if new data arrived (for visual indicator)
   const [newDataArrived, setNewDataArrived] = useState(false)
   const newDataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -206,31 +217,39 @@ export default function SPCAnalysis() {
     // Normalize data
     const normalized = normalizeRealtimeData(payload)
 
-    // Queue the updates instead of applying immediately
-    updateQueueRef.current.chartRealtime.push({
-      id: updateQueueRef.current.chartRealtime.length + 1,
-      value: normalized.temp_1 || normalized.oil_temp || 0,
-      timestamp: normalized.time || payload.timestamp
-    })
+    // Queue the updates using bounded push (Task 2)
+    pushBounded(
+      updateQueueRef.current.chartRealtime,
+      {
+        id: updateQueueRef.current.chartRealtime.length + 1,
+        value: normalized.temp_1 || normalized.oil_temp || 0,
+        timestamp: normalized.time || payload.timestamp
+      },
+      MAX_QUEUE_SIZE
+    )
 
     // Queue table update if on relevant tab
     if (activeTab === 'tech' || activeTab === 'realtime') {
-      updateQueueRef.current.tableRealtime.push({
-        _time: normalized.time || payload.timestamp,
-        oil_temp: normalized.oil_temp,
-        temp_1: normalized.temp_1,
-        temp_2: normalized.temp_2,
-        temp_3: normalized.temp_3,
-        temp_4: normalized.temp_4,
-        temp_5: normalized.temp_5,
-        temp_6: normalized.temp_6,
-        temp_7: normalized.temp_7,
-        temp_8: normalized.temp_8,
-        temp_9: normalized.temp_9,
-        temp_10: normalized.temp_10,
-        pressure: normalized.pressure,
-        cycle_time: normalized.cycle_time
-      })
+      pushBounded(
+        updateQueueRef.current.tableRealtime,
+        {
+          _time: normalized.time || payload.timestamp,
+          oil_temp: normalized.oil_temp,
+          temp_1: normalized.temp_1,
+          temp_2: normalized.temp_2,
+          temp_3: normalized.temp_3,
+          temp_4: normalized.temp_4,
+          temp_5: normalized.temp_5,
+          temp_6: normalized.temp_6,
+          temp_7: normalized.temp_7,
+          temp_8: normalized.temp_8,
+          temp_9: normalized.temp_9,
+          temp_10: normalized.temp_10,
+          pressure: normalized.pressure,
+          cycle_time: normalized.cycle_time
+        },
+        MAX_QUEUE_SIZE
+      )
     }
 
     // Queue timestamp update
@@ -250,38 +269,46 @@ export default function SPCAnalysis() {
     // Normalize the SPC data
     const normalized = normalizeSPCData(payload)
 
-    // Queue the chart update instead of applying immediately
-    updateQueueRef.current.chartSpc.push({
-      id: updateQueueRef.current.chartSpc.length + 1,
-      value: normalized.cycle_time || 0,
-      timestamp: normalized.time || payload.timestamp
-    })
+    // Queue the chart update using bounded push (Task 2)
+    pushBounded(
+      updateQueueRef.current.chartSpc,
+      {
+        id: updateQueueRef.current.chartSpc.length + 1,
+        value: normalized.cycle_time || 0,
+        timestamp: normalized.time || payload.timestamp
+      },
+      MAX_QUEUE_SIZE
+    )
 
     // Queue table update if on SPC tab
     if (activeTab === 'spc') {
-      updateQueueRef.current.tableSpc.push({
-        _time: normalized.time || payload.timestamp,
-        cycle_time: normalized.cycle_time,
-        cycle_number: normalized.cycle_number,
-        injection_velocity_max: normalized.injection_velocity_max,
-        injection_pressure_max: normalized.injection_pressure_max,
-        injection_time: normalized.injection_time,
-        switch_pack_time: normalized.switch_pack_time,
-        switch_pack_pressure: normalized.switch_pack_pressure,
-        switch_pack_position: normalized.switch_pack_position,
-        plasticizing_time: normalized.plasticizing_time,
-        plasticizing_pressure_max: normalized.plasticizing_pressure_max,
-        temp_1: normalized.temp_1,
-        temp_2: normalized.temp_2,
-        temp_3: normalized.temp_3,
-        temp_4: normalized.temp_4,
-        temp_5: normalized.temp_5,
-        temp_6: normalized.temp_6,
-        temp_7: normalized.temp_7,
-        temp_8: normalized.temp_8,
-        temp_9: normalized.temp_9,
-        temp_10: normalized.temp_10,
-      })
+      pushBounded(
+        updateQueueRef.current.tableSpc,
+        {
+          _time: normalized.time || payload.timestamp,
+          cycle_time: normalized.cycle_time,
+          cycle_number: normalized.cycle_number,
+          injection_velocity_max: normalized.injection_velocity_max,
+          injection_pressure_max: normalized.injection_pressure_max,
+          injection_time: normalized.injection_time,
+          switch_pack_time: normalized.switch_pack_time,
+          switch_pack_pressure: normalized.switch_pack_pressure,
+          switch_pack_position: normalized.switch_pack_position,
+          plasticizing_time: normalized.plasticizing_time,
+          plasticizing_pressure_max: normalized.plasticizing_pressure_max,
+          temp_1: normalized.temp_1,
+          temp_2: normalized.temp_2,
+          temp_3: normalized.temp_3,
+          temp_4: normalized.temp_4,
+          temp_5: normalized.temp_5,
+          temp_6: normalized.temp_6,
+          temp_7: normalized.temp_7,
+          temp_8: normalized.temp_8,
+          temp_9: normalized.temp_9,
+          temp_10: normalized.temp_10,
+        },
+        MAX_QUEUE_SIZE
+      )
     }
 
     // Queue timestamp update
