@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { hasPermission, hasRole, type Permission } from '@/utils/permissions'
 import { useSubscription } from '@/contexts/SubscriptionContext'
@@ -72,10 +73,14 @@ export function ProtectedRoute({
   const { canAccess, getSubscriptionStatus, isLoading: isSubscriptionLoading } = useSubscription()
   const location = useLocation()
 
-  // While checking authentication, show nothing (or a loader)
-  if (isLoading || (requireSubscription && isSubscriptionLoading)) {
+  // Task 7: Only block on initial auth load, not subscription refresh
+  // Subscription refresh should show a non-blocking overlay instead
+  if (isLoading && !user) {
     return null
   }
+
+  // If subscription is loading but we already have data, show children with overlay
+  const showSubscriptionRefreshOverlay = requireSubscription && isSubscriptionLoading && user
 
   // Check if authentication is required and user is not authenticated
   if (requireAuth && !user) {
@@ -89,7 +94,17 @@ export function ProtectedRoute({
 
     // If subscription is past_due, allow access with warning
     if (status === 'past_due') {
-      return <>{children}</>
+      return (
+        <>
+          {children}
+          {showSubscriptionRefreshOverlay && (
+            <div className="fixed top-4 right-4 z-50 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-lg flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Refreshing subscription...</span>
+            </div>
+          )}
+        </>
+      )
     }
 
     // Otherwise, redirect to subscription required page
@@ -98,7 +113,17 @@ export function ProtectedRoute({
 
   // If user is authenticated and no specific permission/role required, allow access
   if (!requiredPermission && !requiredRoles) {
-    return <>{children}</>
+    return (
+      <>
+        {children}
+        {showSubscriptionRefreshOverlay && (
+          <div className="fixed top-4 right-4 z-50 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-lg flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Refreshing subscription...</span>
+          </div>
+        )}
+      </>
+    )
   }
 
   // Check role-based access if requiredRoles is specified
@@ -106,7 +131,17 @@ export function ProtectedRoute({
     if (!hasRole(user?.role, requiredRoles)) {
       return <Navigate to={redirectTo} replace />
     }
-    return <>{children}</>
+    return (
+      <>
+        {children}
+        {showSubscriptionRefreshOverlay && (
+          <div className="fixed top-4 right-4 z-50 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-lg flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Refreshing subscription...</span>
+          </div>
+        )}
+      </>
+    )
   }
 
   // Check permission-based access if requiredPermission is specified
@@ -116,7 +151,17 @@ export function ProtectedRoute({
     }
   }
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      {showSubscriptionRefreshOverlay && (
+        <div className="fixed top-4 right-4 z-50 bg-background/80 backdrop-blur-sm border rounded-lg p-3 shadow-lg flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span className="text-sm">Refreshing subscription...</span>
+        </div>
+      )}
+    </>
+  )
 }
 
 /**
