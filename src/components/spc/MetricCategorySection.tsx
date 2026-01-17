@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { memo } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { SPCControlChart } from './SPCControlChart'
 
@@ -19,21 +19,22 @@ interface MetricCategorySectionProps {
   category: string
   metrics: Metric[]
   chartData: Record<string, ChartDataPoint[]>
-  defaultOpen?: boolean
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export const MetricCategorySection = memo(function MetricCategorySection({
   category,
   metrics,
   chartData,
-  defaultOpen = true
+  isOpen,
+  onOpenChange
 }: MetricCategorySectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
 
   return (
     <div className="border rounded-lg overflow-hidden">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => onOpenChange(!isOpen)}
         className="w-full px-4 py-3 bg-muted/50 hover:bg-muted/80 transition-colors flex items-center justify-between"
       >
         <div className="flex items-center gap-2">

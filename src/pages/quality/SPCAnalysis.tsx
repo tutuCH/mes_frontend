@@ -54,6 +54,25 @@ export default function SPCAnalysis() {
   // Pause/resume real-time updates
   const [isPaused, setIsPaused] = useState(false)
 
+  // ========== VISIBILITY-DRIVEN RECOMPUTE (Task 4) ==========
+  // Track which metric categories are expanded
+  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set(['Cycle', 'Injection', 'Pack/Hold', 'Plasticizing'])) // All except Temperature by default
+
+  const toggleCategoryOpen = useCallback((category: string) => {
+    setOpenCategories(prev => {
+      const next = new Set(prev)
+      if (next.has(category)) {
+        next.delete(category)
+      } else {
+        next.add(category)
+      }
+      return next
+    })
+  }, [])
+
+  const isCategoryOpen = useCallback((category: string) => openCategories.has(category), [openCategories])
+  // ==========================================================
+
   // ========== BOUNDED QUEUE UTILITY (Task 2) ==========
   // Fixed-size ring buffer to prevent unbounded queue growth
   const MAX_QUEUE_SIZE = 100 // Maximum items per queue
@@ -576,7 +595,7 @@ export default function SPCAnalysis() {
     }
   ], [t])
 
-  // Pre-compute all chart data to avoid redundant transformations in MetricCategorySection
+  // Pre-compute chart data only for visible categories (Task 4: Visibility-driven recompute)
   const chartDataByField = useMemo(() => {
     const dataMap: Record<string, any[]> = {}
 
@@ -606,8 +625,9 @@ export default function SPCAnalysis() {
         }))
     }
 
-    // Pre-compute data for all metrics
+    // ONLY pre-compute data for metrics in OPEN categories (Task 4)
     metricCategories.forEach(category => {
+      if (!openCategories.has(category.category)) return // Skip closed categories
       category.metrics.forEach(metric => {
         const history = metric.dataSource === 'spc' ? chartSpcHistory : chartRealtimeHistory
         dataMap[metric.field] = transformMetricData(history, metric.field)
@@ -615,7 +635,7 @@ export default function SPCAnalysis() {
     })
 
     return dataMap
-  }, [chartSpcHistory, chartRealtimeHistory, metricCategories])
+  }, [chartSpcHistory, chartRealtimeHistory, metricCategories, openCategories])
 
   return (
     <div className="space-y-6">
@@ -748,7 +768,8 @@ export default function SPCAnalysis() {
               category={cat.category}
               metrics={cat.metrics}
               chartData={chartDataByField}
-              defaultOpen={cat.defaultOpen}
+              isOpen={isCategoryOpen(cat.category)}
+              onOpenChange={() => toggleCategoryOpen(cat.category)}
             />
           ))}
         </div>
