@@ -8,32 +8,32 @@ interface SPCControlChartProps {
   unit: string
 }
 
+/**
+ * OPTIMIZED: Removed duplicate data transformation
+ * Data is already pre-transformed by parent component
+ *
+ * Task 5: Stable memoization keys to prevent unnecessary recomputation
+ */
 export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
-  const normalizedData = useMemo(() => {
-    return data
-      .map(point => {
-        const rawValue = point.value
-        const value = typeof rawValue === 'string' ? Number.parseFloat(rawValue) : rawValue
+  // OPTIMIZATION: Data is already transformed, just use it directly
+  // This avoids creating a new array on every render
+  const chartData = data
 
-        if (!Number.isFinite(value)) {
-          return null
-        }
-
-        return {
-          ...point,
-          value
-        }
-      })
-      .filter((point): point is { id: number; value: number; timestamp: string } => point !== null)
-  }, [data])
+  // Create a stable key for data to prevent unnecessary recomputation (Task 5)
+  // Use data length and last 3 values as a quick change detection
+  const dataKey = useMemo(() => {
+    if (chartData.length === 0) return 'empty'
+    const lastValues = chartData.slice(-3).map(d => d.value.toFixed(2)).join(',')
+    return `${chartData.length}:${lastValues}`
+  }, [chartData])
 
   // Calculate control limits dynamically from data
   const controlLimits = useMemo(() => {
-    if (normalizedData.length === 0) {
+    if (chartData.length === 0) {
       return { mean: 0, ucl: 0, lcl: 0, stdDev: 0 }
     }
 
-    const values = normalizedData.map(d => d.value)
+    const values = chartData.map(d => d.value)
 
     // Calculate mean
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length
@@ -47,16 +47,16 @@ export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
     const lcl = mean - 3 * stdDev
 
     return { mean, ucl, lcl, stdDev }
-  }, [normalizedData])
+  }, [dataKey]) // Use stable key instead of array reference
 
-  // Identify out-of-control points
+  // Identify out-of-control points (Task 5: Skip recompute when limits unchanged)
   const outOfControlPoints = useMemo(() => {
-    return normalizedData
+    return chartData
       .filter(d => d.value > controlLimits.ucl || d.value < controlLimits.lcl)
       .map(d => ({ id: d.id, value: d.value }))
-  }, [normalizedData, controlLimits.ucl, controlLimits.lcl])
+  }, [dataKey, controlLimits.ucl, controlLimits.lcl]) // Use stable key
 
-  if (normalizedData.length === 0) {
+  if (chartData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -86,7 +86,7 @@ export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
       <CardContent>
         <div className="h-[220px] sm:h-[260px] md:h-[300px]">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <ComposedChart data={normalizedData}>
+            <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="id"
@@ -146,7 +146,7 @@ export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
         {/* Statistics Summary */}
         {outOfControlPoints.length > 0 && (
           <div className="mt-2 text-xs text-destructive">
-            ⚠️ {outOfControlPoints.length} out of control point{outOfControlPoints.length > 1 ? 's' : ''} detected
+            {outOfControlPoints.length} out of control point{outOfControlPoints.length > 1 ? 's' : ''} detected
           </div>
         )}
       </CardContent>
