@@ -9,13 +9,31 @@ interface SPCControlChartProps {
 }
 
 export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
+  const normalizedData = useMemo(() => {
+    return data
+      .map(point => {
+        const rawValue = point.value
+        const value = typeof rawValue === 'string' ? Number.parseFloat(rawValue) : rawValue
+
+        if (!Number.isFinite(value)) {
+          return null
+        }
+
+        return {
+          ...point,
+          value
+        }
+      })
+      .filter((point): point is { id: number; value: number; timestamp: string } => point !== null)
+  }, [data])
+
   // Calculate control limits dynamically from data
   const controlLimits = useMemo(() => {
-    if (data.length === 0) {
+    if (normalizedData.length === 0) {
       return { mean: 0, ucl: 0, lcl: 0, stdDev: 0 }
     }
 
-    const values = data.map(d => d.value)
+    const values = normalizedData.map(d => d.value)
 
     // Calculate mean
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length
@@ -29,16 +47,16 @@ export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
     const lcl = mean - 3 * stdDev
 
     return { mean, ucl, lcl, stdDev }
-  }, [data])
+  }, [normalizedData])
 
   // Identify out-of-control points
   const outOfControlPoints = useMemo(() => {
-    return data
+    return normalizedData
       .filter(d => d.value > controlLimits.ucl || d.value < controlLimits.lcl)
       .map(d => ({ id: d.id, value: d.value }))
-  }, [data, controlLimits.ucl, controlLimits.lcl])
+  }, [normalizedData, controlLimits.ucl, controlLimits.lcl])
 
-  if (data.length === 0) {
+  if (normalizedData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -68,7 +86,7 @@ export function SPCControlChart({ title, data, unit }: SPCControlChartProps) {
       <CardContent>
         <div className="h-[220px] sm:h-[260px] md:h-[300px]">
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <ComposedChart data={data}>
+            <ComposedChart data={normalizedData}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="id"

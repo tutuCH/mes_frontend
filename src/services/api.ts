@@ -98,6 +98,30 @@ class ApiClient {
   private token: string | null = null;
   private csrfManager = new CSRFTokenManager();
 
+  /**
+   * Normalize subscription data from backend format to frontend format
+   * Handles field name mapping and timestamp conversion
+   */
+  private normalizeSubscription(data: any): BillingSubscription | null {
+    if (!data) return null;
+
+    return {
+      subscriptionId: data.id || data.subscriptionId,
+      status: data.status,
+      planId: data.plan?.id || data.planId,
+      currentPeriodEnd: data.currentPeriodEnd
+        ? new Date(data.currentPeriodEnd * 1000).toISOString()
+        : data.currentPeriodEnd,
+      cancelAtPeriodEnd: data.cancelAtPeriodEnd || false,
+      createdAt: data.currentPeriodStart
+        ? new Date(data.currentPeriodStart * 1000).toISOString()
+        : data.createdAt,
+      trialEnd: data.trialEnd
+        ? new Date(data.trialEnd * 1000).toISOString()
+        : data.trialEnd,
+    };
+  }
+
   setToken(token: string | null) {
     this.token = token;
     if (token) {
@@ -484,17 +508,31 @@ class ApiClient {
 
   // ============ Billing/Subscription Endpoints ============
 
-  async getCurrentSubscription(): Promise<BillingSubscription | BillingDemoInfo> {
-    return this.request<BillingSubscription | BillingDemoInfo>('/api/subscription/current');
+  async getCurrentSubscription(): Promise<BillingSubscription | BillingDemoInfo | null> {
+    const response = await this.request<{ subscription: BillingSubscription | BillingDemoInfo | null }>('/api/subscription/current');
+
+    if (response.subscription === null) {
+      return null;
+    }
+
+    if ('isDemo' in response.subscription) {
+      return response.subscription;
+    }
+
+    return this.normalizeSubscription(response.subscription);
   }
 
   async getBillingPlans(): Promise<BillingPlan[]> {
     const response = await this.request<{ plans: BillingPlan[] }>('/api/subscription/plans');
-    return response.plans;
+    return response.plans.map(plan => ({
+      ...plan,
+      planId: plan.planId || plan.id || '',
+    }));
   }
 
   async getPaymentMethods(): Promise<PaymentMethod[]> {
-    return this.request<PaymentMethod[]>('/api/subscription/payment-methods');
+    const response = await this.request<{ status: string; data: { payment_methods: PaymentMethod[] } }>('/api/subscription/payment-methods');
+    return response.data?.payment_methods || [];
   }
 
   async createCheckoutSession(data: CheckoutSessionRequest & {
@@ -502,7 +540,7 @@ class ApiClient {
     metadata?: Record<string, string>;
   }): Promise<CheckoutSessionResponse> {
     const body: Record<string, any> = {
-      planId: data.planId,
+      lookupKey: data.lookupKey,
       successUrl: data.successUrl,
       cancelUrl: data.cancelUrl,
     };
@@ -517,17 +555,19 @@ class ApiClient {
       body.metadata = data.metadata;
     }
 
-    return this.request<CheckoutSessionResponse>('/api/subscription/create-checkout-session', {
+    const response = await this.request<{ status: string; data: CheckoutSessionResponse }>('/api/subscription/create-checkout-session', {
       method: 'POST',
       body: JSON.stringify(body),
     });
+    return response.data;
   }
 
   async createPortalSession(data: PortalSessionRequest): Promise<PortalSessionResponse> {
-    return this.request<PortalSessionResponse>('/api/subscription/create-portal-session', {
+    const response = await this.request<{ status: string; data: PortalSessionResponse }>('/api/subscription/create-portal-session', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    return response.data;
   }
 
   async cancelBillingSubscription(subscriptionId: string): Promise<void> {

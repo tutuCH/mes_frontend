@@ -92,11 +92,6 @@ const machineSlice = createSlice({
 
       if (machineId && state.machines[machineId]) {
         state.machines[machineId] = { ...state.machines[machineId], ...data }
-        console.log('[updateMachineStatus] Updated machine:', {
-          machineId,
-          deviceId: deviceId || state.machines[machineId].deviceId,
-          data
-        })
       } else {
         console.warn('[updateMachineStatus] Machine not found:', {
           deviceId,

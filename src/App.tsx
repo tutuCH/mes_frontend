@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { AuthProvider } from "@/context/AuthContext"
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext"
 import { Suspense, lazy } from "react"
 import LoadingScreen from "@/components/ui/LoadingScreen"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
@@ -24,8 +25,7 @@ const SPCAnalysis = lazy(() => import("@/pages/quality/SPCAnalysis"))
 const AlarmList = lazy(() => import("@/pages/alarms/AlarmList"))
 const MaintenanceDashboard = lazy(() => import("@/pages/maintenance/MaintenanceDashboard"))
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"))
-const DeviceRegistry = lazy(() => import("@/pages/admin/DeviceRegistry"))
-const UserManagement = lazy(() => import("@/pages/admin/UserManagement"))
+const SubscriptionRequired = lazy(() => import("@/pages/subscription/SubscriptionRequired"))
 const IoTData = lazy(() => import("@/pages/iot/IoTData"))
 
 function App() {
@@ -34,7 +34,8 @@ function App() {
       <LanguageProvider>
         <ErrorBoundary>
           <AuthProvider>
-            <BrowserRouter>
+            <SubscriptionProvider>
+              <BrowserRouter>
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
                   {/* Auth pages OUTSIDE GlobalWebSocketManager - no WebSocket connection before auth */}
@@ -47,7 +48,7 @@ function App() {
 
                   {/* Protected routes INSIDE GlobalWebSocketManager - WebSocket connects after login */}
                   <Route path="/" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireSubscription>
                       <GlobalWebSocketManager>
                         <DashboardLayout />
                       </GlobalWebSocketManager>
@@ -59,20 +60,22 @@ function App() {
                     <Route path="alarms" element={<AlarmList />} />
                     <Route path="maintenance" element={<MaintenanceDashboard />} />
                     <Route path="settings" element={<SettingsPage />} />
-                    <Route path="admin/devices" element={<DeviceRegistry />} />
-                    <Route path="admin/users" element={<UserManagement />} />
                     <Route path="iot" element={<IoTData />} />
                   </Route>
 
-                  {/* Redirects for old admin routes to new settings page */}
-                  <Route path="/admin/users" element={<Navigate to="/settings?tab=users" replace />} />
-                  <Route path="/admin/devices" element={<Navigate to="/settings?tab=devices" replace />} />
+                  {/* Subscription required page - for redirects */}
+                  <Route path="/subscription-required" element={
+                    <ProtectedRoute>
+                      <SubscriptionRequired />
+                    </ProtectedRoute>
+                  } />
 
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>
               <Toaster position="top-right" theme="dark" richColors />
             </BrowserRouter>
+          </SubscriptionProvider>
           </AuthProvider>
         </ErrorBoundary>
       </LanguageProvider>

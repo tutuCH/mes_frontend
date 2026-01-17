@@ -27,3 +27,7 @@ dist-ssr
 .env*.local
 .env.production
 .env.development
+
+.claude
+.opencode
+mesObsidianDocs/

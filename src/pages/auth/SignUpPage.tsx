@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ZodError } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -14,6 +15,8 @@ import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 export default function SignUpPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const verificationToken = searchParams.get('token')
 
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
@@ -28,6 +31,12 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [serverError, setServerError] = useState('')
+
+  useEffect(() => {
+    if (verificationToken) {
+      navigate(`/verify-email?token=${verificationToken}`)
+    }
+  }, [navigate, verificationToken])
 
   const handleChange = (field: keyof SignUpFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -50,13 +59,13 @@ export default function SignUpPage() {
 
       setErrors({})
       return true
-    } catch (error: any) {
-      if (error.errors) {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         const newErrors: Partial<Record<keyof SignUpFormData, string>> = {}
-        error.errors.forEach((err: any) => {
-          const field = err.path[0] as keyof SignUpFormData
+        error.issues.forEach((issue) => {
+          const field = issue.path[0] as keyof SignUpFormData
           if (!newErrors[field]) {
-            newErrors[field] = err.message
+            newErrors[field] = issue.message
           }
         })
         setErrors(newErrors)

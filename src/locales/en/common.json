@@ -30,7 +30,8 @@
     "live": "Live",
     "pause": "Pause",
     "paused": "Paused",
-    "resume": "Resume"
+    "resume": "Resume",
+    "unlimited": "Unlimited"
   },
   "spc": {
     "title": "SPC Analysis",
@@ -134,6 +135,15 @@
     "gridColumns": "Grid columns",
     "gridRows": "Grid rows"
   },
+  "login": {
+    "failed": "Failed to sign in",
+    "title": "Sign in to MES",
+    "subtitle": "Enter your credentials to access the dashboard",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In"
+  },
   "factoryView": {
     "title": "Factory",
     "online": "Online",
@@ -201,6 +211,7 @@
   "machine": {
     "notFound": "Machine Not Found",
     "machine": "Machine",
+    "name": "Machine Name",
     "returnDashboard": "Return to Dashboard",
     "status": "Status",
     "id": "ID",
@@ -337,7 +348,22 @@
     "goBack": "Go Back",
     "invalidOrExpiredToken": "Invalid or Expired Token",
     "invalidOrExpiredTokenMessage": "This password reset link is invalid or has expired. Please request a new one.",
-    "failed": "Failed to sign in"
+    "failed": "Failed to sign in",
+    "signOut": "Sign Out",
+    "invalidResetLink": "This password reset link is invalid.",
+    "resetLinkExpired": "This password reset link has expired.",
+    "resetPasswordFailed": "Failed to reset password. Please try again.",
+    "passwordResetSuccess": "Password Reset!",
+    "passwordResetSuccessMessage": "Your password has been successfully reset. You can now sign in with your new password.",
+    "newPasswordPlaceholder": "Enter a new password",
+    "confirmNewPassword": "Confirm New Password",
+    "confirmNewPasswordPlaceholder": "Confirm your new password",
+    "resettingPassword": "Resetting password...",
+    "resetEmailSent": "Reset Link Sent!",
+    "resetEmailInstructions": "Check your email for the password reset link.",
+    "didntReceiveEmail": "Didn't receive the email?",
+    "tryAgain": "Try Again",
+    "sendingResetLink": "Sending reset link..."
   },
   "dashboard": {
     "title": "Factory Overview",
@@ -347,7 +373,7 @@
     "last24Hours": "Last 24 Hours"
   },
   "units": {
-    "celsius": "°C",
+    "celsius": "C",
     "bar": "bar",
     "seconds": "s",
     "millimeter": "mm",
@@ -425,6 +451,8 @@
       "currentPlanDescription": "Your active subscription and billing details",
       "availablePlans": "Available Plans",
       "plansDescription": "Choose a plan that fits your needs",
+      "viewPlans": "View Plans",
+      "upgradeNow": "Upgrade Now",
       "paymentMethods": "Payment Methods",
       "paymentMethodsDescription": "Manage your saved payment methods",
       "noActiveSubscription": "No active subscription",
@@ -524,7 +552,125 @@
         "invalid": "Invalid promo code",
         "expired": "Promo code has expired",
         "description": "Have a promo code? Enter it here"
-      }
+      },
+      "subscriptionRequired": {
+        "title": "Subscription Required",
+        "description": "You need an active subscription to access this feature.",
+        "viewPlans": "View Plans",
+        "currentPlan": "Current Plan",
+        "manageSubscription": "Manage Subscription"
+      },
+      "subscriptionGate": {
+        "title": "Upgrade Required",
+        "description": "The {{feature}} feature requires an active subscription.",
+        "currentPlan": "Your current plan",
+        "unlockMessage": "Upgrade to unlock premium features",
+        "viewPlans": "View All Plans",
+        "upgradeNow": "Upgrade Now"
+      },
+      "pastDue": {
+        "title": "Payment Failed",
+        "description": "We can't process your payment. Please update your payment method to continue accessing all features.",
+        "updatePayment": "Update Payment Method"
+      },
+      "planComparison": {
+        "title": "Compare Plans",
+        "description": "See what each plan offers",
+        "features": "Features",
+        "price": "Price"
+      },
+      "features": {
+        "realtimeMonitoring": "Real-time Monitoring",
+        "realtimeMonitoringDesc": "Monitor your machines in real-time with live data streams",
+        "spcAnalytics": "SPC Analytics",
+        "spcAnalyticsDesc": "Advanced statistical process control with detailed charts",
+        "unlimitedMachines": "Unlimited Machines",
+        "unlimitedMachinesDesc": "Connect and manage unlimited number of machines",
+        "advancedAlarm": "Advanced Alarm",
+        "advancedAlarmDesc": "Smart alarm system with AI-powered anomaly detection",
+        "historicalData": "Historical Data",
+        "historicalDataDesc": "Access years of historical production and performance data",
+        "apiAccess": "API Access",
+        "apiAccessDesc": "Full REST API access for custom integrations",
+        "prioritySupport": "Priority Support",
+        "prioritySupportDesc": "24/7 dedicated support with guaranteed response times"
+      },
+      "manageSubscription": "Manage Subscription"
+    }
+  },
+  "iotMessageLog": {
+    "title": "IoT Message Log",
+    "description": "Real-time stream of IoT messages from connected devices",
+    "searchPlaceholder": "Search device, topic, or payload...",
+    "showingMessages": "Showing {{count}} messages",
+    "tableHeaders": {
+      "timestamp": "Timestamp",
+      "deviceId": "Device ID",
+      "type": "Type",
+      "topic": "Topic",
+      "payload": "Payload"
+    },
+    "noResults": "No results found.",
+    "pagination": {
+      "pageOf": "Page {{current}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  },
+  "deviceRegistry": {
+    "title": "Device Registry",
+    "subtitle": "Manage connected machines and IoT gateways",
+    "addDevice": "Add Device",
+    "registeredDevices": "Registered Devices",
+    "searchPlaceholder": "Search devices...",
+    "loadFailed": "Failed to load devices",
+    "retry": "Retry",
+    "tableHeaders": {
+      "id": "ID",
+      "name": "Name",
+      "factory": "Factory",
+      "ipAddress": "IP Address",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "noDevices": "No devices found",
+    "noDevicesMatch": "No devices match your search",
+    "statusUnknown": "unknown",
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "addDialog": {
+      "title": "Add New Device",
+      "description": "Register a new machine or IoT device.",
+      "deviceName": "Device Name",
+      "deviceNamePlaceholder": "Enter device name",
+      "deviceId": "Device ID",
+      "deviceIdPlaceholder": "e.g., M-001",
+      "ipAddress": "IP Address",
+      "ipAddressPlaceholder": "e.g., 192.168.1.101",
+      "factory": "Factory",
+      "selectFactory": "Select factory",
+      "cancel": "Cancel",
+      "submit": "Add Device"
+    },
+    "editDialog": {
+      "title": "Edit Device",
+      "description": "Update device information.",
+      "deviceName": "Device Name",
+      "deviceNamePlaceholder": "Enter device name",
+      "deviceId": "Device ID",
+      "deviceIdPlaceholder": "e.g., M-001",
+      "ipAddress": "IP Address",
+      "ipAddressPlaceholder": "e.g., 192.168.1.101",
+      "cancel": "Cancel",
+      "submit": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Delete Device",
+      "confirm": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete"
     }
   }
 }

@@ -30,7 +30,8 @@
     "live": "实时",
     "pause": "暂停",
     "paused": "已暂停",
-    "resume": "继续"
+    "resume": "继续",
+    "unlimited": "Unlimited"
   },
   "spc": {
     "title": "SPC 分析",
@@ -201,6 +202,7 @@
   "machine": {
     "notFound": "未找到机台",
     "machine": "机台",
+    "name": "Name",
     "returnDashboard": "返回仪表板",
     "status": "状态",
     "id": "ID",
@@ -244,11 +246,21 @@
       "viewer": "查看者"
     }
   },
+  "login": {
+    "failed": "Login failed",
+    "title": "Sign in",
+    "subtitle": "Enter your credentials to access your account",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign in"
+  },
   "auth": {
     "title": "登录 MES",
     "subtitle": "输入您的凭据以访问仪表板",
     "signUp": "注册",
     "signIn": "登录",
+    "signOut": "Sign out",
     "createAccount": "创建账户",
     "createAccountSubtitle": "输入您的信息以开始使用",
     "signUpSubtitle": "输入您的信息以开始使用",
@@ -261,10 +273,15 @@
     "email": "电子邮件",
     "password": "密码",
     "newPassword": "新密码",
+    "newPasswordPlaceholder": "New password",
     "confirmPassword": "确认密码",
+    "confirmNewPassword": "Confirm new password",
+    "confirmNewPasswordPlaceholder": "Confirm new password",
     "sendResetLink": "发送重置链接",
     "sending": "发送中...",
+    "sendingResetLink": "Sending reset link...",
     "resetting": "重置中...",
+    "resettingPassword": "Resetting password...",
     "creatingAccount": "创建账户中...",
     "signingIn": "登录中...",
     "alreadyHaveAccount": "已有账户？",
@@ -333,6 +350,15 @@
     "goBack": "返回",
     "invalidOrExpiredToken": "无效或已过期的令牌",
     "invalidOrExpiredTokenMessage": "此密码重置链接无效或已过期。请重新申请。",
+    "invalidResetLink": "Invalid reset link",
+    "resetLinkExpired": "Reset link expired",
+    "resetPasswordFailed": "Reset password failed",
+    "passwordResetSuccess": "Password reset successfully",
+    "passwordResetSuccessMessage": "Your password has been reset successfully. You can now sign in with your new password.",
+    "resetEmailSent": "Reset email sent",
+    "resetEmailInstructions": "If an account exists for {{email}}, you will receive a reset link shortly.",
+    "didntReceiveEmail": "Didn't receive the email?",
+    "tryAgain": "Try again",
     "failed": "登录失败"
   },
   "dashboard": {
@@ -470,7 +496,127 @@
       },
       "periodEnd": "周期结束：{{date}}",
       "trialEnd": "试用结束：{{date}}",
-      "renewalDate": "下次计费日期：{{date}}"
+      "renewalDate": "下次计费日期：{{date}}",
+      "subscriptionRequired": {
+        "title": "需要订阅",
+        "description": "您需要有效订阅才能访问此功能。",
+        "viewPlans": "查看方案",
+        "currentPlan": "当前方案",
+        "manageSubscription": "管理订阅"
+      },
+      "subscriptionGate": {
+        "title": "需要升级",
+        "description": "{{feature}} 功能需要有效订阅。",
+        "currentPlan": "您的当前方案",
+        "unlockMessage": "升级以解锁高级功能",
+        "viewPlans": "查看所有方案",
+        "upgradeNow": "立即升级"
+      },
+      "pastDue": {
+        "title": "付款失败",
+        "description": "我们无法处理您的付款。请更新付款方式以继续使用所有功能。",
+        "updatePayment": "更新付款方式"
+      },
+      "planComparison": {
+        "title": "方案对比",
+        "description": "查看各方案提供的内容",
+        "features": "功能",
+        "price": "价格"
+      },
+      "features": {
+        "realtimeMonitoring": "实时监控",
+        "realtimeMonitoringDesc": "通过实时数据流监控您的机器",
+        "spcAnalytics": "SPC 分析",
+        "spcAnalyticsDesc": "具有详细图表的高级统计过程控制",
+        "unlimitedMachines": "无限机器",
+        "unlimitedMachinesDesc": "连接和管理无限数量的机器",
+        "advancedAlarm": "高级警报",
+        "advancedAlarmDesc": "具有AI异常检测的智能警报系统",
+        "historicalData": "历史数据",
+        "historicalDataDesc": "访问多年的生产和性能数据",
+        "apiAccess": "API 访问",
+        "apiAccessDesc": "用于自定义集成的完整 REST API 访问",
+        "prioritySupport": "优先支持",
+        "prioritySupportDesc": "24/7 专属支持，保证响应时间"
+      },
+      "manageSubscription": "管理订阅",
+      "viewPlans": "View plans",
+      "upgradeNow": "Upgrade now"
+    }
+  },
+  "iotMessageLog": {
+    "title": "IoT 消息日志",
+    "description": "来自连接设备的实时 IoT 消息流",
+    "searchPlaceholder": "搜索设备、主题或载荷...",
+    "showingMessages": "显示 {{count}} 条消息",
+    "tableHeaders": {
+      "timestamp": "时间戳",
+      "deviceId": "设备 ID",
+      "type": "类型",
+      "topic": "主题",
+      "payload": "载荷"
+    },
+    "noResults": "未找到结果。",
+    "pagination": {
+      "pageOf": "第 {{current}} 页，共 {{total}} 页",
+      "previous": "上一页",
+      "next": "下一页"
+    }
+  },
+  "deviceRegistry": {
+    "title": "设备注册表",
+    "subtitle": "管理连接的机器和 IoT 网关",
+    "addDevice": "添加设备",
+    "registeredDevices": "已注册设备",
+    "searchPlaceholder": "搜索设备...",
+    "loadFailed": "加载设备失败",
+    "retry": "重试",
+    "tableHeaders": {
+      "id": "ID",
+      "name": "名称",
+      "factory": "工厂",
+      "ipAddress": "IP 地址",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "noDevices": "未找到设备",
+    "noDevicesMatch": "没有符合您搜索条件的设备",
+    "statusUnknown": "未知",
+    "actions": {
+      "edit": "编辑",
+      "delete": "删除"
+    },
+    "addDialog": {
+      "title": "添加设备",
+      "description": "注册新的机器或 IoT 设备。",
+      "deviceName": "设备名称",
+      "deviceNamePlaceholder": "输入设备名称",
+      "deviceId": "设备 ID",
+      "deviceIdPlaceholder": "例如：M-001",
+      "ipAddress": "IP 地址",
+      "ipAddressPlaceholder": "例如：192.168.1.101",
+      "factory": "工厂",
+      "selectFactory": "选择工厂",
+      "cancel": "取消",
+      "submit": "添加设备"
+    },
+    "editDialog": {
+      "title": "编辑设备",
+      "description": "更新设备信息。",
+      "deviceName": "设备名称",
+      "deviceNamePlaceholder": "输入设备名称",
+      "deviceId": "设备 ID",
+      "deviceIdPlaceholder": "例如：M-001",
+      "ipAddress": "IP 地址",
+      "ipAddressPlaceholder": "例如：192.168.1.101",
+      "cancel": "取消",
+      "submit": "保存更改"
+    },
+    "deleteDialog": {
+      "title": "删除设备",
+      "confirm": "确定要删除 {{name}} 吗？此操作无法撤销。",
+      "cancel": "取消",
+      "confirmDelete": "删除"
     }
   }
 }

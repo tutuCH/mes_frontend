@@ -72,7 +72,7 @@ export const createCheckoutSession = createAsyncThunk(
   'payment/createCheckoutSession',
   async (
     args: {
-      planId: string
+      lookupKey: string
       successUrl: string
       cancelUrl: string
       idempotencyKey?: string
@@ -82,7 +82,7 @@ export const createCheckoutSession = createAsyncThunk(
   ) => {
     try {
       const session = await api.createCheckoutSession({
-        planId: args.planId,
+        lookupKey: args.lookupKey,
         successUrl: args.successUrl,
         cancelUrl: args.cancelUrl,
       })

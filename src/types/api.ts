@@ -469,6 +469,7 @@ export interface BillingSubscription {
 
 export interface BillingPlan {
   planId: string;
+  id?: string;
   name: string;
   description: string;
   price: number;
@@ -491,11 +492,11 @@ export interface PaymentMethod {
   createdAt: string;
 }
 
-export interface CheckoutSessionRequest {
-  planId: string;
-  successUrl: string;
-  cancelUrl: string;
-}
+  export interface CheckoutSessionRequest {
+    lookupKey: string;
+    successUrl: string;
+    cancelUrl: string;
+  }
 
 export interface CheckoutSessionResponse {
   sessionId: string;

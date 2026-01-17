@@ -91,8 +91,15 @@ export function PaymentSettingsTab() {
     if (!selectedPlan) return
     setIsRedirecting(true)
     try {
+      const lookupKey = selectedPlan.planId || selectedPlan.id
+      if (!lookupKey) {
+        toast.error(t('settings.payment.checkoutFailed'))
+        setIsRedirecting(false)
+        return
+      }
+
       const session = await api.createCheckoutSession({
-        planId: selectedPlan.planId,
+        lookupKey,
         successUrl: `${window.location.origin}/settings?payment=success`,
         cancelUrl: `${window.location.origin}/settings?payment=canceled`,
       })
@@ -259,7 +266,7 @@ export function PaymentSettingsTab() {
               </div>
             </CardHeader>
             <CardContent>
-              {!isDemoMode && subscription && currentPlan ? (
+              {!isDemoMode && subscription && ['active', 'trialing'].includes(subscription.status) && currentPlan ? (
                 <div className="space-y-4">
                   <div className="flex items-baseline gap-2">
                     <span className="text-3xl font-bold">${currentPlan.price}</span>
@@ -346,6 +353,9 @@ export function PaymentSettingsTab() {
                     // Demo info - no active plan
                     if ('isDemo' in subscription) return false
 
+                    // Only consider plans "current" if subscription is active or trialing
+                    if (!['active', 'trialing'].includes(subscription.status)) return false
+
                     // Type guard passed - safe to access planId
                     const currentPlanId = subscription.planId
 
@@ -355,6 +365,7 @@ export function PaymentSettingsTab() {
                         currentPlanId,
                         checkingPlanId: plan.planId,
                         planName: plan.name,
+                        subscriptionStatus: subscription.status,
                         match: currentPlanId === plan.planId
                       })
                     }
@@ -413,7 +424,7 @@ export function PaymentSettingsTab() {
                             </li>
                           ))}
                           {plan.maxMachines && (
-                            <li className="flex items-start gap-2 text-sm">
+                            <li key={`machines-${plan.planId}`} className="flex items-start gap-2 text-sm">
                               <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                               <span>
                                 {t('settings.payment.maxMachines', { count: plan.maxMachines })}
@@ -421,7 +432,7 @@ export function PaymentSettingsTab() {
                             </li>
                           )}
                           {plan.maxUsers && (
-                            <li className="flex items-start gap-2 text-sm">
+                            <li key={`users-${plan.planId}`} className="flex items-start gap-2 text-sm">
                               <CheckCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                               <span>
                                 {t('settings.payment.maxUsers', { count: plan.maxUsers })}

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +35,7 @@ import { api } from '@/services/api'
 import type { Machine, CreateMachineRequest, UpdateMachineRequest, Factory } from '@/types/api'
 
 export function DevicesSettingsTab() {
+  const { t } = useTranslation()
   const dispatch = useDispatch<AppDispatch>()
   const { factories, loading, error } = useSelector((state: RootState) => state.factories)
 
@@ -163,23 +165,23 @@ export function DevicesSettingsTab() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Device Registry</h2>
-          <p className="text-sm text-muted-foreground">Manage connected machines and IoT gateways</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('deviceRegistry.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('deviceRegistry.subtitle')}</p>
         </div>
         <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Device
+          {t('deviceRegistry.addDevice')}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <CardTitle>Registered Devices</CardTitle>
+            <CardTitle>{t('deviceRegistry.registeredDevices')}</CardTitle>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search devices..."
+                placeholder={t('deviceRegistry.searchPlaceholder')}
                 className="pl-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -194,9 +196,9 @@ export function DevicesSettingsTab() {
             </div>
           ) : error ? (
             <div className="text-center py-8 text-destructive">
-              <p>Failed to load devices</p>
+              <p>{t('deviceRegistry.loadFailed')}</p>
               <Button variant="outline" className="mt-2" onClick={() => dispatch(fetchFactoriesWithMachines())}>
-                Retry
+                {t('deviceRegistry.retry')}
               </Button>
             </div>
           ) : (
@@ -204,19 +206,19 @@ export function DevicesSettingsTab() {
               <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="whitespace-nowrap">ID</TableHead>
-                    <TableHead className="whitespace-nowrap">Name</TableHead>
-                    <TableHead className="whitespace-nowrap">Factory</TableHead>
-                    <TableHead className="whitespace-nowrap">IP Address</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.id')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.name')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.factory')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.ipAddress')}</TableHead>
+                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.status')}</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">{t('deviceRegistry.tableHeaders.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMachines.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        {searchQuery ? 'No devices match your search' : 'No devices found'}
+                        {searchQuery ? t('deviceRegistry.noDevicesMatch') : t('deviceRegistry.noDevices')}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -228,7 +230,7 @@ export function DevicesSettingsTab() {
                         <TableCell className="font-mono text-xs">{machine.machineIpAddress}</TableCell>
                         <TableCell>
                           <Badge variant={getStatusVariant(machine.status)}>
-                            {machine.status || 'unknown'}
+                            {machine.status || t('deviceRegistry.statusUnknown')}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -241,14 +243,14 @@ export function DevicesSettingsTab() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openEditDialog(machine)}>
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('deviceRegistry.actions.edit')}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => openDeleteDialog(machine)}
                                 className="text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                {t('deviceRegistry.actions.delete')}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -267,45 +269,45 @@ export function DevicesSettingsTab() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Device</DialogTitle>
-            <DialogDescription>Register a new machine or IoT device.</DialogDescription>
+            <DialogTitle>{t('deviceRegistry.addDialog.title')}</DialogTitle>
+            <DialogDescription>{t('deviceRegistry.addDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="machineName">Device Name</Label>
+              <Label htmlFor="machineName">{t('deviceRegistry.addDialog.deviceName')}</Label>
               <Input
                 id="machineName"
                 value={formData.machineName}
                 onChange={(e) => setFormData({ ...formData, machineName: e.target.value })}
-                placeholder="Enter device name"
+                placeholder={t('deviceRegistry.addDialog.deviceNamePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="machineIndex">Device ID</Label>
+              <Label htmlFor="machineIndex">{t('deviceRegistry.addDialog.deviceId')}</Label>
               <Input
                 id="machineIndex"
                 value={formData.machineIndex}
                 onChange={(e) => setFormData({ ...formData, machineIndex: e.target.value })}
-                placeholder="e.g., M-001"
+                placeholder={t('deviceRegistry.addDialog.deviceIdPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="machineIpAddress">IP Address</Label>
+              <Label htmlFor="machineIpAddress">{t('deviceRegistry.addDialog.ipAddress')}</Label>
               <Input
                 id="machineIpAddress"
                 value={formData.machineIpAddress}
                 onChange={(e) => setFormData({ ...formData, machineIpAddress: e.target.value })}
-                placeholder="e.g., 192.168.1.101"
+                placeholder={t('deviceRegistry.addDialog.ipAddressPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="factoryId">Factory</Label>
+              <Label htmlFor="factoryId">{t('deviceRegistry.addDialog.factory')}</Label>
               <Select
                 value={formData.factoryId?.toString() || ''}
                 onValueChange={(value) => setFormData({ ...formData, factoryId: parseInt(value) })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select factory" />
+                  <SelectValue placeholder={t('deviceRegistry.addDialog.selectFactory')} />
                 </SelectTrigger>
                 <SelectContent>
                   {factories.map((factory: Factory) => (
@@ -319,14 +321,14 @@ export function DevicesSettingsTab() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
+              {t('deviceRegistry.addDialog.cancel')}
             </Button>
             <Button
               onClick={handleAddMachine}
               disabled={isSubmitting || !formData.machineName || !formData.machineIpAddress || !formData.factoryId}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add Device
+              {t('deviceRegistry.addDialog.submit')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -336,45 +338,45 @@ export function DevicesSettingsTab() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Device</DialogTitle>
-            <DialogDescription>Update device information.</DialogDescription>
+            <DialogTitle>{t('deviceRegistry.editDialog.title')}</DialogTitle>
+            <DialogDescription>{t('deviceRegistry.editDialog.description')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-machineName">Device Name</Label>
+              <Label htmlFor="edit-machineName">{t('deviceRegistry.editDialog.deviceName')}</Label>
               <Input
                 id="edit-machineName"
                 value={formData.machineName}
                 onChange={(e) => setFormData({ ...formData, machineName: e.target.value })}
-                placeholder="Enter device name"
+                placeholder={t('deviceRegistry.editDialog.deviceNamePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-machineIndex">Device ID</Label>
+              <Label htmlFor="edit-machineIndex">{t('deviceRegistry.editDialog.deviceId')}</Label>
               <Input
                 id="edit-machineIndex"
                 value={formData.machineIndex}
                 onChange={(e) => setFormData({ ...formData, machineIndex: e.target.value })}
-                placeholder="e.g., M-001"
+                placeholder={t('deviceRegistry.editDialog.deviceIdPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-machineIpAddress">IP Address</Label>
+              <Label htmlFor="edit-machineIpAddress">{t('deviceRegistry.editDialog.ipAddress')}</Label>
               <Input
                 id="edit-machineIpAddress"
                 value={formData.machineIpAddress}
                 onChange={(e) => setFormData({ ...formData, machineIpAddress: e.target.value })}
-                placeholder="e.g., 192.168.1.101"
+                placeholder={t('deviceRegistry.editDialog.ipAddressPlaceholder')}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
+              {t('deviceRegistry.editDialog.cancel')}
             </Button>
             <Button onClick={handleEditMachine} disabled={isSubmitting || !formData.machineName}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
+              {t('deviceRegistry.editDialog.submit')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -384,18 +386,18 @@ export function DevicesSettingsTab() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Device</DialogTitle>
+            <DialogTitle>{t('deviceRegistry.deleteDialog.title')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedMachine?.machineName}? This action cannot be undone.
+              {t('deviceRegistry.deleteDialog.confirm', { name: selectedMachine?.machineName })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
+              {t('deviceRegistry.deleteDialog.cancel')}
             </Button>
             <Button variant="destructive" onClick={handleDeleteMachine} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete
+              {t('deviceRegistry.deleteDialog.confirmDelete')}
             </Button>
           </DialogFooter>
         </DialogContent>

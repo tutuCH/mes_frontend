@@ -69,7 +69,7 @@ export function usePaymentCheckout(): UsePaymentCheckoutReturn {
         // Create checkout session
         const result = await dispatch(
           createCheckoutSession({
-            planId: plan.planId,
+            lookupKey: plan.planId,
             successUrl,
             cancelUrl,
             idempotencyKey,

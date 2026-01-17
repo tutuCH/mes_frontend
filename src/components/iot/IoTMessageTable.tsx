@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ParsedIoTMessage } from '@/types/iot'
 import {
   Table,
@@ -23,6 +24,7 @@ interface IoTMessageTableProps {
 }
 
 export function IoTMessageTable({ data }: IoTMessageTableProps) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTab, setSelectedTab] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -79,14 +81,14 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search device, topic, or payload..."
+            placeholder={t('iotMessageLog.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
           />
         </div>
         <div className="text-sm text-muted-foreground">
-          Showing {filteredData.length} messages
+          {t('iotMessageLog.showingMessages', { count: filteredData.length })}
         </div>
       </div>
 
@@ -107,10 +109,10 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Database className="h-5 w-5 text-primary" />
-              IoT Message Log
+              {t('iotMessageLog.title')}
             </CardTitle>
             <CardDescription>
-              Real-time stream of IoT messages from connected devices
+              {t('iotMessageLog.description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -118,11 +120,11 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
               <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[140px] whitespace-nowrap">Timestamp</TableHead>
-                    <TableHead className="min-w-[100px] whitespace-nowrap">Device ID</TableHead>
-                    <TableHead className="min-w-[80px] whitespace-nowrap">Type</TableHead>
-                    <TableHead className="min-w-[150px] whitespace-nowrap">Topic</TableHead>
-                    <TableHead className="min-w-[200px]">Payload</TableHead>
+                    <TableHead className="min-w-[140px] whitespace-nowrap">{t('iotMessageLog.tableHeaders.timestamp')}</TableHead>
+                    <TableHead className="min-w-[100px] whitespace-nowrap">{t('iotMessageLog.tableHeaders.deviceId')}</TableHead>
+                    <TableHead className="min-w-[80px] whitespace-nowrap">{t('iotMessageLog.tableHeaders.type')}</TableHead>
+                    <TableHead className="min-w-[150px] whitespace-nowrap">{t('iotMessageLog.tableHeaders.topic')}</TableHead>
+                    <TableHead className="min-w-[200px]">{t('iotMessageLog.tableHeaders.payload')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -159,7 +161,7 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center">
-                        No results found.
+                        {t('iotMessageLog.noResults')}
                       </TableCell>
                     </TableRow>
                   )}
@@ -173,7 +175,7 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
         {filteredData.length > 0 && (
           <div className="flex items-center justify-end space-x-2 py-4">
             <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              {t('iotMessageLog.pagination.pageOf', { current: currentPage, total: totalPages })}
             </div>
             <div className="space-x-2">
               <Button
@@ -182,7 +184,7 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
-                Previous
+                {t('iotMessageLog.pagination.previous')}
               </Button>
               <Button
                 variant="outline"
@@ -190,7 +192,7 @@ export function IoTMessageTable({ data }: IoTMessageTableProps) {
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
               >
-                Next
+                {t('iotMessageLog.pagination.next')}
               </Button>
             </div>
           </div>

@@ -15,7 +15,7 @@ import { api } from '@/services/api'
 import { socketService } from '@/services/socket'
 import { formatLocaleTime, formatLocaleString } from '@/utils/dateUtils'
 import { exportSPCDataToExcel } from '@/utils/exportExcel'
-import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
+import { normalizeHistoryData, normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
@@ -91,11 +91,9 @@ export default function SPCAnalysis() {
           api.getRealtimeHistory(selectedMachineId, { limit: 50 })
         ])
 
-        console.log('[SPCAnalysis] Chart SPC History Response:', spcRes)
-        console.log('[SPCAnalysis] Chart Realtime History Response:', realtimeRes)
 
         setChartSpcHistory(spcRes.data)
-        setChartRealtimeHistory(realtimeRes.data)
+        setChartRealtimeHistory(normalizeHistoryData(realtimeRes.data))
         setLastDataUpdate(new Date())  // Track when data was last fetched
       } catch (error) {
         console.error('Failed to fetch chart data:', error)
@@ -310,7 +308,6 @@ export default function SPCAnalysis() {
       id: i + 1,
       value: d.temp_1
     }))
-    console.log('[SPCAnalysis] tempData transformed:', data.slice(0, 3))
     return data
   }, [chartRealtimeHistory])
 
@@ -511,14 +508,27 @@ export default function SPCAnalysis() {
     // Helper function to transform metric data
     const transformMetricData = (history: any[], field: string) => {
       return history
-        .filter(d => d[field] !== undefined && d[field] !== null)
-        .slice(0, 50) // Limit to 50 points
-        .map((d, i) => ({
+        .map((d) => {
+          const rawValue = d[field]
+          const value = typeof rawValue === 'string' ? Number.parseFloat(rawValue) : rawValue
+
+          if (!Number.isFinite(value)) {
+            return null
+          }
+
+          return {
+            value,
+            timestamp: d._time || d.time
+          }
+        })
+        .filter((point): point is { value: number; timestamp: string } => point !== null)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        .slice(-50) // Keep latest 50 points
+        .map((point, i) => ({
           id: i + 1,
-          value: d[field],
-          timestamp: d._time || d.time
+          value: point.value,
+          timestamp: point.timestamp
         }))
-        .reverse() // Show oldest to newest (chronological)
     }
 
     // Pre-compute data for all metrics

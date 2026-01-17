@@ -30,7 +30,8 @@
     "live": "即時",
     "pause": "暫停",
     "paused": "已暫停",
-    "resume": "繼續"
+    "resume": "繼續",
+    "unlimited": "Unlimited"
   },
   "spc": {
     "title": "SPC 分析",
@@ -134,6 +135,15 @@
     "gridColumns": "網格列數",
     "gridRows": "網格行數"
   },
+  "login": {
+    "failed": "Failed to sign in",
+    "title": "Sign in to MES",
+    "subtitle": "Enter your credentials to access the dashboard",
+    "email": "Email",
+    "password": "Password",
+    "signingIn": "Signing in...",
+    "signIn": "Sign In"
+  },
   "factoryView": {
     "title": "工廠",
     "online": "線上",
@@ -201,6 +211,7 @@
   "machine": {
     "notFound": "未找到機台",
     "machine": "機台",
+    "name": "Machine Name",
     "returnDashboard": "返回儀表板",
     "status": "狀態",
     "id": "ID",
@@ -337,7 +348,22 @@
     "goBack": "返回",
     "invalidOrExpiredToken": "無效或已過期的令牌",
     "invalidOrExpiredTokenMessage": "此密碼重設連結無效或已過期。請重新申請。",
-    "failed": "登入失敗"
+    "failed": "登入失敗",
+    "signOut": "Sign Out",
+    "invalidResetLink": "This password reset link is invalid.",
+    "resetLinkExpired": "This password reset link has expired.",
+    "resetPasswordFailed": "Failed to reset password. Please try again.",
+    "passwordResetSuccess": "Password Reset!",
+    "passwordResetSuccessMessage": "Your password has been successfully reset. You can now sign in with your new password.",
+    "newPasswordPlaceholder": "Enter a new password",
+    "confirmNewPassword": "Confirm New Password",
+    "confirmNewPasswordPlaceholder": "Confirm your new password",
+    "resettingPassword": "Resetting password...",
+    "resetEmailSent": "Reset Link Sent!",
+    "resetEmailInstructions": "Check your email for the password reset link.",
+    "didntReceiveEmail": "Didn't receive the email?",
+    "tryAgain": "Try Again",
+    "sendingResetLink": "Sending reset link..."
   },
   "dashboard": {
     "title": "工廠概覽",
@@ -425,6 +451,8 @@
       "currentPlanDescription": "您目前的訂閱和帳單詳細資訊",
       "availablePlans": "可用方案",
       "plansDescription": "選擇適合您需求的方案",
+      "viewPlans": "View Plans",
+      "upgradeNow": "Upgrade Now",
       "paymentMethods": "付款方式",
       "paymentMethodsDescription": "管理您已儲存的付款方式",
       "noActiveSubscription": "無有效訂閱",
@@ -474,7 +502,125 @@
       },
       "periodEnd": "週期結束：{{date}}",
       "trialEnd": "試用結束：{{date}}",
-      "renewalDate": "下次計費日期：{{date}}"
+      "renewalDate": "下次計費日期：{{date}}",
+      "subscriptionRequired": {
+        "title": "需要訂閱",
+        "description": "您需要有效訂閱才能存取此功能。",
+        "viewPlans": "查看方案",
+        "currentPlan": "目前方案",
+        "manageSubscription": "管理訂閱"
+      },
+      "subscriptionGate": {
+        "title": "需要升級",
+        "description": "{{feature}} 功能需要有效訂閱。",
+        "currentPlan": "您的目前方案",
+        "unlockMessage": "升級以解鎖進階功能",
+        "viewPlans": "查看所有方案",
+        "upgradeNow": "立即升級"
+      },
+      "pastDue": {
+        "title": "付款失敗",
+        "description": "我們無法處理您的付款。請更新付款方式以繼續使用所有功能。",
+        "updatePayment": "更新付款方式"
+      },
+      "planComparison": {
+        "title": "方案比較",
+        "description": "查看各方案提供的內容",
+        "features": "功能",
+        "price": "價格"
+      },
+      "features": {
+        "realtimeMonitoring": "即時監控",
+        "realtimeMonitoringDesc": "透過即時數據流監控您的機器",
+        "spcAnalytics": "SPC 分析",
+        "spcAnalyticsDesc": "具有詳細圖表的高級統計過程控制",
+        "unlimitedMachines": "無限機器",
+        "unlimitedMachinesDesc": "連接和管理無限數量的機器",
+        "advancedAlarm": "進階警報",
+        "advancedAlarmDesc": "具有AI 異常檢測的智能警報系統",
+        "historicalData": "歷史資料",
+        "historicalDataDesc": "存取多年的生產和效能資料",
+        "apiAccess": "API 存取",
+        "apiAccessDesc": "用於自訂集成的完整 REST API 存取",
+        "prioritySupport": "優先支援",
+        "prioritySupportDesc": "24/7 專屬支援，保證回應時間"
+      },
+      "manageSubscription": "管理訂閱"
+    }
+  },
+  "iotMessageLog": {
+    "title": "IoT 訊息日誌",
+    "description": "來自連接設備的即時 IoT 訊息串流",
+    "searchPlaceholder": "搜索設備、主題或承載資料...",
+    "showingMessages": "顯示 {{count}} 條訊息",
+    "tableHeaders": {
+      "timestamp": "時間戳",
+      "deviceId": "設備 ID",
+      "type": "類型",
+      "topic": "主題",
+      "payload": "承載資料"
+    },
+    "noResults": "未找到結果。",
+    "pagination": {
+      "pageOf": "第 {{current}} 頁，共 {{total}} 頁",
+      "previous": "上一頁",
+      "next": "下一頁"
+    }
+  },
+  "deviceRegistry": {
+    "title": "設備註冊表",
+    "subtitle": "管理連接的機器和 IoT 閘道器",
+    "addDevice": "新增設備",
+    "registeredDevices": "已註冊設備",
+    "searchPlaceholder": "搜索設備...",
+    "loadFailed": "載入設備失敗",
+    "retry": "重試",
+    "tableHeaders": {
+      "id": "ID",
+      "name": "名稱",
+      "factory": "工廠",
+      "ipAddress": "IP 位址",
+      "status": "狀態",
+      "actions": "操作"
+    },
+    "noDevices": "未找到設備",
+    "noDevicesMatch": "沒有符合您搜索條件的設備",
+    "statusUnknown": "未知",
+    "actions": {
+      "edit": "編輯",
+      "delete": "刪除"
+    },
+    "addDialog": {
+      "title": "新增設備",
+      "description": "註冊新的機器或 IoT 設備。",
+      "deviceName": "設備名稱",
+      "deviceNamePlaceholder": "輸入設備名稱",
+      "deviceId": "設備 ID",
+      "deviceIdPlaceholder": "例如：M-001",
+      "ipAddress": "IP 位址",
+      "ipAddressPlaceholder": "例如：192.168.1.101",
+      "factory": "工廠",
+      "selectFactory": "選擇工廠",
+      "cancel": "取消",
+      "submit": "新增設備"
+    },
+    "editDialog": {
+      "title": "編輯設備",
+      "description": "更新設備資訊。",
+      "deviceName": "設備名稱",
+      "deviceNamePlaceholder": "輸入設備名稱",
+      "deviceId": "設備 ID",
+      "deviceIdPlaceholder": "例如：M-001",
+      "ipAddress": "IP 位址",
+      "ipAddressPlaceholder": "例如：192.168.1.101",
+      "cancel": "取消",
+      "submit": "保存更改"
+    },
+    "deleteDialog": {
+      "title": "刪除設備",
+      "confirm": "確定要刪除 {{name}} 嗎？此操作無法撤銷。",
+      "cancel": "取消",
+      "confirmDelete": "刪除"
     }
   }
 }
