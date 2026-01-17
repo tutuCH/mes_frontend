@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react'
 import { useSelector } from 'react-redux'
 import { ControlChart } from '@/components/spc/ControlChart'
 import { MetricCategorySection } from '@/components/spc/MetricCategorySection'
@@ -18,6 +18,7 @@ import { exportSPCDataToExcel } from '@/utils/exportExcel'
 import { normalizeHistoryData, normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { throttle } from '@/utils/throttle'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 import { useTranslation } from 'react-i18next'
 
@@ -56,15 +57,6 @@ export default function SPCAnalysis() {
   // Track if new data arrived (for visual indicator)
   const [newDataArrived, setNewDataArrived] = useState(false)
   const newDataTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (newDataTimeoutRef.current) {
-        clearTimeout(newDataTimeoutRef.current)
-      }
-    }
-  }, [])
 
 
 
@@ -105,6 +97,104 @@ export default function SPCAnalysis() {
     fetchChartData()
   }, [selectedMachineId])
 
+  // Throttled state update queue to prevent memory crash
+  const updateQueueRef = useRef<{
+    chartSpc: any[]
+    chartRealtime: any[]
+    tableSpc: any[]
+    tableRealtime: any[]
+    lastUpdate: Date | null
+  }>({
+    chartSpc: [],
+    chartRealtime: [],
+    tableSpc: [],
+    tableRealtime: [],
+    lastUpdate: null
+  })
+
+  const isProcessingQueueRef = useRef(false)
+
+  // Process queued updates in batch (runs every 2 seconds max)
+  const processUpdateQueue = useCallback(() => {
+    if (isProcessingQueueRef.current) return
+    isProcessingQueueRef.current = true
+
+    const queue = updateQueueRef.current
+    const hasUpdates = queue.chartSpc.length > 0 ||
+                       queue.chartRealtime.length > 0 ||
+                       queue.tableSpc.length > 0 ||
+                       queue.tableRealtime.length > 0
+
+    if (hasUpdates) {
+      // Batch all state updates together to minimize re-renders
+      startTransition(() => {
+        if (queue.chartRealtime.length > 0) {
+          setChartRealtimeHistory(prev => {
+            const combined = [...prev, ...queue.chartRealtime].slice(-50)
+            return combined
+          })
+          queue.chartRealtime = []
+        }
+
+        if (queue.chartSpc.length > 0) {
+          setChartSpcHistory(prev => {
+            const combined = [...prev, ...queue.chartSpc].slice(-50)
+            return combined
+          })
+          queue.chartSpc = []
+        }
+
+        if (queue.tableRealtime.length > 0 && (activeTab === 'tech' || activeTab === 'realtime')) {
+          setRealtimeHistory(prev => {
+            return [...queue.tableRealtime, ...prev].slice(0, rowsPerPage)
+          })
+          queue.tableRealtime = []
+        }
+
+        if (queue.tableSpc.length > 0 && activeTab === 'spc') {
+          setSpcHistory(prev => {
+            return [...queue.tableSpc, ...prev].slice(0, rowsPerPage)
+          })
+          queue.tableSpc = []
+        }
+
+        if (queue.lastUpdate) {
+          setLastDataUpdate(queue.lastUpdate)
+          queue.lastUpdate = null
+        }
+
+        // Show visual indicator
+        setNewDataArrived(true)
+        if (newDataTimeoutRef.current) {
+          clearTimeout(newDataTimeoutRef.current)
+        }
+        newDataTimeoutRef.current = setTimeout(() => {
+          setNewDataArrived(false)
+        }, 1000)
+      })
+    }
+
+    isProcessingQueueRef.current = false
+  }, [activeTab, rowsPerPage])
+
+  // Throttle: Process queue at most every 2 seconds
+  const throttledProcessQueue = useMemo(
+    () => throttle(() => {
+      processUpdateQueue()
+    }, 2000),
+    [processUpdateQueue]
+  )
+
+  // Cleanup throttle and timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (newDataTimeoutRef.current) {
+        clearTimeout(newDataTimeoutRef.current)
+      }
+      throttledProcessQueue.cancel?.()
+    }
+  }, [throttledProcessQueue])
+
   // WebSocket handlers for real-time updates
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
     // Skip if paused
@@ -113,55 +203,42 @@ export default function SPCAnalysis() {
     // Only process if it's for the selected machine
     if (payload.deviceId !== selectedMachine?.name) return
 
-    // Normalize and append to chart data
+    // Normalize data
     const normalized = normalizeRealtimeData(payload)
 
-    // Update chart data with new point (keep latest 50 points)
-    setChartRealtimeHistory(prev => {
-      const newData = [...prev, {
-        id: prev.length + 1,
-        value: normalized.temp_1 || normalized.oil_temp || 0,
-        timestamp: normalized.time || payload.timestamp
-      }]
-      return newData.slice(-50)  // Keep latest 50
+    // Queue the updates instead of applying immediately
+    updateQueueRef.current.chartRealtime.push({
+      id: updateQueueRef.current.chartRealtime.length + 1,
+      value: normalized.temp_1 || normalized.oil_temp || 0,
+      timestamp: normalized.time || payload.timestamp
     })
 
-    // Update table data if on tech or realtime tab (real-time table updates)
+    // Queue table update if on relevant tab
     if (activeTab === 'tech' || activeTab === 'realtime') {
-      setRealtimeHistory(prev => {
-        const newRow = {
-          _time: normalized.time || payload.timestamp,
-          oil_temp: normalized.oil_temp,
-          temp_1: normalized.temp_1,
-          temp_2: normalized.temp_2,
-          temp_3: normalized.temp_3,
-          temp_4: normalized.temp_4,
-          temp_5: normalized.temp_5,
-          temp_6: normalized.temp_6,
-          temp_7: normalized.temp_7,
-          temp_8: normalized.temp_8,
-          temp_9: normalized.temp_9,
-          temp_10: normalized.temp_10,
-          pressure: normalized.pressure,
-          cycle_time: normalized.cycle_time
-        }
-        // Prepend new data, keep only current page size
-        return [newRow, ...prev.slice(0, rowsPerPage - 1)]
+      updateQueueRef.current.tableRealtime.push({
+        _time: normalized.time || payload.timestamp,
+        oil_temp: normalized.oil_temp,
+        temp_1: normalized.temp_1,
+        temp_2: normalized.temp_2,
+        temp_3: normalized.temp_3,
+        temp_4: normalized.temp_4,
+        temp_5: normalized.temp_5,
+        temp_6: normalized.temp_6,
+        temp_7: normalized.temp_7,
+        temp_8: normalized.temp_8,
+        temp_9: normalized.temp_9,
+        temp_10: normalized.temp_10,
+        pressure: normalized.pressure,
+        cycle_time: normalized.cycle_time
       })
     }
 
-    // Update lastDataUpdate timestamp
-    setLastDataUpdate(new Date(payload.timestamp))
+    // Queue timestamp update
+    updateQueueRef.current.lastUpdate = new Date(payload.timestamp)
 
-    // Show visual indicator that new data arrived
-    setNewDataArrived(true)
-    if (newDataTimeoutRef.current) {
-      clearTimeout(newDataTimeoutRef.current)
-    }
-    newDataTimeoutRef.current = setTimeout(() => {
-      setNewDataArrived(false)
-    }, 1000)
-  }, [selectedMachine?.name, activeTab, isPaused, rowsPerPage])
+    // Trigger throttled processing
+    throttledProcessQueue()
+  }, [selectedMachine?.name, activeTab, isPaused, throttledProcessQueue])
 
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
     // Skip if paused
@@ -173,59 +250,46 @@ export default function SPCAnalysis() {
     // Normalize the SPC data
     const normalized = normalizeSPCData(payload)
 
-    // Update SPC chart data with new cycle time point (keep latest 50)
-    setChartSpcHistory(prev => {
-      const newData = [...prev, {
-        id: prev.length + 1,
-        value: normalized.cycle_time || 0,
-        timestamp: normalized.time || payload.timestamp
-      }]
-      return newData.slice(-50)  // Keep latest 50
+    // Queue the chart update instead of applying immediately
+    updateQueueRef.current.chartSpc.push({
+      id: updateQueueRef.current.chartSpc.length + 1,
+      value: normalized.cycle_time || 0,
+      timestamp: normalized.time || payload.timestamp
     })
 
-    // Update table data if on SPC tab (real-time table updates)
+    // Queue table update if on SPC tab
     if (activeTab === 'spc') {
-      setSpcHistory(prev => {
-        const newRow = {
-          _time: normalized.time || payload.timestamp,
-          cycle_time: normalized.cycle_time,
-          cycle_number: normalized.cycle_number,
-          injection_velocity_max: normalized.injection_velocity_max,
-          injection_pressure_max: normalized.injection_pressure_max,
-          injection_time: normalized.injection_time,
-          switch_pack_time: normalized.switch_pack_time,
-          switch_pack_pressure: normalized.switch_pack_pressure,
-          switch_pack_position: normalized.switch_pack_position,
-          plasticizing_time: normalized.plasticizing_time,
-          plasticizing_pressure_max: normalized.plasticizing_pressure_max,
-          temp_1: normalized.temp_1,
-          temp_2: normalized.temp_2,
-          temp_3: normalized.temp_3,
-          temp_4: normalized.temp_4,
-          temp_5: normalized.temp_5,
-          temp_6: normalized.temp_6,
-          temp_7: normalized.temp_7,
-          temp_8: normalized.temp_8,
-          temp_9: normalized.temp_9,
-          temp_10: normalized.temp_10,
-        }
-        // Prepend new data, keep only current page size
-        return [newRow, ...prev.slice(0, rowsPerPage - 1)]
+      updateQueueRef.current.tableSpc.push({
+        _time: normalized.time || payload.timestamp,
+        cycle_time: normalized.cycle_time,
+        cycle_number: normalized.cycle_number,
+        injection_velocity_max: normalized.injection_velocity_max,
+        injection_pressure_max: normalized.injection_pressure_max,
+        injection_time: normalized.injection_time,
+        switch_pack_time: normalized.switch_pack_time,
+        switch_pack_pressure: normalized.switch_pack_pressure,
+        switch_pack_position: normalized.switch_pack_position,
+        plasticizing_time: normalized.plasticizing_time,
+        plasticizing_pressure_max: normalized.plasticizing_pressure_max,
+        temp_1: normalized.temp_1,
+        temp_2: normalized.temp_2,
+        temp_3: normalized.temp_3,
+        temp_4: normalized.temp_4,
+        temp_5: normalized.temp_5,
+        temp_6: normalized.temp_6,
+        temp_7: normalized.temp_7,
+        temp_8: normalized.temp_8,
+        temp_9: normalized.temp_9,
+        temp_10: normalized.temp_10,
       })
     }
 
-    // Update lastDataUpdate timestamp
-    setLastDataUpdate(new Date(payload.timestamp))
+    // Queue timestamp update
+    updateQueueRef.current.lastUpdate = new Date(payload.timestamp)
 
-    // Show visual indicator that new data arrived
-    setNewDataArrived(true)
-    if (newDataTimeoutRef.current) {
-      clearTimeout(newDataTimeoutRef.current)
-    }
-    newDataTimeoutRef.current = setTimeout(() => {
-      setNewDataArrived(false)
-    }, 1000)
-  }, [selectedMachine?.name, activeTab, isPaused, rowsPerPage])
+    // Trigger throttled processing
+    throttledProcessQueue()
+  }, [selectedMachine?.name, activeTab, isPaused, throttledProcessQueue])
 
   // Use refs to stabilize WebSocket handlers (prevents re-subscription on callback changes)
   const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate)
