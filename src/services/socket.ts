@@ -7,6 +7,9 @@ import { createLogger } from '@/utils/logger';
 const logger = createLogger('WebSocket');
 const SOCKET_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3000';
 
+// Task 6: Gate debug logging to reduce console retention overhead
+const DEBUG_WS = import.meta.env.VITE_DEBUG_WS === 'true';
+
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
 type SocketEventMap = {
@@ -136,33 +139,41 @@ class SocketService {
 
     // Data events
     this.socket.on('realtime-update', (data: RealtimeUpdateEvent) => {
-      const payloadData = data.Data ?? data.data;
-      logger.debug('realtime-update received:', {
-        deviceId: data.deviceId,
-        timestamp: data.timestamp,
-        dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
-        hasData: !!payloadData
-      });
+      // Task 6: Gate per-message logging
+      if (DEBUG_WS) {
+        const payloadData = data.Data ?? data.data;
+        logger.debug('realtime-update received:', {
+          deviceId: data.deviceId,
+          timestamp: data.timestamp,
+          dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
+          hasData: !!payloadData
+        });
+      }
       this.emit('realtime-update', data);
     });
 
     this.socket.on('spc-update', (data: SPCUpdateEvent) => {
-      const payloadData = data.Data ?? data.data;
-      logger.debug('spc-update received:', {
-        deviceId: data.deviceId,
-        timestamp: data.timestamp,
-        dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
-        hasData: !!payloadData
-      });
+      // Task 6: Gate per-message logging
+      if (DEBUG_WS) {
+        const payloadData = data.Data ?? data.data;
+        logger.debug('spc-update received:', {
+          deviceId: data.deviceId,
+          timestamp: data.timestamp,
+          dataKeys: payloadData && typeof payloadData === 'object' ? Object.keys(payloadData) : [],
+          hasData: !!payloadData
+        });
+      }
       this.emit('spc-update', data);
     });
 
     this.socket.on('machine-status', (data: MachineStatusEvent) => {
-      logger.debug('machine-status received:', {
-        deviceId: data.deviceId,
-        status: data.status,
-        source: data.source
-      });
+      if (DEBUG_WS) {
+        logger.debug('machine-status received:', {
+          deviceId: data.deviceId,
+          status: data.status,
+          source: data.source
+        });
+      }
       this.emit('machine-status', data);
     });
 
@@ -220,7 +231,7 @@ class SocketService {
     this.keepAliveInterval = setInterval(() => {
       if (this.socket?.connected) {
         this.socket.emit('ping');
-        logger.debug('Keep-alive ping sent');
+        if (DEBUG_WS) logger.debug('Keep-alive ping sent');
       }
     }, 30000); // Every 30 seconds
   }
