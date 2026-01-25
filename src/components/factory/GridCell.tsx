@@ -19,6 +19,9 @@ interface GridCellProps {
   lastUpdate?: string
   onCellClick: () => void
   onMachineDelete?: (_e: React.MouseEvent, machineId: number) => void
+  selectionMode?: boolean
+  selectedPosition?: { row: number; col: number } | null
+  disableDragDrop?: boolean
 }
 
 export function GridCell({
@@ -33,6 +36,9 @@ export function GridCell({
   lastUpdate,
   onCellClick,
   onMachineDelete,
+  selectionMode = false,
+  selectedPosition = null,
+  disableDragDrop = false,
 }: GridCellProps) {
   const coordinate = getCoordinate(row, col)
   const { manager, setActiveMachine } = useDragDrop()
@@ -63,6 +69,13 @@ export function GridCell({
     }
   }, [manager, row, col, coordinate])
 
+  // Check if this cell is selected
+  const isSelected =
+    selectionMode &&
+    selectedPosition &&
+    selectedPosition.row === row &&
+    selectedPosition.col === col
+
   // Empty cell
   if (!machine) {
     return (
@@ -73,14 +86,16 @@ export function GridCell({
           coordinate={coordinate}
           onClick={onCellClick}
           isOver={false}
+          selectionMode={selectionMode}
+          isSelected={!!isSelected}
         />
       </div>
     )
   }
 
-  // Machine cell (draggable with handle)
+  // Machine cell (draggable with handle, unless disabled)
   useEffect(() => {
-    if (!cellRef.current || !handleRef.current) return
+    if (disableDragDrop || !cellRef.current || !handleRef.current) return
 
     const draggable = new Draggable(
       {
@@ -107,10 +122,17 @@ export function GridCell({
       draggable.unregister()
       draggableRef.current = null
     }
-  }, [manager, machine, setActiveMachine])
+  }, [manager, machine, setActiveMachine, disableDragDrop])
 
   return (
-    <div className={cn(getCellSizeClass(), 'p-0.5')} ref={cellRef}>
+    <div
+      className={cn(
+        getCellSizeClass(),
+        'p-0.5',
+        selectionMode && 'opacity-70 cursor-not-allowed'
+      )}
+      ref={cellRef}
+    >
       <MachineStatusCard
         machine={machine}
         isConnected={isConnected}
@@ -119,9 +141,9 @@ export function GridCell({
         alertMessage={alertMessage}
         alertSeverity={alertSeverity}
         lastUpdate={lastUpdate}
-        onHandleRef={(element) => {
+        onHandleRef={!disableDragDrop ? (element) => {
           handleRef.current = element
-        }}
+        } : undefined}
         onDelete={onMachineDelete ? (e) => onMachineDelete(e, machine.machineId) : undefined}
       />
     </div>

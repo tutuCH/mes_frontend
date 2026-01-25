@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { SPCChart } from './SPCChart'
+import type { TimeWindow } from './SPCChart'
 
 interface Metric {
   name: string
@@ -17,6 +18,7 @@ interface MetricCategorySectionProps {
   machineId: number | string  // Numeric ID for REST API calls
   deviceId: string  // Device name for WebSocket subscriptions
   isPaused?: boolean
+  timeWindow?: string
 }
 
 export const MetricCategorySection = memo(function MetricCategorySection({
@@ -26,11 +28,12 @@ export const MetricCategorySection = memo(function MetricCategorySection({
   onOpenChange,
   machineId,
   deviceId,
-  isPaused = false
+  isPaused = false,
+  timeWindow = 'last_1h'
 }: MetricCategorySectionProps) {
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg">
       <button
         onClick={() => onOpenChange(!isOpen)}
         className="w-full px-4 py-3 bg-muted/50 hover:bg-muted/80 transition-colors flex items-center justify-between"
@@ -52,7 +55,7 @@ export const MetricCategorySection = memo(function MetricCategorySection({
         <div className="p-4 bg-background">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {metrics.map((metric) => (
-              <div key={metric.field} className="h-80 border rounded-lg p-3 bg-card">
+              <div key={metric.field} className="border rounded-lg p-3 bg-card">
                 <h4 className="text-sm font-medium mb-2">{metric.name}</h4>
                 <div className="h-[calc(100%-2rem)]">
                   <SPCChart
@@ -63,6 +66,7 @@ export const MetricCategorySection = memo(function MetricCategorySection({
                     unit={metric.unit}
                     dataSource={metric.dataSource}
                     isPaused={isPaused}
+                    timeWindow={timeWindow as TimeWindow}
                   />
                 </div>
               </div>

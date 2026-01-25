@@ -17,6 +17,9 @@ interface BlueprintGridProps {
   realtimeMachines?: Record<string, MachineState>
   onCellClick: (row: number, col: number) => void
   onMachineMove?: (machineId: number, newRow: number, newCol: number) => void
+  selectionMode?: boolean
+  selectedPosition?: { row: number; col: number } | null
+  disableDragDrop?: boolean
 }
 
 interface MachineCellData {
@@ -36,6 +39,9 @@ function BlueprintGridContent({
   machines,
   realtimeMachines,
   onCellClick,
+  selectionMode = false,
+  selectedPosition = null,
+  disableDragDrop = false,
 }: Omit<BlueprintGridProps, 'onMachineMove'>) {
   const gridWidth = factory.factoryWidth || 10
   const gridHeight = factory.factoryHeight || 10
@@ -143,6 +149,9 @@ function BlueprintGridContent({
                     alertSeverity={cell.alertSeverity}
                     lastUpdate={cell.lastUpdate}
                     onCellClick={() => onCellClick(cell.row, cell.col)}
+                    selectionMode={selectionMode}
+                    selectedPosition={selectedPosition}
+                    disableDragDrop={disableDragDrop}
                   />
                 ))}
               </div>

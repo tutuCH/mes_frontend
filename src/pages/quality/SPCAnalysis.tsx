@@ -20,12 +20,25 @@ import { toast } from 'sonner'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 import { useTranslation } from 'react-i18next'
 
+type TimeRange = 'last15m' | 'last1h' | 'last6h' | 'last24Hours' | 'last3d' | 'last7d'
+
+// Map TimeRange to TimeWindow format for SPC charts
+const TIME_RANGE_TO_WINDOW: Record<TimeRange, string> = {
+  last15m: 'last_15m',
+  last1h: 'last_1h',
+  last6h: 'last_6h',
+  last24Hours: 'last_24h',
+  last3d: 'last_3d',
+  last7d: 'last_7d'
+}
+
 export default function SPCAnalysis() {
   const { t } = useTranslation()
   const machines = useSelector((state: RootState) => state.machines.machines)
   const machineList = Object.values(machines).sort((a, b) => a.id.localeCompare(b.id))
-  
+
   const [selectedMachineId, setSelectedMachineId] = useState<string>('')
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>('last24Hours')
 
   // Chart data - fetched once with higher limit for SPC analysis charts
   const [chartSpcHistory, setChartSpcHistory] = useState<any[]>([])
@@ -109,6 +122,36 @@ export default function SPCAnalysis() {
   // Use local last update time from auto-refresh
   const lastUpdate = lastDataUpdate
 
+  // Calculate start timestamp based on selected time range
+  const getTimeRangeBounds = useCallback((range: TimeRange): { start: string; end: string } => {
+    const now = new Date()
+    const end = now.toISOString()
+    let start = new Date()
+
+    switch (range) {
+      case 'last15m':
+        start = new Date(now.getTime() - 15 * 60 * 1000)
+        break
+      case 'last1h':
+        start = new Date(now.getTime() - 60 * 60 * 1000)
+        break
+      case 'last6h':
+        start = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+        break
+      case 'last24Hours':
+        start = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+        break
+      case 'last3d':
+        start = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+        break
+      case 'last7d':
+        start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+    }
+
+    return { start: start.toISOString(), end }
+  }, [])
+
   // Fetch chart data once on machine selection (for SPC analysis charts)
   useEffect(() => {
     if (!selectedMachineId) return
@@ -116,7 +159,12 @@ export default function SPCAnalysis() {
     const fetchChartData = async () => {
       setLoading(true)
       try {
-        const spcRes = await api.getSPCHistory(selectedMachineId, { limit: 50 })
+        const { start, end } = getTimeRangeBounds(selectedTimeRange)
+        const spcRes = await api.getSPCHistory(selectedMachineId, {
+          start,
+          end,
+          limit: 50
+        })
         setChartSpcHistory(spcRes.data)
         setLastDataUpdate(new Date())
       } catch (error) {
@@ -127,7 +175,7 @@ export default function SPCAnalysis() {
     }
 
     fetchChartData()
-  }, [selectedMachineId])
+  }, [selectedMachineId, selectedTimeRange, getTimeRangeBounds])
 
   // Throttled state update queue to prevent memory crash
   const updateQueueRef = useRef<{
@@ -317,11 +365,11 @@ export default function SPCAnalysis() {
     setIsSubscribed(true)
 
     // Listen for realtime and SPC updates using ref pattern
-    const realtimeHandler = (payload: RealtimeUpdateEvent) => handleRealtimeUpdateRef.current(payload)
-    const spcHandler = (payload: SPCUpdateEvent) => handleSPCUpdateRef.current(payload)
+     const realtimeHandler = (payload: RealtimeUpdateEvent) => handleRealtimeUpdateRef.current(payload)
+     const spcHandler = (payload: SPCUpdateEvent) => handleSPCUpdateRef.current(payload)
 
-    socketService.on('realtime-update', realtimeHandler)
-    socketService.on('spc-update', spcHandler)
+     socketService.on('realtime-update', realtimeHandler)
+     socketService.on('spc-update', spcHandler)
 
     return () => {
       // Unsubscribe from machine when changing machines or unmounting
@@ -343,12 +391,15 @@ export default function SPCAnalysis() {
       try {
         // Calculate offset for current page (server-side pagination)
         const offset = (currentPage - 1) * rowsPerPage
+        const { start, end } = getTimeRangeBounds(selectedTimeRange)
 
         // Determine which data to fetch based on active tab
         if (activeTab === 'tech' || activeTab === 'realtime') {
           // Keep existing data visible during fetch to prevent blinking
 
           const realtimeRes = await api.getRealtimeHistory(selectedMachineId, {
+            start,
+            end,
             limit: rowsPerPage,
             offset: offset
           })
@@ -359,6 +410,8 @@ export default function SPCAnalysis() {
           // Keep existing data visible during fetch to prevent blinking
 
           const spcRes = await api.getSPCHistory(selectedMachineId, {
+            start,
+            end,
             limit: rowsPerPage,
             offset: offset
           })
@@ -374,7 +427,7 @@ export default function SPCAnalysis() {
     }
 
     fetchTableData()
-  }, [selectedMachineId, activeTab, currentPage]) // Added currentPage - fetch when page changes
+  }, [selectedMachineId, activeTab, currentPage, selectedTimeRange, getTimeRangeBounds]) // Added selectedTimeRange - fetch when time range changes
 
   // Tech Data - server-side pagination (no client-side slicing)
   const techData = useMemo(() => {
@@ -447,6 +500,7 @@ export default function SPCAnalysis() {
   const handleExportReport = async (scope: 'page' | 'tab' | 'all') => {
     try {
       setIsExporting(true)
+      const { start, end } = getTimeRangeBounds(selectedTimeRange)
 
       if (scope === 'page') {
         // Export currently visible page data only
@@ -459,11 +513,11 @@ export default function SPCAnalysis() {
       } else if (scope === 'tab') {
         // Fetch all data for active tab
         if (activeTab === 'tech' || activeTab === 'realtime') {
-          const res = await api.getRealtimeHistory(selectedMachineId, { limit: 1000 })
+          const res = await api.getRealtimeHistory(selectedMachineId, { start, end, limit: 1000 })
           const filename = exportSPCDataToExcel([], res.data, selectedMachine.name)
           toast.success(`${t('spc.tabs.' + activeTab)} ${t('common.export')}: ${filename}`)
         } else if (activeTab === 'spc') {
-          const res = await api.getSPCHistory(selectedMachineId, { limit: 1000 })
+          const res = await api.getSPCHistory(selectedMachineId, { start, end, limit: 1000 })
           const filename = exportSPCDataToExcel(res.data, [], selectedMachine.name)
           toast.success(`${t('spc.tabs.spc')} ${t('common.export')}: ${filename}`)
         }
@@ -471,8 +525,8 @@ export default function SPCAnalysis() {
         // Fetch all data from both sources
         toast.info('Fetching all data... This may take a moment.')
         const [spcRes, realtimeRes] = await Promise.all([
-          api.getSPCHistory(selectedMachineId, { limit: 1000 }),
-          api.getRealtimeHistory(selectedMachineId, { limit: 1000 })
+          api.getSPCHistory(selectedMachineId, { start, end, limit: 1000 }),
+          api.getRealtimeHistory(selectedMachineId, { start, end, limit: 1000 })
         ])
         const filename = exportSPCDataToExcel(spcRes.data, realtimeRes.data, selectedMachine.name)
         toast.success(`${t('spc.export.allData')}: ${filename}`)
@@ -633,10 +687,35 @@ export default function SPCAnalysis() {
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
-              <Calendar className="mr-2 h-4 w-4" />
-              {t('timeRange.last24Hours')}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {t(`timeRange.${selectedTimeRange}`)}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last15m')}>
+                  {t('timeRange.last15m')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last1h')}>
+                  {t('timeRange.last1h')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last6h')}>
+                  {t('timeRange.last6h')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last24Hours')}>
+                  {t('timeRange.last24Hours')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last3d')}>
+                  {t('timeRange.last3d')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSelectedTimeRange('last7d')}>
+                  {t('timeRange.last7d')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -692,6 +771,7 @@ export default function SPCAnalysis() {
               machineId={selectedMachineId}
               deviceId={selectedMachine.deviceId}
               isPaused={isPaused}
+              timeWindow={TIME_RANGE_TO_WINDOW[selectedTimeRange]}
             />
           ))}
         </div>

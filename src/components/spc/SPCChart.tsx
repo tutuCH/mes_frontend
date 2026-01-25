@@ -4,12 +4,32 @@
  */
 
 import { useEffect, useRef, memo, useState, useCallback } from 'react'
-import { ChartJS, defaultChartOptions, createControlLimitLine, createDataLine } from '@/lib/chartConfig'
+import { useTranslation } from 'react-i18next'
+import { ChartJS, defaultChartOptions, createControlLimitLine, createDataLine, createCurrentValueIndicator, createStdDevLine, createMedianLine, createP95Line } from '@/lib/chartConfig'
 import type { ChartOptions, ChartData } from '@/lib/chartConfig'
 import { useSPCStreamAggregator, type DataPoint } from '@/hooks/useSPCStreamAggregator'
-import { getFieldControlLimits, type ControlLimits } from '@/services/spcLimitsService'
+import type { SpcSeriesResponse, SpcSeriesStats } from '@/types/api'
 import { api } from '@/services/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronDown } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+import { SPCStatsPanel } from './SPCStatsPanel'
+
+const DEBUG = true
+
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG) console.log('[SPCChart]', ...args)
+}
+
+type TimeWindow = 'last_15m' | 'last_1h' | 'last_6h' | 'last_24h' | 'last_3d' | 'last_7d'
+export type { TimeWindow }
+
+interface ControlLimits {
+  ucl: number
+  lcl: number
+  mean: number
+}
 
 interface SPCChartProps {
   machineId: number | string  // Numeric ID for REST API calls
@@ -19,11 +39,10 @@ interface SPCChartProps {
   unit: string
   dataSource: 'spc' | 'realtime'
   isPaused?: boolean
+  timeWindow?: TimeWindow
 }
 
 const RENDER_INTERVAL_MS = 100 // Update chart at 10 FPS
-const SPC_DEBUG = true
-
 export const SPCChart = memo(function SPCChart({
   machineId,
   deviceId,
@@ -31,35 +50,42 @@ export const SPCChart = memo(function SPCChart({
   name,
   unit,
   dataSource,
-  isPaused = false
+  isPaused = false,
+  timeWindow = 'last_1h'
 }: SPCChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<ChartJS<'line'> | null>(null)
   const dataRef = useRef<DataPoint[]>([])
-  const limitsRef = useRef<ControlLimits | null>(null)
+  const prevDataLengthRef = useRef<number>(0)
   const renderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const renderLoopStartedRef = useRef(false)
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [initialData, setInitialData] = useState<DataPoint[]>([])
+  const [stats, setStats] = useState<SpcSeriesStats | null>(null)
+  const [series, setSeries] = useState<SpcSeriesResponse | null>(null)
+  const [limits, setLimits] = useState<ControlLimits | null>(null)
   const [limitsLoaded, setLimitsLoaded] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [collapsibleOpen, setCollapsibleOpen] = useState(false)
+  const [currentValue, setCurrentValue] = useState<number | null>(null)
+
+  const currentWindow = timeWindow || 'last_1h'
+  const getDownsampleMethod = (window: TimeWindow): string => {
+    const longWindows: TimeWindow[] = ['last_24h', 'last_3d', 'last_7d']
+    return longWindows.includes(window) ? 'avg' : 'none'
+  }
 
   // Handle data updates from WebSocket
   const handleDataUpdate = useCallback((newData: DataPoint[]) => {
     dataRef.current = newData
-
-    if (SPC_DEBUG && newData.length > 0) {
-      const firstPoint = newData[0]
-      const lastPoint = newData[newData.length - 1]
-      console.log('[SPC-DEBUG] chart data update', {
-        field,
-        length: newData.length,
-        firstX: firstPoint?.x,
-        lastX: lastPoint?.x,
-      })
+    if (newData.length > 0) {
+      const val = newData[newData.length - 1].y
+      setCurrentValue(val)
+      debugLog('Current value updated:', val)
     }
-  }, [field])
+  }, [])
 
   // Use the stream aggregator hook - capture the returned buffer
   const { dataBuffer } = useSPCStreamAggregator({
@@ -71,98 +97,94 @@ export const SPCChart = memo(function SPCChart({
     isPaused,
   })
 
-  // Fetch historical data on mount
+  // Fetch chart series data on mount
   useEffect(() => {
-    if (!machineId || !field) return
+    if (!machineId || !field || !timeWindow) return
 
-    const fetchHistoricalData = async () => {
-      try {
-        const historyRes = await api.getSPCHistory(machineId, { limit: 50 })
-
-        // Transform historical data to DataPoint format
-        // Cast to Record<string, unknown>[] to handle dynamic InfluxDB metadata fields
-        const rawData = historyRes.data as unknown as Record<string, unknown>[]
-        const historicalPoints: DataPoint[] = rawData
-          // Strip InfluxDB metadata fields BEFORE processing
-          .map((item: Record<string, unknown>) => {
-            // Destructure and remove InfluxDB metadata fields
-            const { result, table, _start, _stop, _measurement, application, device_id, topic, ...data } = item as any
-            void result; void table; void _start; void _stop; void _measurement; void application; void device_id; void topic // Mark as intentionally unused
-            return data as Record<string, unknown>
-          })
-          .filter((item: Record<string, unknown>) => {
-            // Filter to records that have the requested field
-            const value = item[field]
-            // Accept numbers or numeric strings
-            const isValid = value !== undefined && value !== null
-              && (typeof value === 'number' || (typeof value === 'string' && !isNaN(parseFloat(value))))
-            return isValid
-          })
-          .map((item: Record<string, unknown>) => {
-            const rawValue = item[field]
-            // Convert to number if it's a string
-            const value = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue))
-            // Support both InfluxDB format (_time) and standard format (time)
-            const timestamp = (item._time || item.time) as string
-
-            const timestampMs = new Date(timestamp).getTime()
-            // Skip if timestamp is invalid
-            if (isNaN(timestampMs)) {
-              return null
-            }
-
-            return {
-              x: timestampMs,
-              y: value
-            }
-          })
-          .filter((point): point is DataPoint => point !== null && !isNaN(point.y))
-          // Sort by timestamp to ensure chronological order (oldest first)
-          .sort((a, b) => a.x - b.x)
-
-        setInitialData(historicalPoints)
-        setDataLoaded(true)
-      } catch (error) {
-        console.warn('Failed to fetch historical SPC data:', error)
-      }
-    }
-
-    fetchHistoricalData()
-  }, [machineId, field, dataSource])
-
-  // Fetch control limits on mount
-  useEffect(() => {
-    let mounted = true
-
-    const fetchLimits = async () => {
+    const fetchSeriesData = async () => {
       setLoading(true)
       setError(null)
 
       try {
-        const limits = await getFieldControlLimits(machineId, field)
-        if (mounted) {
-          limitsRef.current = limits
+        debugLog('Fetching series data for:', { machineId, field, timeWindow: currentWindow })
+
+        const seriesRes: SpcSeriesResponse = await api.getSPCSeries(
+          machineId,
+          field,
+          currentWindow as string,
+          100,
+          getDownsampleMethod(currentWindow),
+          true,
+          true
+        )
+
+        debugLog('Received series response:', {
+          hasSeries: !!seriesRes.series,
+          seriesLength: seriesRes.series?.length,
+          hasLimits: !!seriesRes.limits,
+          limits: seriesRes.limits,
+          hasStats: !!seriesRes.stats,
+          stats: seriesRes.stats
+        })
+
+        if (!seriesRes.series || seriesRes.series.length === 0) {
+          debugLog('No series data available')
+          setInitialData([])
+          setDataLoaded(true)
+          setLoading(false)
+          setLimits(null)
           setLimitsLoaded(true)
-          setLoading(false)
-          // Don't set error if limits are not available - chart will work without them
+          return
         }
+
+        const historicalPoints: DataPoint[] = seriesRes.series.map(p => ({
+          x: new Date(p.ts).getTime(),
+          y: p.value
+        })).filter((p): p is DataPoint => !isNaN(p.y))
+
+        debugLog('Mapped historical points:', { count: historicalPoints.length })
+        setInitialData(historicalPoints)
+        setDataLoaded(true)
+        setSeries(seriesRes)
+
+        if (seriesRes.limits &&
+            seriesRes.limits.ucl !== undefined &&
+            seriesRes.limits.lcl !== undefined &&
+            seriesRes.limits.mean !== undefined) {
+          const newLimits = {
+            ucl: seriesRes.limits.ucl,
+            lcl: seriesRes.limits.lcl,
+            mean: seriesRes.limits.mean
+          }
+          debugLog('Setting limits:', newLimits)
+          setLimits(newLimits)
+          setLimitsLoaded(true)
+        } else {
+          debugLog('Limits not available or incomplete')
+          setLimits(null)
+          setLimitsLoaded(true)
+        }
+
+        if (seriesRes.stats) {
+          debugLog('Setting stats:', seriesRes.stats)
+          setStats(seriesRes.stats)
+        } else {
+          debugLog('Stats not available')
+          setStats(null)
+        }
+
+        setLoading(false)
       } catch (err) {
-        // Chart should still work without limits, just won't show UCL/LCL/Mean lines
-        console.warn(`Failed to fetch limits for ${field}:`, err)
-        if (mounted) {
-          limitsRef.current = null
-          setLimitsLoaded(true) // Still mark as loaded so chart can initialize
-          setLoading(false)
-        }
+        console.error('Failed to fetch SPC series:', err)
+        setError('Failed to load chart data')
+        setDataLoaded(true)
+        setLimitsLoaded(true)
+        setLoading(false)
       }
     }
 
-    fetchLimits()
-
-    return () => {
-      mounted = false
-    }
-  }, [machineId, field])
+    fetchSeriesData()
+  }, [machineId, field, timeWindow, dataSource, currentWindow])
 
   // Initialize chart - wait for data to be loaded
   useEffect(() => {
@@ -173,16 +195,6 @@ export const SPCChart = memo(function SPCChart({
     const ctx = canvasRef.current.getContext('2d')
     if (!ctx) return
 
-    if (SPC_DEBUG && dataBuffer.length > 0) {
-      const firstPoint = dataBuffer[0]
-      const lastPoint = dataBuffer[dataBuffer.length - 1]
-      console.log('[SPC-DEBUG] chart init', {
-        field,
-        length: dataBuffer.length,
-        firstX: firstPoint?.x,
-        lastX: lastPoint?.x,
-      })
-    }
 
     // Create chart with initial data - new references will be provided via handleDataUpdate
     const chartData: ChartData = {
@@ -195,14 +207,44 @@ export const SPCChart = memo(function SPCChart({
     dataRef.current = dataBuffer
 
     // Add control limit lines if available
-    if (limitsRef.current) {
-      const { ucl, lcl, mean } = limitsRef.current
+    if (limits) {
+      const { ucl, lcl, mean } = limits
       void ucl; void lcl; void mean // Values used in render loop
       chartData.datasets.push(
         createControlLimitLine([], 'rgb(239, 68, 68)', 'UCL', [5, 5]), // red-500
         createControlLimitLine([], 'rgb(239, 68, 68)', 'LCL', [5, 5]), // red-500
         createControlLimitLine([], 'rgb(34, 197, 94)', 'Mean', [3, 3]) // green-500
       )
+
+      // Add statistical lines if stats available
+      if (stats) {
+        // P95 line
+        chartData.datasets.push(createP95Line([]))
+
+        // Median line
+        chartData.datasets.push(createMedianLine([]))
+
+        // +1σ line (if stdDev available)
+        if (stats.stdDev) {
+          chartData.datasets.push(createStdDevLine([], 'rgb(251, 191, 36)', '+1σ', [2, 4])) // amber-400
+          chartData.datasets.push(createStdDevLine([], 'rgb(251, 191, 36)', '-1σ', [2, 4]))
+        }
+
+        // +2σ line (if stdDev available)
+        if (stats.stdDev) {
+          chartData.datasets.push(createStdDevLine([], 'rgb(156, 163, 175)', '+2σ', [1, 3])) // gray-400
+          chartData.datasets.push(createStdDevLine([], 'rgb(156, 163, 175)', '-2σ', [1, 3]))
+        }
+      }
+
+      // Add current value indicator if data exists
+      if (dataBuffer.length > 0) {
+        const val = dataBuffer[dataBuffer.length - 1].y
+        chartData.datasets.push(createCurrentValueIndicator(val, ucl, lcl))
+      }
+
+      debugLog('Chart initialized with datasets:', chartData.datasets.length)
+      debugLog('Chart instance created')
     }
 
     // Chart options
@@ -232,16 +274,17 @@ export const SPCChart = memo(function SPCChart({
 
     return () => {
       if (chartRef.current) {
+        debugLog('Destroying chart instance')
         chartRef.current.destroy()
         chartRef.current = null
       }
     }
-  }, [loading, limitsLoaded, dataBuffer, name, unit, field])
+  }, [loading, limitsLoaded, dataBuffer, name, unit, field, timeWindow, limits, stats])
 
   // Update control limits when they load (fallback for edge cases)
   // Note: With limitsLoaded in the chart init dependencies, this is primarily defensive
   useEffect(() => {
-    if (!chartRef.current || !limitsLoaded || !limitsRef.current) return
+    if (!chartRef.current || !limitsLoaded || !limits) return
 
     const chart = chartRef.current
 
@@ -254,7 +297,7 @@ export const SPCChart = memo(function SPCChart({
       )
       chart.update()
     }
-  }, [limitsLoaded])
+  }, [limitsLoaded, limits])
 
   // Render loop - update chart at fixed interval
   // Note: Depends on dataLoaded and limitsLoaded (state) rather than chartRef.current (ref)
@@ -279,53 +322,111 @@ export const SPCChart = memo(function SPCChart({
     const updateChart = () => {
       if (!chartRef.current) return
 
-    const chart = chartRef.current
-    const data = dataRef.current
-    const prevLength = (updateChart as any)._prevLength || 0
-    const lengthChanged = data.length !== prevLength
+      const chart = chartRef.current
+      const data = dataRef.current
+      const prevLength = prevDataLengthRef.current
+      const lengthChanged = data.length !== prevLength
 
-    // Update main data line - new reference triggers Chart.js change detection
-    chart.data.datasets[0].data = data
+      // Update main data line - new reference triggers Chart.js change detection
+      chart.data.datasets[0].data = data
 
-    if (lengthChanged) {
-      if (SPC_DEBUG && data.length > 0) {
-        const firstPoint = data[0]
-        const lastPoint = data[data.length - 1]
-        console.log('[SPC-DEBUG] render update', {
-          field,
-          length: data.length,
-          firstX: firstPoint?.x,
-          lastX: lastPoint?.x,
-        })
+      if (lengthChanged) {
+        prevDataLengthRef.current = data.length
       }
-      ;(updateChart as any)._prevLength = data.length
-    }
-
-
 
       // Update control limit lines if available
-      if (limitsRef.current && data.length > 0 && chart.data.datasets.length > 1) {
-        const { ucl, lcl, mean } = limitsRef.current
+      if (limits && data.length > 0 && chart.data.datasets.length > 1) {
+        const { ucl, lcl, mean } = limits
         const firstX = data[0].x
         const lastX = data[data.length - 1].x
 
-        // UCL line
+        // UCL line (dataset 1)
         chart.data.datasets[1].data = [
           { x: firstX, y: ucl },
           { x: lastX, y: ucl },
         ]
 
-        // LCL line
+        // LCL line (dataset 2)
         chart.data.datasets[2].data = [
           { x: firstX, y: lcl },
           { x: lastX, y: lcl },
         ]
 
-        // Mean line
+        // Mean line (dataset 3)
         chart.data.datasets[3].data = [
           { x: firstX, y: mean },
           { x: lastX, y: mean },
         ]
+
+        // Statistical lines if stats available
+        let datasetIndex = 4
+        if (stats) {
+          // P95 line
+          if (stats.p95 !== undefined && chart.data.datasets[datasetIndex]) {
+            chart.data.datasets[datasetIndex].data = [
+              { x: firstX, y: stats.p95 },
+              { x: lastX, y: stats.p95 },
+            ]
+          }
+          datasetIndex++
+
+          // Median line
+          if (stats.median !== undefined && chart.data.datasets[datasetIndex]) {
+            chart.data.datasets[datasetIndex].data = [
+              { x: firstX, y: stats.median },
+              { x: lastX, y: stats.median },
+            ]
+          }
+          datasetIndex++
+
+          // ±1σ lines
+          if (stats.stdDev !== undefined) {
+            const plus1Sigma = mean + stats.stdDev
+            const minus1Sigma = mean - stats.stdDev
+
+            if (chart.data.datasets[datasetIndex]) {
+              chart.data.datasets[datasetIndex].data = [
+                { x: firstX, y: plus1Sigma },
+                { x: lastX, y: plus1Sigma },
+              ]
+            }
+            datasetIndex++
+
+            if (chart.data.datasets[datasetIndex]) {
+              chart.data.datasets[datasetIndex].data = [
+                { x: firstX, y: minus1Sigma },
+                { x: lastX, y: minus1Sigma },
+              ]
+            }
+            datasetIndex++
+
+            // ±2σ lines
+            const plus2Sigma = mean + 2 * stats.stdDev
+            const minus2Sigma = mean - 2 * stats.stdDev
+
+            if (chart.data.datasets[datasetIndex]) {
+              chart.data.datasets[datasetIndex].data = [
+                { x: firstX, y: plus2Sigma },
+                { x: lastX, y: plus2Sigma },
+              ]
+            }
+            datasetIndex++
+
+            if (chart.data.datasets[datasetIndex]) {
+              chart.data.datasets[datasetIndex].data = [
+                { x: firstX, y: minus2Sigma },
+                { x: lastX, y: minus2Sigma },
+              ]
+            }
+            datasetIndex++
+          }
+        }
+
+        // Update current value indicator
+        if (data.length > 0 && chart.data.datasets[datasetIndex]) {
+          const val = data[data.length - 1].y
+          chart.data.datasets[datasetIndex].data = [{ x: Date.now(), y: val }]
+        }
       }
 
       // Update chart with 'none' mode for better performance during real-time updates
@@ -343,7 +444,18 @@ export const SPCChart = memo(function SPCChart({
         renderLoopStartedRef.current = false
       }
     }
-  }, [dataLoaded, limitsLoaded, field])
+  }, [dataLoaded, limitsLoaded, field, limits, stats])
+
+  // Debug log render state
+  debugLog('Render state:', {
+    loading,
+    dataLoaded,
+    limitsLoaded,
+    collapsibleOpen,
+    hasStats: !!stats,
+    hasLimits: !!limits,
+    hasSeries: !!series
+  })
 
   // Show loading state
   if (loading || !dataLoaded) {
@@ -369,9 +481,55 @@ export const SPCChart = memo(function SPCChart({
     )
   }
 
+  // Main render - chart with collapsible stats panel
+  const hasStatsData = dataLoaded && limitsLoaded && stats && limits && series
+  debugLog('Stats data ready:', hasStatsData)
+
   return (
-    <div className="w-full h-full">
-      <canvas ref={canvasRef} />
-    </div>
+    <Card className="w-full border rounded-lg overflow-hidden">
+      <CardContent className="p-4 space-y-4">
+        {/* Chart Section - Fixed Height */}
+        <div className="w-full h-80 relative bg-card border border-border/50 rounded-xl">
+          <canvas ref={canvasRef} className="w-full h-full" />
+        </div>
+
+        {/* Stats Panel - Collapsible */}
+        {hasStatsData && (
+          <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+            <CollapsibleTrigger render={
+              <Button variant="ghost" className="w-full justify-between">
+                <span>{t(`spc.${collapsibleOpen ? 'hideDetails' : 'seeDetails'}`)}</span>
+                <ChevronDown className="ml-auto group-data-[state=open]/collapsible-trigger:rotate-180" />
+              </Button>
+            } />
+            <CollapsibleContent className="flex flex-col items-start gap-4 p-2.5 pt-0 text-sm">
+              <SPCStatsPanel
+                field={field}
+                unit={unit}
+                name={name}
+                current={currentValue || 0}
+                mean={limits.mean}
+                ucl={limits.ucl}
+                lcl={limits.lcl}
+                count={stats.count}
+                stdDev={stats.stdDev}
+                median={stats.median}
+                min={stats.min}
+                max={stats.max}
+                p95={stats.p95}
+                windowStart={series.window?.start || ''}
+                windowEnd={series.window?.end || ''}
+                sigma={limits.sigma}
+                method={series.limits?.method || ''}
+                dataPoints={initialData.map(p => ({
+                  ts: new Date(p.x).toISOString(),
+                  value: p.y
+                }))}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </CardContent>
+    </Card>
   )
 })

@@ -149,6 +149,139 @@ export function createControlLimitLine(
 }
 
 /**
+ * Get violation status and data for current point
+ */
+export function getViolationStatus(
+  value: number,
+  ucl: number,
+  lcl: number
+): 'normal' | 'ucl-breach' | 'lcl-breach' {
+  if (value > ucl) return 'ucl-breach'
+  if (value < lcl) return 'lcl-breach'
+  return 'normal'
+}
+
+/**
+ * Create violation data points configuration
+ */
+export function createViolationPoints(
+  data: Array<{ x: number; y: number }>,
+  ucl: number,
+  lcl: number
+) {
+  const violationData = data
+    .map(point => ({
+      x: point.x,
+      y: point.y,
+      status: getViolationStatus(point.y, ucl, lcl),
+    }))
+    .filter(point => point.status !== 'normal')
+
+  return violationData
+}
+
+/**
+ * Create violation point style configuration
+ */
+export function createViolationStyle(
+  color: 'red' | 'blue' = 'red'
+) {
+  const baseColor = color === 'red' ? 'rgb(239, 68, 68)' : 'rgb(59, 130, 246)'
+
+  return {
+    borderColor: baseColor,
+    backgroundColor: baseColor,
+    borderWidth: 2,
+    pointRadius: 5,
+    pointHoverRadius: 7,
+    pointStyle: 'circle',
+  }
+}
+
+/**
+ * Create current value indicator configuration
+ */
+export function createCurrentValueIndicator(
+  value: number,
+  ucl: number,
+  lcl: number
+) {
+  const status = getViolationStatus(value, ucl, lcl)
+  const style = status === 'ucl-breach' ? createViolationStyle('red') : createViolationStyle('blue')
+
+  return {
+    ...style,
+    label: 'Current',
+    data: [{ x: Date.now(), y: value }],
+  }
+}
+
+/**
+ * Create standard deviation line configuration (±1σ or ±2σ)
+ */
+export function createStdDevLine(
+  data: Array<{ x: number; y: number }>,
+  color: string,
+  label: string,
+  borderDash: number[] = [2, 4]
+) {
+  return {
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderDash,
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    fill: false,
+    parsing: false as const,
+  }
+}
+
+/**
+ * Create median line configuration
+ */
+export function createMedianLine(
+  data: Array<{ x: number; y: number }>,
+  color: string = 'rgb(249, 115, 22)'
+) {
+  return {
+    label: 'Median',
+    data,
+    borderColor: color,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderDash: [8, 4],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    fill: false,
+    parsing: false as const,
+  }
+}
+
+/**
+ * Create P95 line configuration
+ */
+export function createP95Line(
+  data: Array<{ x: number; y: number }>,
+  color: string = 'rgb(34, 197, 94)'
+) {
+  return {
+    label: 'P95',
+    data,
+    borderColor: color,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderDash: [10, 5],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    fill: false,
+    parsing: false as const,
+  }
+}
+
+/**
  * Create main data line configuration
  */
 export function createDataLine(

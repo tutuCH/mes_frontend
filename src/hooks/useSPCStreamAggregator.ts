@@ -29,8 +29,7 @@ interface StreamAggregatorReturn {
   clearBuffer: () => void
 }
 
-const MAX_BUFFER_SIZE = 300 // Maximum data points to keep (sliding window)
-const SPC_DEBUG = true
+const MAX_BUFFER_SIZE = 100 // Maximum data points to keep (sliding window)
 
 /**
  * Hook to aggregate real-time data from WebSocket for a specific field
@@ -53,7 +52,6 @@ export function useSPCStreamAggregator({
       if (isPaused) return
 
       const buffer = dataBufferRef.current
-      const beforeLength = buffer.length
 
       // Enforce monotonic timestamps - only append if new timestamp is greater than last
       const lastPoint = buffer[buffer.length - 1]
@@ -70,29 +68,10 @@ export function useSPCStreamAggregator({
 
       buffer.push(point)
 
-      if (SPC_DEBUG) {
-        const firstPoint = buffer[0]
-        const latestPoint = buffer[buffer.length - 1]
-        console.log('[SPC-DEBUG] buffer update', {
-          deviceId,
-          field,
-          dataSource,
-          beforeLength,
-          afterLength: buffer.length,
-          maxPoints,
-          shifted: didShift,
-          firstX: firstPoint?.x,
-          lastX: latestPoint?.x,
-        })
-      }
-
       // Notify parent with new array reference to force Chart.js to detect changes
       // Option A1: Spread creates new reference, JavaScript GC handles cleanup
       if (onDataUpdate) {
         const snapshot = [...dataBufferRef.current]
-        if (SPC_DEBUG) {
-          ;(snapshot as any)._spcDebug = true
-        }
         onDataUpdate(snapshot)
       }
     },
@@ -106,24 +85,8 @@ export function useSPCStreamAggregator({
       // This ensures dataBufferRef.current is the SAME array reference that the chart was initialized with
       dataBufferRef.current = initialData
 
-      if (SPC_DEBUG) {
-        const firstPoint = dataBufferRef.current[0]
-        const lastPoint = dataBufferRef.current[dataBufferRef.current.length - 1]
-        console.log('[SPC-DEBUG] buffer init', {
-          deviceId,
-          field,
-          dataSource,
-          length: dataBufferRef.current.length,
-          firstX: firstPoint?.x,
-          lastX: lastPoint?.x,
-        })
-      }
-
       if (onDataUpdate) {
         const snapshot = [...dataBufferRef.current]
-        if (SPC_DEBUG) {
-          ;(snapshot as any)._spcDebug = true
-        }
         onDataUpdate(snapshot)  // New reference
       }
     }
@@ -194,7 +157,7 @@ export function useSPCStreamAggregator({
     }
   }, [deviceId, handleRealtimeUpdate, handleSPCUpdate])
 
-  // Clear buffer when device or field changes
+  // Clear buffer when device, field, or time window changes
   useEffect(() => {
     dataBufferRef.current = []
     if (onDataUpdate) {

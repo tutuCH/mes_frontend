@@ -65,8 +65,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (status === 'active' || status === 'trialing') return true
     if (status === 'past_due') return true
     if (status === 'canceled') {
-      const result = !subscription.cancelAtPeriodEnd || new Date(subscription.currentPeriodEnd) > new Date()
-      return result
+      return !subscription.cancelAtPeriodEnd || new Date(subscription.currentPeriodEnd) > new Date()
     }
     return false
   }, [subscription])

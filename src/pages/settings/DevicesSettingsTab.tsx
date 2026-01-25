@@ -7,13 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -32,7 +25,8 @@ import {
 import { type AppDispatch, type RootState } from '@/store'
 import { fetchFactoriesWithMachines } from '@/store/slices/factorySlice'
 import { api } from '@/services/api'
-import type { Machine, CreateMachineRequest, UpdateMachineRequest, Factory } from '@/types/api'
+import type { Machine, UpdateMachineRequest, Factory } from '@/types/api'
+import { AddMachineWizard } from '@/components/settings/AddMachineWizard'
 
 export function DevicesSettingsTab() {
   const { t } = useTranslation()
@@ -44,17 +38,21 @@ export function DevicesSettingsTab() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null)
-  const [formData, setFormData] = useState<CreateMachineRequest>({
-    machineName: '',
-    machineIpAddress: '',
-    machineIndex: '',
-    factoryId: 0,
-  })
+  const [editMachineName, setEditMachineName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deletedMachineIds, setDeletedMachineIds] = useState<number[]>([])
+  const [pendingDeleteSync, setPendingDeleteSync] = useState(false)
 
   useEffect(() => {
     dispatch(fetchFactoriesWithMachines())
   }, [dispatch])
+
+  useEffect(() => {
+    if (pendingDeleteSync && !loading) {
+      setDeletedMachineIds([])
+      setPendingDeleteSync(false)
+    }
+  }, [pendingDeleteSync, loading])
 
   // Flatten machines from all factories
   const machines = useMemo(() => {
@@ -69,8 +67,8 @@ export function DevicesSettingsTab() {
         })
       }
     })
-    return allMachines
-  }, [factories])
+    return allMachines.filter((machine) => !deletedMachineIds.includes(machine.machineId))
+  }, [factories, deletedMachineIds])
 
   // Filter machines based on search query
   const filteredMachines = useMemo(() => {
@@ -79,36 +77,22 @@ export function DevicesSettingsTab() {
     return machines.filter(
       (machine) =>
         machine.machineName.toLowerCase().includes(query) ||
-        machine.machineIpAddress.toLowerCase().includes(query) ||
         machine.machineIndex.toLowerCase().includes(query) ||
         machine.factoryName.toLowerCase().includes(query)
     )
   }, [machines, searchQuery])
-
-  const handleAddMachine = async () => {
-    setIsSubmitting(true)
-    try {
-      await api.createMachine(formData)
-      setIsAddDialogOpen(false)
-      setFormData({ machineName: '', machineIpAddress: '', machineIndex: '', factoryId: 0 })
-      dispatch(fetchFactoriesWithMachines())
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleEditMachine = async () => {
     if (!selectedMachine) return
     setIsSubmitting(true)
     try {
       const updateData: UpdateMachineRequest = {
-        machineName: formData.machineName,
-        machineIpAddress: formData.machineIpAddress,
-        machineIndex: formData.machineIndex,
+        machineName: editMachineName,
       }
       await api.updateMachine(selectedMachine.machineId, updateData)
       setIsEditDialogOpen(false)
       setSelectedMachine(null)
+      setEditMachineName('')
       dispatch(fetchFactoriesWithMachines())
     } finally {
       setIsSubmitting(false)
@@ -117,9 +101,15 @@ export function DevicesSettingsTab() {
 
   const handleDeleteMachine = async () => {
     if (!selectedMachine) return
+    const { machineId } = selectedMachine
     setIsSubmitting(true)
     try {
-      await api.deleteMachine(selectedMachine.machineId)
+      await api.deleteMachine(machineId)
+      setDeletedMachineIds((prev) => {
+        if (prev.includes(machineId)) return prev
+        return [...prev, machineId]
+      })
+      setPendingDeleteSync(true)
       setIsDeleteDialogOpen(false)
       setSelectedMachine(null)
       dispatch(fetchFactoriesWithMachines())
@@ -130,12 +120,7 @@ export function DevicesSettingsTab() {
 
   const openEditDialog = (machine: Machine & { factoryName: string }) => {
     setSelectedMachine(machine)
-    setFormData({
-      machineName: machine.machineName,
-      machineIpAddress: machine.machineIpAddress,
-      machineIndex: machine.machineIndex,
-      factoryId: machine.factoryId || 0,
-    })
+    setEditMachineName(machine.machineName)
     setIsEditDialogOpen(true)
   }
 
@@ -209,7 +194,6 @@ export function DevicesSettingsTab() {
                     <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.id')}</TableHead>
                     <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.name')}</TableHead>
                     <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.factory')}</TableHead>
-                    <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.ipAddress')}</TableHead>
                     <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.status')}</TableHead>
                     <TableHead className="text-right whitespace-nowrap">{t('deviceRegistry.tableHeaders.actions')}</TableHead>
                   </TableRow>
@@ -217,7 +201,7 @@ export function DevicesSettingsTab() {
                 <TableBody>
                   {filteredMachines.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         {searchQuery ? t('deviceRegistry.noDevicesMatch') : t('deviceRegistry.noDevices')}
                       </TableCell>
                     </TableRow>
@@ -227,7 +211,6 @@ export function DevicesSettingsTab() {
                         <TableCell className="font-mono">{machine.machineIndex}</TableCell>
                         <TableCell className="font-medium">{machine.machineName}</TableCell>
                         <TableCell>{machine.factoryName}</TableCell>
-                        <TableCell className="font-mono text-xs">{machine.machineIpAddress}</TableCell>
                         <TableCell>
                           <Badge variant={getStatusVariant(machine.status)}>
                             {machine.status || t('deviceRegistry.statusUnknown')}
@@ -265,74 +248,12 @@ export function DevicesSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Add Device Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('deviceRegistry.addDialog.title')}</DialogTitle>
-            <DialogDescription>{t('deviceRegistry.addDialog.description')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="machineName">{t('deviceRegistry.addDialog.deviceName')}</Label>
-              <Input
-                id="machineName"
-                value={formData.machineName}
-                onChange={(e) => setFormData({ ...formData, machineName: e.target.value })}
-                placeholder={t('deviceRegistry.addDialog.deviceNamePlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="machineIndex">{t('deviceRegistry.addDialog.deviceId')}</Label>
-              <Input
-                id="machineIndex"
-                value={formData.machineIndex}
-                onChange={(e) => setFormData({ ...formData, machineIndex: e.target.value })}
-                placeholder={t('deviceRegistry.addDialog.deviceIdPlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="machineIpAddress">{t('deviceRegistry.addDialog.ipAddress')}</Label>
-              <Input
-                id="machineIpAddress"
-                value={formData.machineIpAddress}
-                onChange={(e) => setFormData({ ...formData, machineIpAddress: e.target.value })}
-                placeholder={t('deviceRegistry.addDialog.ipAddressPlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="factoryId">{t('deviceRegistry.addDialog.factory')}</Label>
-              <Select
-                value={formData.factoryId?.toString() || ''}
-                onValueChange={(value) => setFormData({ ...formData, factoryId: parseInt(value) })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('deviceRegistry.addDialog.selectFactory')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {factories.map((factory: Factory) => (
-                    <SelectItem key={factory.factoryId} value={factory.factoryId.toString()}>
-                      {factory.factoryName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              {t('deviceRegistry.addDialog.cancel')}
-            </Button>
-            <Button
-              onClick={handleAddMachine}
-              disabled={isSubmitting || !formData.machineName || !formData.machineIpAddress || !formData.factoryId}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {t('deviceRegistry.addDialog.submit')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Add Device Dialog - New Wizard */}
+      <AddMachineWizard
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        factories={factories}
+      />
 
       {/* Edit Device Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -346,27 +267,9 @@ export function DevicesSettingsTab() {
               <Label htmlFor="edit-machineName">{t('deviceRegistry.editDialog.deviceName')}</Label>
               <Input
                 id="edit-machineName"
-                value={formData.machineName}
-                onChange={(e) => setFormData({ ...formData, machineName: e.target.value })}
+                value={editMachineName}
+                onChange={(e) => setEditMachineName(e.target.value)}
                 placeholder={t('deviceRegistry.editDialog.deviceNamePlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-machineIndex">{t('deviceRegistry.editDialog.deviceId')}</Label>
-              <Input
-                id="edit-machineIndex"
-                value={formData.machineIndex}
-                onChange={(e) => setFormData({ ...formData, machineIndex: e.target.value })}
-                placeholder={t('deviceRegistry.editDialog.deviceIdPlaceholder')}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-machineIpAddress">{t('deviceRegistry.editDialog.ipAddress')}</Label>
-              <Input
-                id="edit-machineIpAddress"
-                value={formData.machineIpAddress}
-                onChange={(e) => setFormData({ ...formData, machineIpAddress: e.target.value })}
-                placeholder={t('deviceRegistry.editDialog.ipAddressPlaceholder')}
               />
             </div>
           </div>
@@ -374,7 +277,7 @@ export function DevicesSettingsTab() {
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               {t('deviceRegistry.editDialog.cancel')}
             </Button>
-            <Button onClick={handleEditMachine} disabled={isSubmitting || !formData.machineName}>
+            <Button onClick={handleEditMachine} disabled={isSubmitting || !editMachineName}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('deviceRegistry.editDialog.submit')}
             </Button>

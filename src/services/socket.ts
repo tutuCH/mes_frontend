@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineAlertEvent, MachineStatusEvent, AlarmUpdateEvent } from '@/types/api';
+import type { RealtimeUpdateEvent, SPCUpdateEvent, MachineAlertEvent, MachineStatusEvent, AlarmUpdateEvent, SpcSeriesUpdateEvent } from '@/types/api';
 import { t } from '@/utils/i18n';
 import { createLogger } from '@/utils/logger';
 
@@ -15,6 +15,7 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'reconnect
 type SocketEventMap = {
   'realtime-update': RealtimeUpdateEvent;
   'spc-update': SPCUpdateEvent;
+  'spc-series-update': SpcSeriesUpdateEvent;
   'machine-alert': MachineAlertEvent;
   'machine-status': MachineStatusEvent;
   'alarm-update': AlarmUpdateEvent;

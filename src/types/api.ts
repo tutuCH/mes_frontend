@@ -1,6 +1,78 @@
 // Backend API Response Types
 // Based on MES Dashboard Backend Integration Guide
 
+// ============ SPC Series Types (Chart Optimization) ============
+export interface SpcSeriesPoint {
+  ts: string
+  value: number
+}
+
+export interface SpcSeriesWindow {
+  mode: string  // 'last_15m', 'last_1h', 'last_6h', 'last_24h', 'last_3d', 'last_7d', 'custom'
+  start: string
+  end: string
+}
+
+export interface SpcSeriesSampling {
+  limit: number
+  returned: number
+  downsample: string  // 'none', 'lttb', 'avg', 'minmax'
+  intervalMs: number
+}
+
+export interface SpcSeriesStats {
+  count: number
+  mean: number
+  stdDev: number
+  min: number
+  max: number
+  median: number
+  p95: number
+  source: string  // 'raw' or 'downsampled'
+}
+
+export interface SpcSeriesLimits {
+  ucl: number
+  lcl: number
+  mean: number
+  sigma: number
+  method: string  // 'xbar-3sigma'
+}
+
+export interface SpcSeriesMeta {
+  source: string
+  generatedAt: string
+}
+
+export interface SpcSeriesResponse {
+  machineId: number | null
+  field: string | null
+  unit: string
+  window: SpcSeriesWindow
+  sampling: SpcSeriesSampling
+  series: SpcSeriesPoint[]
+  stats: SpcSeriesStats | null
+  limits: SpcSeriesLimits | null
+  meta: SpcSeriesMeta
+}
+
+export interface SpcSeriesUpdatePoint {
+  kind: string  // 'bucketed'
+  ts: string
+  value: number
+}
+
+export interface SpcSeriesUpdateEvent {
+  deviceId: string
+  field: string
+  window: SpcSeriesWindow
+  sampling: SpcSeriesSampling
+  point: SpcSeriesUpdatePoint
+  stats: SpcSeriesStats
+  limits: SpcSeriesLimits
+  timestamp: string
+}
+
 // ============ Auth Types ============
 export interface LoginRequest {
   email: string;
@@ -107,7 +179,6 @@ export interface UpdateFactoryRequest {
 export interface Machine {
   machineId: number;
   machineName: string;
-  machineIpAddress: string;
   machineIndex: string;
   status: string;
   createdAt: string;
@@ -116,14 +187,13 @@ export interface Machine {
 
 export interface CreateMachineRequest {
   machineName: string;
-  machineIpAddress: string;
   machineIndex: string;
   factoryId: number;
+  factoryIndex: string;  // Required by backend DTO
 }
 
 export interface UpdateMachineRequest {
   machineName?: string;
-  machineIpAddress?: string;
   machineIndex?: string;
   status?: string;
 }

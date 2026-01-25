@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Lock, Sparkles, ArrowRight, LogOut } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { useSubscription } from '@/contexts/SubscriptionContext'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
+import { Navigate } from 'react-router-dom'
 
 const curatedFeatures = [
   'settings.payment.features.realtimeMonitoring',
@@ -19,11 +20,23 @@ const curatedFeatures = [
 
 export default function SubscriptionRequired() {
   const { t } = useTranslation()
-  const { plans, getCurrentPlan } = useSubscription()
+  const { plans, getCurrentPlan, canAccess, subscription, isLoading } = useSubscription()
   const { logout } = useAuth()
   const currentPlan = getCurrentPlan()
   const isSinglePlan = plans.length === 1
   const [isRedirecting, setIsRedirecting] = useState(false)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Redirect to home if user already has active subscription
+  useEffect(() => {
+    if (!isLoading && canAccess()) {
+      setShouldRedirect(true)
+    }
+  }, [isLoading, canAccess])
+
+  if (shouldRedirect) {
+    return <Navigate to="/" replace />
+  }
 
   const handleSelectPlan = async (planId: string) => {
     if (isRedirecting) return

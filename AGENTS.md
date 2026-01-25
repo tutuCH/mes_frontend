@@ -14,7 +14,9 @@ It summarizes commands, conventions, and key patterns.
 - No test runner is configured in `package.json`.
 - No `*.test.*`/`*.spec.*` files were found in `src/`.
 - Single-test command: not applicable until a test runner is added.
-- If adding tests, prefer Vitest and document `npm run test -- <pattern>`.
+- If adding tests, prefer Vitest and document:
+  - All tests: `npm run test`
+  - Single test: `npm run test -- <pattern>`
 
 ## Language & Tooling
 - React 19 + TypeScript (strict) + Vite.
@@ -32,6 +34,7 @@ It summarizes commands, conventions, and key patterns.
 - Use `type` imports (`import type { Foo } from ...`) for types.
 - Keep React components as named exports (`export function Name`).
 - Keep files focused; split UI, hooks, utils, and services.
+- Only add comments when a non-obvious block needs explanation.
 
 ## Imports Order
 - React/React hooks first.
@@ -144,7 +147,12 @@ It summarizes commands, conventions, and key patterns.
 - `src/components/ui/` (design system)
 - `CLAUDE.md` (architecture overview)
 
-## No Additional Rules Found
+## Rule Files
 - `.cursor/rules/`, `.cursorrules`, and `.github/copilot-instructions.md` not present.
-- Add new rule files here and summarize them above.
-- For all document edit, make the edits under the folder `mesObsidianDocs`
+- If added later, summarize them here.
+
+## Important notes
+- when testing backend api, whenever there's a need for auth token, use the following account to call login api to retrieve auth token
+  testing account
+    - email: tuchenhsien@gmail.com
+    - password: abc123

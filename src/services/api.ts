@@ -34,6 +34,7 @@ import type {
   PortalSessionRequest,
   PortalSessionResponse,
   BillingDemoInfo,
+  SpcSeriesResponse,
 } from '@/types/api';
 import { createLogger } from '@/utils/logger';
 
@@ -484,6 +485,30 @@ class ApiClient {
 
     return this.request(
       `/machines/${machineId}/spc/limits?${queryParams.toString()}`
+    )
+  }
+
+  async getSPCSeries(
+    machineId: number | string,
+    field: string,
+    window: string = 'last_1h',
+    limit: number = 100,
+    downsample: string = 'none',
+    includeStats: boolean = true,
+    includeLimits: boolean = true
+  ): Promise<SpcSeriesResponse> {
+    const queryParams = new URLSearchParams()
+    queryParams.set('machineId', String(machineId))
+    queryParams.set('field', field)
+    queryParams.set('window', window)
+    queryParams.set('limit', String(limit))
+    queryParams.set('downsample', downsample)
+    queryParams.set('includeStats', String(includeStats))
+    queryParams.set('includeLimits', String(includeLimits))
+
+    const queryString = queryParams.toString()
+    return this.request<SpcSeriesResponse>(
+      `/api/spc/series${queryString ? `?${queryString}` : ''}`
     )
   }
 
