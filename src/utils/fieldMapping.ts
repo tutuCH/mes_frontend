@@ -163,45 +163,94 @@ export function normalizeRealtimeData(wsData: RealtimeUpdateEvent): RealtimeData
  * Normalize WebSocket SPC data to standard format
  * NOTE: SPC data comes as strings in WebSocket, must be parsed to numbers
  * Handles both MQTT format (nested Data object) and InfluxDB format (flat structure)
+ * Also handles triple-nested structure: wsData.data.Data (metadata wrapper + Data)
  */
 export function normalizeSPCData(wsData: SPCUpdateEvent): SPCDataPoint & { deviceId: string } {
   const { deviceId, timestamp } = wsData;
-  const mqttData = wsData.Data;
 
   const normalized: SPCDataPoint & { deviceId: string } = {
     deviceId,
     time: timestamp,
   };
 
+  // Handle triple-nested structure: wsData.data.Data
+  // Backend wraps the MQTT data in a metadata object
+  const metadataWrapper = (wsData as any).data;
+  const tripleNestedData = metadataWrapper?.Data;
+
+  // Check if data is in triple-nested format: wsData.data.Data
+  if (tripleNestedData) {
+    // MQTT format - map MQTT field names and parse strings to numbers
+    if (tripleNestedData.CYCN !== undefined) normalized.cycle_number = parseFloat(tripleNestedData.CYCN);
+    if (tripleNestedData.ECYCT !== undefined) normalized.cycle_time = parseFloat(tripleNestedData.ECYCT);
+    if (tripleNestedData.EIVM !== undefined) normalized.injection_velocity_max = parseFloat(tripleNestedData.EIVM);
+    if (tripleNestedData.EIPM !== undefined) normalized.injection_pressure_max = parseFloat(tripleNestedData.EIPM);
+    if (tripleNestedData.ESIPT !== undefined) normalized.switch_pack_time = parseFloat(tripleNestedData.ESIPT);
+    if (tripleNestedData.ET1 !== undefined) normalized.temp_1 = parseFloat(tripleNestedData.ET1);
+    if (tripleNestedData.ET2 !== undefined) normalized.temp_2 = parseFloat(tripleNestedData.ET2);
+    if (tripleNestedData.ET3 !== undefined) normalized.temp_3 = parseFloat(tripleNestedData.ET3);
+
+    // Parse and map optional InfluxDB fields
+    if (tripleNestedData.ESIPP !== undefined) normalized.switch_pack_pressure = parseFloat(tripleNestedData.ESIPP);
+    if (tripleNestedData.ESIPS !== undefined) normalized.switch_pack_position = parseFloat(tripleNestedData.ESIPS);
+    if (tripleNestedData.EIPT !== undefined) normalized.injection_time = parseFloat(tripleNestedData.EIPT);
+    if (tripleNestedData.EPLST !== undefined) normalized.plasticizing_time = parseFloat(tripleNestedData.EPLST);
+    if (tripleNestedData.EPLSPM !== undefined) normalized.plasticizing_pressure_max = parseFloat(tripleNestedData.EPLSPM);
+    if (tripleNestedData.ET4 !== undefined) normalized.temp_4 = parseFloat(tripleNestedData.ET4);
+    if (tripleNestedData.ET5 !== undefined) normalized.temp_5 = parseFloat(tripleNestedData.ET5);
+    if (tripleNestedData.ET6 !== undefined) normalized.temp_6 = parseFloat(tripleNestedData.ET6);
+    if (tripleNestedData.ET7 !== undefined) normalized.temp_7 = parseFloat(tripleNestedData.ET7);
+    if (tripleNestedData.ET8 !== undefined) normalized.temp_8 = parseFloat(tripleNestedData.ET8);
+    if (tripleNestedData.ET9 !== undefined) normalized.temp_9 = parseFloat(tripleNestedData.ET9);
+    if (tripleNestedData.ET10 !== undefined) normalized.temp_10 = parseFloat(tripleNestedData.ET10);
+
+    return normalized;
+  }
+
   // Check if data is in InfluxDB format (fields at root level)
   const influxData = (wsData as any).data;
 
   if (influxData) {
-    // InfluxDB format - fields are already normalized (cycle_time, temp_1, etc.)
-    // Parse and map required fields (already numbers in InfluxDB format)
-    if (influxData.cycle_number !== undefined) normalized.cycle_number = influxData.cycle_number;
-    if (influxData.cycle_time !== undefined) normalized.cycle_time = influxData.cycle_time;
-    if (influxData.injection_velocity_max !== undefined) normalized.injection_velocity_max = influxData.injection_velocity_max;
-    if (influxData.injection_pressure_max !== undefined) normalized.injection_pressure_max = influxData.injection_pressure_max;
-    if (influxData.switch_pack_time !== undefined) normalized.switch_pack_time = influxData.switch_pack_time;
-    if (influxData.temp_1 !== undefined) normalized.temp_1 = influxData.temp_1;
-    if (influxData.temp_2 !== undefined) normalized.temp_2 = influxData.temp_2;
-    if (influxData.temp_3 !== undefined) normalized.temp_3 = influxData.temp_3;
+    // Check if it has the actual SPC fields (not just metadata)
+    // If it only has metadata keys, skip to the MQTT format handler
+    const hasSPCFields = Object.keys(influxData).some(key =>
+      key === 'cycle_number' || key === 'cycle_time' ||
+      key === 'injection_velocity_max' || key.startsWith('temp_')
+    );
 
-    // Parse and map optional InfluxDB fields
-    if (influxData.switch_pack_pressure !== undefined) normalized.switch_pack_pressure = influxData.switch_pack_pressure;
-    if (influxData.switch_pack_position !== undefined) normalized.switch_pack_position = influxData.switch_pack_position;
-    if (influxData.injection_time !== undefined) normalized.injection_time = influxData.injection_time;
-    if (influxData.plasticizing_time !== undefined) normalized.plasticizing_time = influxData.plasticizing_time;
-    if (influxData.plasticizing_pressure_max !== undefined) normalized.plasticizing_pressure_max = influxData.plasticizing_pressure_max;
-    if (influxData.temp_4 !== undefined) normalized.temp_4 = influxData.temp_4;
-    if (influxData.temp_5 !== undefined) normalized.temp_5 = influxData.temp_5;
-    if (influxData.temp_6 !== undefined) normalized.temp_6 = influxData.temp_6;
-    if (influxData.temp_7 !== undefined) normalized.temp_7 = influxData.temp_7;
-    if (influxData.temp_8 !== undefined) normalized.temp_8 = influxData.temp_8;
-    if (influxData.temp_9 !== undefined) normalized.temp_9 = influxData.temp_9;
-    if (influxData.temp_10 !== undefined) normalized.temp_10 = influxData.temp_10;
-  } else if (mqttData) {
+    if (hasSPCFields) {
+      // InfluxDB format - fields are already normalized (cycle_time, temp_1, etc.)
+      // Parse and map required fields (already numbers in InfluxDB format)
+      if (influxData.cycle_number !== undefined) normalized.cycle_number = influxData.cycle_number;
+      if (influxData.cycle_time !== undefined) normalized.cycle_time = influxData.cycle_time;
+      if (influxData.injection_velocity_max !== undefined) normalized.injection_velocity_max = influxData.injection_velocity_max;
+      if (influxData.injection_pressure_max !== undefined) normalized.injection_pressure_max = influxData.injection_pressure_max;
+      if (influxData.switch_pack_time !== undefined) normalized.switch_pack_time = influxData.switch_pack_time;
+      if (influxData.temp_1 !== undefined) normalized.temp_1 = influxData.temp_1;
+      if (influxData.temp_2 !== undefined) normalized.temp_2 = influxData.temp_2;
+      if (influxData.temp_3 !== undefined) normalized.temp_3 = influxData.temp_3;
+
+      // Parse and map optional InfluxDB fields
+      if (influxData.switch_pack_pressure !== undefined) normalized.switch_pack_pressure = influxData.switch_pack_pressure;
+      if (influxData.switch_pack_position !== undefined) normalized.switch_pack_position = influxData.switch_pack_position;
+      if (influxData.injection_time !== undefined) normalized.injection_time = influxData.injection_time;
+      if (influxData.plasticizing_time !== undefined) normalized.plasticizing_time = influxData.plasticizing_time;
+      if (influxData.plasticizing_pressure_max !== undefined) normalized.plasticizing_pressure_max = influxData.plasticizing_pressure_max;
+      if (influxData.temp_4 !== undefined) normalized.temp_4 = influxData.temp_4;
+      if (influxData.temp_5 !== undefined) normalized.temp_5 = influxData.temp_5;
+      if (influxData.temp_6 !== undefined) normalized.temp_6 = influxData.temp_6;
+      if (influxData.temp_7 !== undefined) normalized.temp_7 = influxData.temp_7;
+      if (influxData.temp_8 !== undefined) normalized.temp_8 = influxData.temp_8;
+      if (influxData.temp_9 !== undefined) normalized.temp_9 = influxData.temp_9;
+      if (influxData.temp_10 !== undefined) normalized.temp_10 = influxData.temp_10;
+
+      return normalized;
+    }
+  }
+
+  // Handle standard MQTT format: wsData.Data
+  const mqttData = wsData.Data;
+  if (mqttData) {
     // MQTT format - map MQTT field names and parse strings to numbers
     if (mqttData.CYCN !== undefined) normalized.cycle_number = parseFloat(mqttData.CYCN);
     if (mqttData.ECYCT !== undefined) normalized.cycle_time = parseFloat(mqttData.ECYCT);

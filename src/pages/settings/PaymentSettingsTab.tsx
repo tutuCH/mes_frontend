@@ -116,17 +116,11 @@ export function PaymentSettingsTab() {
     setIsRedirecting(true)
 
     try {
-      console.log('[Billing Portal] Creating portal session...')
 
       const session = await api.createPortalSession({
         returnUrl: `${window.location.origin}/settings?tab=payment`,
       })
 
-      console.log('[Billing Portal] Session created:', {
-        hasUrl: !!session.url,
-        urlType: typeof session.url,
-        url: session.url?.substring(0, 50) + '...' // Log first 50 chars for debugging
-      })
 
       // Validate URL format
       if (!session.url || typeof session.url !== 'string') {
@@ -145,7 +139,6 @@ export function PaymentSettingsTab() {
         console.warn('[Billing Portal] URL is not HTTPS:', session.url)
       }
 
-      console.log('[Billing Portal] Redirecting to Stripe portal...')
       window.location.href = session.url
 
     } catch (error) {
@@ -359,16 +352,6 @@ export function PaymentSettingsTab() {
                     // Type guard passed - safe to access planId
                     const currentPlanId = subscription.planId
 
-                    // Debug logging (can be removed after fix is verified)
-                    if (import.meta.env.DEV) {
-                      console.log('[Payment Debug] Comparing plans:', {
-                        currentPlanId,
-                        checkingPlanId: plan.planId,
-                        planName: plan.name,
-                        subscriptionStatus: subscription.status,
-                        match: currentPlanId === plan.planId
-                      })
-                    }
 
                     // Compare plan IDs (both are strings)
                     return currentPlanId === plan.planId

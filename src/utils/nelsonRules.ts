@@ -3,9 +3,32 @@
  * Extended set of 8 rules including zone-based pattern detection
  */
 
-import type { ControlLimits } from './spcCalculator'
-import { calculateZoneBoundaries } from './spcCalculator'
-import type { Violation } from './westernElectricRules'
+import type { ControlLimits, Violation } from './westernElectricRules'
+
+interface ZoneBoundaries {
+  zoneA_upper: number
+  zoneA_lower: number
+  zoneB_upper: number
+  zoneB_lower: number
+}
+
+/**
+ * Calculate zone boundaries for control chart zones
+ * Zone C: ±1σ from center line
+ * Zone B: ±2σ from center line
+ * Zone A: ±3σ from center line (at control limits)
+ */
+function calculateZoneBoundaries(limits: ControlLimits): ZoneBoundaries {
+  const { ucl, cl } = limits
+  const sigma = (ucl - cl) / 3 // Assuming UCL is at 3σ
+
+  return {
+    zoneA_upper: cl + 3 * sigma, // UCL
+    zoneA_lower: cl - 3 * sigma, // LCL
+    zoneB_upper: cl + 2 * sigma,
+    zoneB_lower: cl - 2 * sigma,
+  }
+}
 
 /**
  * Nelson Rule 1: One point beyond 3σ (same as WE Rule 1)

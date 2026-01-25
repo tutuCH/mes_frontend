@@ -1,15 +1,13 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { type RootState } from '@/store'
 import { NowPanel } from '@/components/machine/NowPanel'
-import { TrendChart } from '@/components/machine/TrendChart'
 import { EventTimeline } from '@/components/machine/EventTimeline'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { api } from '@/services/api'
 
 export default function MachineDetail() {
   const { t } = useTranslation()
@@ -18,32 +16,6 @@ export default function MachineDetail() {
     state.machines.machines[id || '']
   )
 
-  const [historyData, setHistoryData] = useState<any[]>([])
-
-  useEffect(() => {
-    if (!id) return
-
-    const fetchData = async () => {
-      try {
-        const res = await api.getRealtimeHistory(id, { limit: 50 })
-        setHistoryData(res.data)
-      } catch (error) {
-        console.error('Failed to fetch machine history:', error)
-      }
-    }
-
-    fetchData()
-  }, [id])
-  const trendData = useMemo(() => {
-    return historyData.map((d: any) => ({
-      time: new Date(d._time).toLocaleTimeString(),
-      temp: d.temp_1,
-      oilTemp: d.oil_temp,
-      pressure: d.pressure || null, // May not be available in all records
-      cycleTime: d.cycle_time || null // May not be available in realtime data
-    })).reverse() // API returns newest first, reverse for chronological order
-  }, [historyData])
-  console.log('[MachineDetail] historyData:', historyData)
   // Mock events for now as we don't have an events API yet
   // In a real app, we would fetch these or derive them from status changes
   const events = useMemo(() => {
@@ -81,8 +53,7 @@ export default function MachineDetail() {
 
       <NowPanel machine={machine} />
 
-      <div className="grid gap-4 md:grid-cols-7">
-        <TrendChart data={trendData} />
+      <div className="grid gap-4">
         <EventTimeline events={events} />
       </div>
     </div>

@@ -35,7 +35,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         api.getBillingPlans(),
         api.getPaymentMethods().catch(() => []),
       ])
-
       setSubscription(subscriptionData)
       setPlans(plansData)
       setPaymentMethods(paymentMethodsData)
@@ -59,14 +58,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [subscription])
 
   const canAccess = useCallback(() => {
-    if (!subscription) return false
+    if (!subscription)  return false
     if ('isDemo' in subscription) return false
 
     const status = subscription.status
     if (status === 'active' || status === 'trialing') return true
     if (status === 'past_due') return true
     if (status === 'canceled') {
-      return !subscription.cancelAtPeriodEnd || new Date(subscription.currentPeriodEnd) > new Date()
+      const result = !subscription.cancelAtPeriodEnd || new Date(subscription.currentPeriodEnd) > new Date()
+      return result
     }
     return false
   }, [subscription])
@@ -84,7 +84,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const getCurrentPlan = useCallback((): BillingPlan | null => {
     if (!subscription || 'isDemo' in subscription) return null
-    return plans.find(p => p.planId === subscription.planId) || null
+
+    const plan = plans.find(p => p.planId === subscription.planId)
+    return plan || null
   }, [subscription, plans])
 
   const value: SubscriptionContextValue = {

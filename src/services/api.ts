@@ -192,10 +192,11 @@ class ApiClient {
         // Handle specific error codes
         if (response.status === 401) {
           this.setToken(null);
-          if (!skipErrorToast) {
+          // Only show toast and redirect if not already on login page
+          if (!window.location.pathname.startsWith('/login') && !skipErrorToast) {
             toast.error('Session expired. Please log in again.');
+            window.location.href = '/login';
           }
-          window.location.href = '/login';
           throw new Error('Unauthorized');
         }
 
@@ -432,9 +433,58 @@ class ApiClient {
     if (params.aggregate) queryParams.set('aggregate', params.aggregate);
 
     const queryString = queryParams.toString();
-    return this.request<SPCHistoryResponse>(
+    const response = await this.request<any>(
       `/machines/${machineId}/spc-history${queryString ? `?${queryString}` : ''}`
     );
+
+    // Handle both direct array and wrapped response formats
+    const dataArray = Array.isArray(response) ? response : (response?.data || []);
+
+    return {
+      data: dataArray,
+      pagination: response?.pagination || {
+        total: dataArray.length,
+        limit: params.limit || 50,
+        offset: params.offset || 0
+      },
+      metadata: response?.metadata || {
+        deviceId: String(machineId),
+        timeRange: `${params.start || ''} - ${params.end || ''}`,
+        aggregate: params.aggregate || 'raw'
+      }
+    };
+  }
+
+  async getSPCLimits(
+    machineId: number | string,
+    fields: string,
+    lookback: string = '24h',
+    sigma: number = 3
+  ): Promise<{
+    limits: Record<string, {
+      mean: number
+      stdDev: number
+      ucl: number
+      lcl: number
+      n: number
+      calculatedAt: string
+      expiresAt: string
+      isCached: boolean
+    }>
+    metadata: {
+      deviceId: string
+      calculationTime: string
+      cacheKey: string
+    }
+  }> {
+    const queryParams = new URLSearchParams()
+    queryParams.set('fields', fields)
+    queryParams.set('lookback', lookback)
+    queryParams.set('sigma', sigma.toString())
+
+    return this.request(
+      `/machines/${machineId}/spc/limits?${queryParams.toString()}`
+    )
   }
 
   // ============ User Endpoints (Admin) ============

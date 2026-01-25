@@ -238,7 +238,10 @@ export interface RealtimeHistoryResponse {
 
 // ============ SPC Data Types ============
 export interface SPCDataPoint {
-  time: string;
+  // Support both InfluxDB format (_time) and standard format (time)
+  _time?: string;
+  time?: string;
+
   // Required fields (always present in backend)
   cycle_number?: number;
   cycle_time?: number;

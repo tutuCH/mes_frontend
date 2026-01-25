@@ -147,3 +147,4 @@ It summarizes commands, conventions, and key patterns.
 ## No Additional Rules Found
 - `.cursor/rules/`, `.cursorrules`, and `.github/copilot-instructions.md` not present.
 - Add new rule files here and summarize them above.
+- For all document edit, make the edits under the folder `mesObsidianDocs`

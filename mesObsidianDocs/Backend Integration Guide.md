@@ -1,4 +1,4 @@
-# Frontend Integration Guide
+# Backend Integration Guide
 
 This guide documents how a frontend app should integrate with the OPC UA Dashboard backend. It is written for a new frontend engineer with no prior context.
 
@@ -316,6 +316,47 @@ Response (failure):
   "message": "Error resetting password."
 }
 ```
+
+#### POST /auth/google
+Authenticate user using Google OAuth 2.0.
+
+Request:
+```json
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ij..."
+}
+```
+
+Notes:
+- `idToken` is the Google ID token from the OAuth flow (obtained from frontend using `@react-oauth/google` or similar)
+- Backend verifies this token with Google's public keys
+- If user doesn't exist, creates account automatically with `accessLevel: "operator"` and `status: "active"`
+- Returns JWT and user object (same format as regular login)
+
+Success Response (200 OK):
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "userId": 1,
+    "username": "John Doe",
+    "email": "user@gmail.com",
+    "accessLevel": "operator",
+    "status": "active",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+Common errors:
+- `401 Unauthorized` if token is invalid or expired.
+- `401 Unauthorized` if `GOOGLE_CLIENT_ID` is not configured.
+
+Frontend Behavior:
+- Use `@react-oauth/google` library to obtain ID token
+- Send ID token to backend for verification
+- Store returned JWT and redirect to dashboard
 
 ## REST API Reference
 
@@ -710,6 +751,169 @@ Response (example):
 }
 ```
 
+### SPC v2.0 Performance-Optimized Endpoints
+
+**Field Validation:** All SPC endpoints validate field names against an allowed whitelist. Invalid field names will return `400 Bad Request` with a list of valid fields.
+
+Valid SPC fields:
+- `cycle_number`, `cycle_time`, `injection_velocity_max`, `injection_pressure_max`, `switch_pack_time`, `temp_1`, `temp_2`, `temp_3` (required)
+- `switch_pack_pressure`, `switch_pack_position`, `injection_time`, `plasticizing_time`, `plasticizing_pressure_max`, `temp_4` through `temp_10`, `injection_pressure_set`, `fill_cooling_time`, `injection_pressure_set_min`, `oil_temperature_cycle`, `end_mold_open_speed`, `injection_start_speed` (optional)
+
+#### GET /machines/:id/spc/limits
+Get precomputed SPC control limits (UCL, LCL, Mean, Standard Deviation) with caching.
+
+**Purpose:** Offloads CPU-intensive calculations from frontend to backend.
+
+Query params:
+- `fields` (required) - Comma-separated field names (e.g., `cycle_time,injection_velocity_max`)
+- `lookback` (optional, default `24h`) - Time range: `1h`, `6h`, `24h`, `7d`
+- `sigma` (optional, default `3`) - Number of standard deviations: `2`, `3`, `4`
+- `forceRecalculate` (optional, default `false`) - Bypass cache
+
+Response example:
+```json
+{
+  "limits": {
+    "cycle_time": {
+      "mean": 12.34,
+      "stdDev": 0.82,
+      "ucl": 14.8,
+      "lcl": 9.88,
+      "n": 1440,
+      "calculatedAt": "2026-01-18T10:00:00Z",
+      "expiresAt": "2026-01-18T10:30:00Z",
+      "isCached": false
+    }
+  },
+  "metadata": {
+    "deviceId": "Machine 1",
+    "calculationTime": "45ms",
+    "cacheKey": "spc:limits:Machine 1:cycle_time:24h:sigma3"
+  }
+}
+```
+
+Cache behavior:
+- 30-minute TTL
+- Frontend should refresh 5 minutes before `expiresAt`
+- Use `forceRecalculate=true` to bypass cache
+
+#### GET /machines/:id/spc/latest
+Get the most recent N data points (cached).
+
+Query params:
+- `fields` (optional) - Comma-separated field names
+- `count` (optional, default `10`) - Number of points (1-100)
+
+Response example:
+```json
+{
+  "deviceId": "Machine 1",
+  "data": [
+    { "_time": "2026-01-18T10:46:00Z", "cycle_time": 12.6 },
+    { "_time": "2026-01-18T10:47:00Z", "cycle_time": 12.4 }
+  ],
+  "metadata": {
+    "count": 2,
+    "cachedAt": "2026-01-18T10:47:01Z"
+  }
+}
+```
+
+Cache: 10-second TTL for high-frequency polling.
+
+#### GET /machines/:id/spc/history-optimized
+Fetch historical data with intelligent downsampling (Grafana-style).
+
+Query params:
+- `from` (required) - Start timestamp (ISO 8601)
+- `to` (required) - End timestamp (ISO 8601)
+- `fields` (optional) - Comma-separated field names
+- `step` (optional, default `50`) - Target number of data points
+
+Response example:
+```json
+{
+  "deviceId": "Machine 1",
+  "data": [
+    { "_time": "2026-01-18T09:00:00Z", "cycle_time": 12.3 },
+    { "_time": "2026-01-18T09:12:00Z", "cycle_time": 12.5 }
+  ],
+  "metadata": {
+    "timeRange": "2026-01-18T09:00:00Z/2026-01-18T10:00:00Z",
+    "pointsReturned": 2,
+    "requestedFields": ["cycle_time"],
+    "queryTime": "15ms"
+  }
+}
+```
+
+Automatic downsampling:
+- ≤ 1 hour: raw data
+- ≤ 6 hours: 1-minute average
+- ≤ 24 hours: 5-minute average
+- ≤ 7 days: 15-minute average
+- > 7 days: 1-hour average
+
+#### GET /machines/:id/spc/metadata
+Get field metadata for dynamic chart configuration.
+
+Response example:
+```json
+{
+  "deviceId": "Machine 1",
+  "fields": [
+    {
+      "name": "cycle_time",
+      "displayName": "Cycle Time",
+      "unit": "seconds",
+      "dataType": "float",
+      "min": 10.0,
+      "max": 15.0,
+      "suggestedRange": [10, 15]
+    },
+    {
+      "name": "injection_velocity_max",
+      "displayName": "Injection Velocity (Max)",
+      "unit": "mm/s",
+      "dataType": "float",
+      "min": 70.0,
+      "max": 95.0,
+      "suggestedRange": [70, 95]
+    }
+  ],
+  "capabilities": {
+    "supportedAggregations": ["mean", "median", "min", "max", "stdDev", "count"],
+    "supportedResolutions": ["auto", "1m", "5m", "15m", "1h", "6h", "1d"],
+    "maxPointsPerQuery": 10000
+  }
+}
+```
+
+### Frontend Integration Example for SPC v2.0
+
+```typescript
+// 1. Fetch control limits (cached)
+const limits = await fetch(
+  `/machines/${id}/spc/limits?fields=cycle_time&lookback=24h&sigma=3`
+).then(r => r.json());
+
+// 2. Fetch historical data with downsampling
+const history = await fetch(
+  `/machines/${id}/spc/history-optimized?from=${startDate}&to=${endDate}&fields=cycle_time&step=50`
+).then(r => r.json());
+
+// 3. Fetch latest data for real-time updates
+const latest = await fetch(
+  `/machines/${id}/spc/latest?count=5`
+).then(r => r.json());
+
+// 4. Use metadata for dynamic configuration
+const metadata = await fetch(
+  `/machines/${id}/spc/metadata`
+).then(r => r.json());
+```
+
 #### GET /machines/:id/status
 Returns the latest cached status from Redis (or a "No status" message).
 
@@ -825,10 +1029,30 @@ Common errors:
 
 All endpoints are prefixed with `/api/subscription` and require JWT.
 
+**Rate Limits:**
+- POST /create-checkout-session: 5 requests per minute
+- POST /create-portal-session: 10 requests per minute
+- GET /current: 30 requests per minute
+- GET /plans: 50 requests per minute
+- GET /payment-methods: 20 requests per minute
+- DELETE /:subscriptionId: 5 requests per minute
+
 #### POST /api/subscription/create-checkout-session
 Create a Stripe checkout session.
 
-Request:
+**CURL Example:**
+```bash
+curl -X POST 'http://localhost:3000/api/subscription/create-checkout-session' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{
+    "lookupKey": "basic_monthly",
+    "successUrl": "https://yourapp.com/billing/success?session_id={CHECKOUT_SESSION_ID}",
+    "cancelUrl": "https://yourapp.com/billing/cancel"
+  }'
+```
+
+**Request Body:**
 ```json
 {
   "lookupKey": "basic_monthly",
@@ -837,7 +1061,7 @@ Request:
 }
 ```
 
-Response:
+**Response:**
 ```json
 {
   "status": "success",
@@ -848,20 +1072,31 @@ Response:
 }
 ```
 
-Common errors:
+**Common errors:**
 - `400 Bad Request` if Stripe is not configured or unhealthy.
+- `404 Not Found` if user doesn't exist.
 
 #### POST /api/subscription/create-portal-session
 Create a Stripe billing portal session.
 
-Request:
+**CURL Example:**
+```bash
+curl -X POST 'http://localhost:3000/api/subscription/create-portal-session' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  -H 'Content-Type: application/json' \
+  --data-raw '{
+    "returnUrl": "https://yourapp.com/account"
+  }'
+```
+
+**Request Body:**
 ```json
 {
   "returnUrl": "https://yourapp.com/account"
 }
 ```
 
-Response:
+**Response:**
 ```json
 {
   "status": "success",
@@ -874,7 +1109,13 @@ Response:
 #### GET /api/subscription/current
 Returns the current subscription (or `null` if none / demo mode).
 
-Response:
+**CURL Example:**
+```bash
+curl -X GET 'http://localhost:3000/api/subscription/current' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+**Response:**
 ```json
 {
   "subscription": {
@@ -897,7 +1138,13 @@ Response:
 #### GET /api/subscription/plans
 Returns subscription plans (Stripe plans or demo fallback).
 
-Response:
+**CURL Example:**
+```bash
+curl -X GET 'http://localhost:3000/api/subscription/plans' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+**Response:**
 ```json
 {
   "plans": [
@@ -918,7 +1165,13 @@ Response:
 #### GET /api/subscription/payment-methods
 Returns stored payment methods.
 
-Response:
+**CURL Example:**
+```bash
+curl -X GET 'http://localhost:3000/api/subscription/payment-methods' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+**Response:**
 ```json
 {
   "status": "success",
@@ -940,7 +1193,13 @@ Response:
 #### DELETE /api/subscription/:subscriptionId
 Cancel a subscription at period end.
 
-Response:
+**CURL Example:**
+```bash
+curl -X DELETE 'http://localhost:3000/api/subscription/sub_abc123xyz789' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+
+**Response:**
 ```json
 {
   "status": "success",
@@ -959,6 +1218,19 @@ Response:
 
 #### POST /api/webhooks/stripe
 Stripe webhook endpoint. Requires raw body and `stripe-signature` header. Do not call from frontend.
+
+**Webhook Events Handled:**
+- `checkout.session.completed` - Checkout session successfully completed
+- `customer.subscription.created` - New subscription created
+- `customer.subscription.updated` - Subscription updated (plan change, etc.)
+- `customer.subscription.deleted` - Subscription canceled/deleted
+- `invoice.payment_succeeded` - Payment succeeded, subscription renewed
+- `invoice.payment_failed` - Payment failed, subscription past due
+
+**Idempotency:**
+All webhook events are tracked for idempotency. Duplicate events (same `event.id`) are automatically skipped to prevent duplicate processing.
+
+For complete CURL examples and detailed documentation, see `docs/STRIPE_API_REFERENCE.md`.
 
 ### MQTT Connection
 
@@ -1822,6 +2094,38 @@ const { data, aggregation } = await res.json();
 - `1d` - For very long time ranges (weeks)
 
 Aggregated queries return significantly fewer records while preserving trends.
+
+### SPC Performance Optimization
+
+For SPC charts, use the v2.0 endpoints:
+
+1. **Control Limits**: Use `/spc/limits` instead of calculating client-side
+   - Cached for 30 minutes
+   - Includes UCL, LCL, mean, stdDev
+
+2. **Historical Data**: Use `/spc/history-optimized` for large time ranges
+   - Automatic downsampling based on time range
+   - Field projection reduces payload size
+
+3. **Real-time Updates**: Use `/spc/latest` instead of polling
+   - 10-second cache
+   - Returns only requested fields
+
+Example complete SPC chart integration:
+```typescript
+// Initial load
+const [limits, history, metadata] = await Promise.all([
+  fetch(`/machines/${id}/spc/limits?fields=cycle_time`).then(r => r.json()),
+  fetch(`/machines/${id}/spc/history-optimized?from=${dayAgo}&to=${now}&fields=cycle_time`).then(r => r.json()),
+  fetch(`/machines/${id}/spc/metadata`).then(r => r.json())
+]);
+
+// Real-time polling (10-second cache friendly)
+setInterval(async () => {
+  const latest = await fetch(`/machines/${id}/spc/latest?count=1`).then(r => r.json());
+  updateChart(latest.data[0]);
+}, 10000);
+```
 
 ## Example Frontend Snippets
 

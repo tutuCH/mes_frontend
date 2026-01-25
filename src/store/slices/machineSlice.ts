@@ -37,10 +37,8 @@ export const fetchMachines = createAsyncThunk(
             // Fetch latest history data
             let historyData
             try {
-              console.log(`[fetchMachines] Fetching history for machine ${machine.machineId} (${machine.machineName})`)
               const historyRes = await api.getRealtimeHistory(machine.machineId, { limit: 1 })
               historyData = historyRes.data[0]
-              console.log(`[fetchMachines] History data for ${machine.machineId}:`, historyData)
             } catch (error) {
               console.warn(`[fetchMachines] Failed to fetch history for machine ${machine.machineId}:`, error)
             }
@@ -61,14 +59,6 @@ export const fetchMachines = createAsyncThunk(
               efficiency: 0,
               lastUpdate: historyData?.time ?? new Date().toISOString()
             }
-
-            console.log(`[fetchMachines] Initialized machine ${machine.machineId}:`, {
-              id: machines[machine.machineId].id,
-              deviceId: machines[machine.machineId].deviceId,
-              temperature: machines[machine.machineId].temperature,
-              oilTemp: machines[machine.machineId].oilTemp,
-              cycleTime: machines[machine.machineId].cycleTime
-            })
           })
         )
       })
@@ -115,7 +105,6 @@ const machineSlice = createSlice({
       .addCase(fetchMachines.fulfilled, (state, action) => {
         state.loading = false
         state.machines = action.payload
-        console.log('[fetchMachines] Successfully loaded machines:', Object.keys(state.machines))
       })
       .addCase(fetchMachines.rejected, (state, action) => {
         state.loading = false

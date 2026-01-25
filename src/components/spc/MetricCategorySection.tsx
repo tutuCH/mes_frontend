@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { SPCControlChart } from './SPCControlChart'
+import { SPCChart } from './SPCChart'
 
 interface Metric {
   name: string
@@ -9,26 +9,24 @@ interface Metric {
   dataSource: 'spc' | 'realtime'
 }
 
-interface ChartDataPoint {
-  id: number
-  value: number
-  timestamp: string
-}
-
 interface MetricCategorySectionProps {
   category: string
   metrics: Metric[]
-  chartData: Record<string, ChartDataPoint[]>
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  machineId: number | string  // Numeric ID for REST API calls
+  deviceId: string  // Device name for WebSocket subscriptions
+  isPaused?: boolean
 }
 
 export const MetricCategorySection = memo(function MetricCategorySection({
   category,
   metrics,
-  chartData,
   isOpen,
-  onOpenChange
+  onOpenChange,
+  machineId,
+  deviceId,
+  isPaused = false
 }: MetricCategorySectionProps) {
 
   return (
@@ -52,18 +50,23 @@ export const MetricCategorySection = memo(function MetricCategorySection({
 
       {isOpen && (
         <div className="p-4 bg-background">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {metrics.map((metric) => {
-              const data = chartData[metric.field] || []
-              return (
-                <SPCControlChart
-                  key={metric.field}
-                  title={metric.name}
-                  data={data}
-                  unit={metric.unit}
-                />
-              )
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {metrics.map((metric) => (
+              <div key={metric.field} className="h-80 border rounded-lg p-3 bg-card">
+                <h4 className="text-sm font-medium mb-2">{metric.name}</h4>
+                <div className="h-[calc(100%-2rem)]">
+                  <SPCChart
+                    machineId={machineId}
+                    deviceId={deviceId}
+                    field={metric.field}
+                    name={metric.name}
+                    unit={metric.unit}
+                    dataSource={metric.dataSource}
+                    isPaused={isPaused}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

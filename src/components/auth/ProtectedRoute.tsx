@@ -89,9 +89,8 @@ export function ProtectedRoute({
   }
 
   // Check if subscription is required
-  if (requireSubscription && !canAccess()) {
+  if (requireSubscription && !isSubscriptionLoading && !canAccess()) {
     const status = getSubscriptionStatus()
-
     // If subscription is past_due, allow access with warning
     if (status === 'past_due') {
       return (

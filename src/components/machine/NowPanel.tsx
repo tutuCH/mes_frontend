@@ -17,18 +17,6 @@ export function NowPanel({ machine }: NowPanelProps) {
     }
   }
 
-  // Add detailed logging to see what values we're getting
-  console.log('[NowPanel] machine state:', {
-    id: machine.id,
-    name: machine.name,
-    temperature: machine.temperature,
-    oilTemp: machine.oilTemp,
-    cycleTime: machine.cycleTime,
-    status: machine.status,
-    opMode: machine.opMode,
-    lastUpdate: machine.lastUpdate
-  })
-
   // Handle potential undefined/NaN values
   const displayTemp = machine.temperature ?? 0
   const displayOilTemp = machine.oilTemp ?? 0

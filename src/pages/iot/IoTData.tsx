@@ -16,8 +16,6 @@ export default function IoTData() {
 
   // Handle real-time WebSocket updates
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
-    console.log('[IoTData] Received realtime-update:', payload)
-
     const rawData = (payload.data ?? {}) as Record<string, unknown>
     const deviceId = (typeof rawData.device_id === 'string' ? rawData.device_id : undefined) || payload.deviceId
     const timestamp = (typeof rawData._time === 'string' ? rawData._time : undefined)
@@ -39,8 +37,6 @@ export default function IoTData() {
       ts: timestamp,
     }
 
-    console.log('[IoTData] Parsed message:', newMessage)
-
     // Add new message to the beginning of the array
     setData((prevData) => {
       // Avoid duplicates based on timestamp and deviceId
@@ -48,20 +44,16 @@ export default function IoTData() {
         msg => msg.deviceId === newMessage.deviceId && msg.ts === newMessage.ts
       )
       if (exists) {
-        console.log('[IoTData] Duplicate message, skipping')
         return prevData
       }
 
       // Keep only the most recent 100 messages
       const updated = [newMessage, ...prevData]
-      console.log('[IoTData] Added new message, total:', updated.length)
       return updated.slice(0, 100)
     })
   }, [])
 
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
-    console.log('[IoTData] Received spc-update:', payload)
-
     const rawData = (payload.data ?? {}) as Record<string, unknown>
     const deviceId = (typeof rawData.device_id === 'string' ? rawData.device_id : undefined) || payload.deviceId
     const timestamp = (typeof rawData._time === 'string' ? rawData._time : undefined)
@@ -83,8 +75,6 @@ export default function IoTData() {
       ts: timestamp,
     }
 
-    console.log('[IoTData] Parsed message:', newMessage)
-
     // Add new message to the beginning of the array
     setData((prevData) => {
       // Avoid duplicates
@@ -92,12 +82,10 @@ export default function IoTData() {
         msg => msg.deviceId === newMessage.deviceId && msg.ts === newMessage.ts
       )
       if (exists) {
-        console.log('[IoTData] Duplicate message, skipping')
         return prevData
       }
 
       const updated = [newMessage, ...prevData]
-      console.log('[IoTData] Added new message, total:', updated.length)
       return updated.slice(0, 100)
     })
   }, [])
@@ -112,7 +100,6 @@ export default function IoTData() {
           new Date(b.ts).getTime() - new Date(a.ts).getTime()
         )
         setData(sortedMessages)
-        console.log('[IoTData] Loaded', sortedMessages.length, 'initial messages')
       } catch (err) {
         console.error(err)
         setError(t('iot.loadFailed'))
@@ -124,12 +111,10 @@ export default function IoTData() {
     loadData()
 
     // Subscribe to WebSocket events for real-time updates
-    console.log('[IoTData] Subscribing to WebSocket events...')
     socketService.on('realtime-update', handleRealtimeUpdate)
     socketService.on('spc-update', handleSPCUpdate)
 
     return () => {
-      console.log('[IoTData] Unsubscribing from WebSocket events')
       socketService.off('realtime-update', handleRealtimeUpdate)
       socketService.off('spc-update', handleSPCUpdate)
     }

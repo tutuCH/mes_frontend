@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, startTransition } from 'react'
 import { useSelector } from 'react-redux'
-import { ControlChart } from '@/components/spc/ControlChart'
 import { MetricCategorySection } from '@/components/spc/MetricCategorySection'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -15,10 +14,9 @@ import { api } from '@/services/api'
 import { socketService } from '@/services/socket'
 import { formatLocaleTime, formatLocaleString } from '@/utils/dateUtils'
 import { exportSPCDataToExcel } from '@/utils/exportExcel'
-import { normalizeHistoryData, normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
+import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { throttle } from '@/utils/throttle'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 import { useTranslation } from 'react-i18next'
 
@@ -31,7 +29,6 @@ export default function SPCAnalysis() {
 
   // Chart data - fetched once with higher limit for SPC analysis charts
   const [chartSpcHistory, setChartSpcHistory] = useState<any[]>([])
-  const [chartRealtimeHistory, setChartRealtimeHistory] = useState<any[]>([])
 
   // Table data - paginated data for Raw Data Logs tables
   const [spcHistory, setSpcHistory] = useState<any[]>([])
@@ -86,7 +83,7 @@ export default function SPCAnalysis() {
 
   // ========== INGESTION THROTTLE (Task 3) ==========
   // Throttle enqueue rate to reduce per-message allocations
-  const INGESTION_THROTTLE_MS = 250 // Enqueue at most every 250ms
+  const INGESTION_THROTTLE_MS = 1000 // Increased to 1000ms to reduce CPU load
   const lastRealtimeIngestRef = useRef<number>(Date.now())
   const lastSpcIngestRef = useRef<number>(Date.now())
   const pendingRealtimePayloadRef = useRef<RealtimeUpdateEvent | null>(null)
@@ -119,15 +116,9 @@ export default function SPCAnalysis() {
     const fetchChartData = async () => {
       setLoading(true)
       try {
-        const [spcRes, realtimeRes] = await Promise.all([
-          api.getSPCHistory(selectedMachineId, { limit: 50 }),
-          api.getRealtimeHistory(selectedMachineId, { limit: 50 })
-        ])
-
-
+        const spcRes = await api.getSPCHistory(selectedMachineId, { limit: 50 })
         setChartSpcHistory(spcRes.data)
-        setChartRealtimeHistory(normalizeHistoryData(realtimeRes.data))
-        setLastDataUpdate(new Date())  // Track when data was last fetched
+        setLastDataUpdate(new Date())
       } catch (error) {
         console.error('Failed to fetch chart data:', error)
       } finally {
@@ -141,13 +132,11 @@ export default function SPCAnalysis() {
   // Throttled state update queue to prevent memory crash
   const updateQueueRef = useRef<{
     chartSpc: any[]
-    chartRealtime: any[]
     tableSpc: any[]
     tableRealtime: any[]
     lastUpdate: Date | null
   }>({
     chartSpc: [],
-    chartRealtime: [],
     tableSpc: [],
     tableRealtime: [],
     lastUpdate: null
@@ -162,21 +151,12 @@ export default function SPCAnalysis() {
 
     const queue = updateQueueRef.current
     const hasUpdates = queue.chartSpc.length > 0 ||
-                       queue.chartRealtime.length > 0 ||
                        queue.tableSpc.length > 0 ||
                        queue.tableRealtime.length > 0
 
     if (hasUpdates) {
       // Batch all state updates together to minimize re-renders
       startTransition(() => {
-        if (queue.chartRealtime.length > 0) {
-          setChartRealtimeHistory(prev => {
-            const combined = [...prev, ...queue.chartRealtime].slice(-50)
-            return combined
-          })
-          queue.chartRealtime = []
-        }
-
         if (queue.chartSpc.length > 0) {
           setChartSpcHistory(prev => {
             const combined = [...prev, ...queue.chartSpc].slice(-50)
@@ -218,13 +198,15 @@ export default function SPCAnalysis() {
     isProcessingQueueRef.current = false
   }, [activeTab, rowsPerPage])
 
-  // Throttle: Process queue at most every 2 seconds
-  const throttledProcessQueue = useMemo(
-    () => throttle(() => {
-      processUpdateQueue()
-    }, 2000),
-    [processUpdateQueue]
-  )
+  // Simple throttle for queue processing
+  const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const throttledProcessQueue = useCallback(() => {
+    if (throttleTimeoutRef.current) return
+    processUpdateQueue()
+    throttleTimeoutRef.current = setTimeout(() => {
+      throttleTimeoutRef.current = null
+    }, 2000)
+  }, [processUpdateQueue])
 
   // Cleanup throttle and timeouts on unmount
   useEffect(() => {
@@ -238,9 +220,11 @@ export default function SPCAnalysis() {
       if (spcTimerRef.current) {
         clearTimeout(spcTimerRef.current)
       }
-      throttledProcessQueue.cancel?.()
+      if (throttleTimeoutRef.current) {
+        clearTimeout(throttleTimeoutRef.current)
+      }
     }
-  }, [throttledProcessQueue])
+  }, [])
 
   // WebSocket handlers for real-time updates (with ingestion throttle - Task 3)
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
@@ -255,11 +239,6 @@ export default function SPCAnalysis() {
       const p = pendingRealtimePayloadRef.current
       if (!p) return
       const normalized = normalizeRealtimeData(p)
-      pushBounded(
-        updateQueueRef.current.chartRealtime,
-        { id: updateQueueRef.current.chartRealtime.length + 1, value: normalized.temp_1 || normalized.oil_temp || 0, timestamp: normalized.time || p.timestamp },
-        MAX_QUEUE_SIZE
-      )
       if (activeTab === 'tech' || activeTab === 'realtime') {
         pushBounded(updateQueueRef.current.tableRealtime, { _time: normalized.time || p.timestamp, oil_temp: normalized.oil_temp, temp_1: normalized.temp_1, temp_2: normalized.temp_2, temp_3: normalized.temp_3, temp_4: normalized.temp_4, temp_5: normalized.temp_5, temp_6: normalized.temp_6, temp_7: normalized.temp_7, temp_8: normalized.temp_8, temp_9: normalized.temp_9, temp_10: normalized.temp_10, pressure: normalized.pressure, cycle_time: normalized.cycle_time }, MAX_QUEUE_SIZE)
       }
@@ -396,14 +375,6 @@ export default function SPCAnalysis() {
 
     fetchTableData()
   }, [selectedMachineId, activeTab, currentPage]) // Added currentPage - fetch when page changes
-
-  const tempData = useMemo(() => {
-    const data = chartRealtimeHistory.map((d: any, i: number) => ({
-      id: i + 1,
-      value: d.temp_1
-    }))
-    return data
-  }, [chartRealtimeHistory])
 
   // Tech Data - server-side pagination (no client-side slicing)
   const techData = useMemo(() => {
@@ -595,48 +566,6 @@ export default function SPCAnalysis() {
     }
   ], [t])
 
-  // Pre-compute chart data only for visible categories (Task 4: Visibility-driven recompute)
-  const chartDataByField = useMemo(() => {
-    const dataMap: Record<string, any[]> = {}
-
-    // Helper function to transform metric data
-    const transformMetricData = (history: any[], field: string) => {
-      return history
-        .map((d) => {
-          const rawValue = d[field]
-          const value = typeof rawValue === 'string' ? Number.parseFloat(rawValue) : rawValue
-
-          if (!Number.isFinite(value)) {
-            return null
-          }
-
-          return {
-            value,
-            timestamp: d._time || d.time
-          }
-        })
-        .filter((point): point is { value: number; timestamp: string } => point !== null)
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-        .slice(-50) // Keep latest 50 points
-        .map((point, i) => ({
-          id: i + 1,
-          value: point.value,
-          timestamp: point.timestamp
-        }))
-    }
-
-    // ONLY pre-compute data for metrics in OPEN categories (Task 4)
-    metricCategories.forEach(category => {
-      if (!openCategories.has(category.category)) return // Skip closed categories
-      category.metrics.forEach(metric => {
-        const history = metric.dataSource === 'spc' ? chartSpcHistory : chartRealtimeHistory
-        dataMap[metric.field] = transformMetricData(history, metric.field)
-      })
-    })
-
-    return dataMap
-  }, [chartSpcHistory, chartRealtimeHistory, metricCategories, openCategories])
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -749,15 +678,6 @@ export default function SPCAnalysis() {
         <div className="text-sm text-muted-foreground">{t('common.loading')}</div>
       ) : (
         <>
-          <ControlChart
-            title={`${t('spc.meltTemperature')} (${t('units.celsius')})`}
-            data={tempData}
-            ucl={228}
-            lcl={212}
-            mean={220}
-            unit={t('units.celsius')}
-          />
-
       {/* Metric Category Sections */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">{t('spc.metricsAnalysis')}</h2>
@@ -767,9 +687,11 @@ export default function SPCAnalysis() {
               key={cat.category}
               category={cat.category}
               metrics={cat.metrics}
-              chartData={chartDataByField}
               isOpen={isCategoryOpen(cat.category)}
               onOpenChange={() => toggleCategoryOpen(cat.category)}
+              machineId={selectedMachineId}
+              deviceId={selectedMachine.deviceId}
+              isPaused={isPaused}
             />
           ))}
         </div>

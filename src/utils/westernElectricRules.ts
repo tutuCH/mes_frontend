@@ -3,7 +3,11 @@
  * Four rules for detecting out-of-control conditions
  */
 
-import type { ControlLimits } from './spcCalculator'
+export interface ControlLimits {
+  ucl: number  // Upper Control Limit
+  lcl: number  // Lower Control Limit
+  cl: number   // Center Line (mean)
+}
 
 export interface Violation {
   rule: string
