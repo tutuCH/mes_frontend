@@ -20,7 +20,7 @@ const curatedFeatures = [
 
 export default function SubscriptionRequired() {
   const { t } = useTranslation()
-  const { plans, getCurrentPlan, canAccess, subscription, isLoading } = useSubscription()
+  const { plans, getCurrentPlan, canAccess, isLoading } = useSubscription()
   const { logout } = useAuth()
   const currentPlan = getCurrentPlan()
   const isSinglePlan = plans.length === 1

@@ -29,6 +29,7 @@ interface ControlLimits {
   ucl: number
   lcl: number
   mean: number
+  sigma?: number
 }
 
 interface SPCChartProps {
@@ -154,7 +155,8 @@ export const SPCChart = memo(function SPCChart({
           const newLimits = {
             ucl: seriesRes.limits.ucl,
             lcl: seriesRes.limits.lcl,
-            mean: seriesRes.limits.mean
+            mean: seriesRes.limits.mean,
+            sigma: seriesRes.limits.sigma
           }
           debugLog('Setting limits:', newLimits)
           setLimits(newLimits)
@@ -519,7 +521,7 @@ export const SPCChart = memo(function SPCChart({
                 p95={stats.p95}
                 windowStart={series.window?.start || ''}
                 windowEnd={series.window?.end || ''}
-                sigma={limits.sigma}
+                sigma={limits.sigma ?? 0}
                 method={series.limits?.method || ''}
                 dataPoints={initialData.map(p => ({
                   ts: new Date(p.x).toISOString(),
