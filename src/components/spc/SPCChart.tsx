@@ -12,7 +12,6 @@ import type { SpcSeriesResponse, SpcSeriesStats } from '@/types/api'
 import { api } from '@/services/api'
 import { Loader2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { SPCStatsPanel } from './SPCStatsPanel'
 
@@ -488,23 +487,54 @@ export const SPCChart = memo(function SPCChart({
   debugLog('Stats data ready:', hasStatsData)
 
   return (
-    <Card className="w-full border rounded-lg overflow-hidden">
-      <CardContent className="p-4 space-y-4">
+    <section className="w-full rounded-lg border bg-card">
+      <div className="space-y-4 p-4">
         {/* Chart Section - Fixed Height */}
-        <div className="w-full h-80 relative bg-card border border-border/50 rounded-xl">
-          <canvas ref={canvasRef} className="w-full h-full" />
+        <div className="relative h-80 w-full rounded-md bg-background">
+          <canvas ref={canvasRef} className="h-full w-full" />
         </div>
 
         {/* Stats Panel - Collapsible */}
         {hasStatsData && (
-          <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
-            <CollapsibleTrigger render={
-              <Button variant="ghost" className="w-full justify-between">
-                <span>{t(`spc.${collapsibleOpen ? 'hideDetails' : 'seeDetails'}`)}</span>
-                <ChevronDown className="ml-auto group-data-[state=open]/collapsible-trigger:rotate-180" />
-              </Button>
-            } />
-            <CollapsibleContent className="flex flex-col items-start gap-4 p-2.5 pt-0 text-sm">
+          <>
+            <div className="border-t border-border/60 pt-3 sm:hidden">
+              <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
+                <CollapsibleTrigger
+                  render={
+                    <Button variant="outline" className="w-full justify-between px-3 text-sm">
+                      <span>{t(`spc.${collapsibleOpen ? 'hideDetails' : 'seeDetails'}`)}</span>
+                      <ChevronDown className="ml-auto h-4 w-4 group-data-[state=open]/collapsible-trigger:rotate-180" />
+                    </Button>
+                  }
+                />
+                <CollapsibleContent className="mt-3 rounded-md bg-muted/40 p-3 text-sm">
+                  <SPCStatsPanel
+                    field={field}
+                    unit={unit}
+                    name={name}
+                    current={currentValue || 0}
+                    mean={limits.mean}
+                    ucl={limits.ucl}
+                    lcl={limits.lcl}
+                    count={stats.count}
+                    stdDev={stats.stdDev}
+                    median={stats.median}
+                    min={stats.min}
+                    max={stats.max}
+                    p95={stats.p95}
+                    windowStart={series.window?.start || ''}
+                    windowEnd={series.window?.end || ''}
+                    sigma={limits.sigma ?? 0}
+                    method={series.limits?.method || ''}
+                    dataPoints={initialData.map(p => ({
+                      ts: new Date(p.x).toISOString(),
+                      value: p.y
+                    }))}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+            <div className="hidden border-t border-border/60 pt-4 sm:block">
               <SPCStatsPanel
                 field={field}
                 unit={unit}
@@ -528,10 +558,10 @@ export const SPCChart = memo(function SPCChart({
                   value: p.y
                 }))}
               />
-            </CollapsibleContent>
-          </Collapsible>
+            </div>
+          </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 })

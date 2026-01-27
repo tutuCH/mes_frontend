@@ -175,13 +175,13 @@
     "gridRows": "網格行數"
   },
   "login": {
-    "failed": "Failed to sign in",
-    "title": "Sign in to MES",
-    "subtitle": "Enter your credentials to access the dashboard",
-    "email": "Email",
-    "password": "Password",
-    "signingIn": "Signing in...",
-    "signIn": "Sign In"
+    "failed": "登入失敗",
+    "title": "登入 MES",
+    "subtitle": "輸入您的憑據以訪問儀表板",
+    "email": "電子郵件",
+    "password": "密碼",
+    "signingIn": "登入中...",
+    "signIn": "登入"
   },
   "factoryView": {
     "title": "工廠",

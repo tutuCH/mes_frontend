@@ -286,13 +286,13 @@
     }
   },
   "login": {
-    "failed": "Login failed",
-    "title": "Sign in",
-    "subtitle": "Enter your credentials to access your account",
-    "email": "Email",
-    "password": "Password",
-    "signingIn": "Signing in...",
-    "signIn": "Sign in"
+    "failed": "登录失败",
+    "title": "登录 MES",
+    "subtitle": "输入您的凭据以访问仪表板",
+    "email": "电子邮件",
+    "password": "密码",
+    "signingIn": "登录中...",
+    "signIn": "登录"
   },
   "auth": {
     "title": "登录 MES",

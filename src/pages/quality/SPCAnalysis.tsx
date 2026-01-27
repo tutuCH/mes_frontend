@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, startTransition } fr
 import { useSelector } from 'react-redux'
 import { MetricCategorySection } from '@/components/spc/MetricCategorySection'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -622,56 +623,53 @@ export default function SPCAnalysis() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t('spc.title')}</h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-muted-foreground">{t('spc.subtitle', { machine: selectedMachine.name })}</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1.5">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t('spc.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('spc.subtitle', { machine: selectedMachine.name })}</p>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {isSubscribed && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <div className="flex items-center gap-1 text-xs">
-                  {isPaused ? (
-                    <>
-                      <Pause className="h-3 w-3 text-amber-500" />
-                      <span className="text-amber-600">{t('common.paused')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className={cn("h-2 w-2 rounded-full", newDataArrived ? "bg-green-500 animate-pulse" : "bg-green-500")} />
-                      <span className="text-green-600">{t('common.live')}</span>
-                    </>
-                  )}
-                </div>
-              </>
+              <Badge
+                variant={isPaused ? 'status-yellow' : 'status-green'}
+                className="gap-1 border border-transparent"
+              >
+                {isPaused ? (
+                  <>
+                    <Pause className="h-3 w-3" />
+                    {t('common.paused')}
+                  </>
+                ) : (
+                  <>
+                    <div className={cn('h-2 w-2 rounded-full', newDataArrived ? 'bg-emerald-500 animate-pulse' : 'bg-emerald-500')} />
+                    {t('common.live')}
+                  </>
+                )}
+              </Badge>
             )}
             {lastUpdate && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <RefreshCcw className={cn("h-3 w-3", newDataArrived && "animate-spin")} />
-                  <span>{t('spc.lastUpdated', { time: formatLocaleString(lastUpdate instanceof Date ? lastUpdate.toISOString() : lastUpdate, '--') })}</span>
-                </div>
-              </>
+              <Badge variant="outline" className="gap-1 text-muted-foreground">
+                <RefreshCcw className={cn('h-3 w-3', newDataArrived && 'animate-spin')} />
+                {t('spc.lastUpdated', { time: formatLocaleString(lastUpdate instanceof Date ? lastUpdate.toISOString() : lastUpdate, '--') })}
+              </Badge>
             )}
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
+        <div className="flex w-full flex-col gap-3 sm:w-auto">
           <Select value={selectedMachineId} onValueChange={setSelectedMachineId}>
-            <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectTrigger className="h-11 w-full sm:h-9 sm:w-[220px]">
               <SelectValue placeholder={t('factory.filterMachine')} />
             </SelectTrigger>
             <SelectContent>
               {machineList.map(m => (
-                <SelectItem key={m.id} value={m.id}>{m.name} ({m.id})</SelectItem>
+                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-initial"
+              className="h-11 w-full sm:h-9 sm:w-auto"
               onClick={() => setIsPaused(!isPaused)}
               disabled={!isSubscribed}
             >
@@ -689,7 +687,7 @@ export default function SPCAnalysis() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="flex-1 sm:flex-initial">
+                <Button variant="outline" size="sm" className="h-11 w-full sm:h-9 sm:w-auto">
                   <Calendar className="mr-2 h-4 w-4" />
                   {t(`timeRange.${selectedTimeRange}`)}
                   <ChevronDown className="ml-2 h-4 w-4" />
@@ -716,39 +714,41 @@ export default function SPCAnalysis() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="flex-1 sm:flex-initial"
-                  disabled={isExporting || loading}
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('spc.export.exporting')}
-                    </>
-                  ) : (
-                    <>
-                      <Download className="mr-2 h-4 w-4" />
-                      {t('spc.export.button')}
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExportReport('page')}>
-                  {t('spc.export.currentPage', { rows: rowsPerPage })}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportReport('tab')}>
-                  {t('spc.export.currentTab')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExportReport('all')}>
-                  {t('spc.export.allData')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="col-span-2 sm:col-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-11 w-full sm:h-9 sm:w-auto"
+                    disabled={isExporting || loading}
+                  >
+                    {isExporting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('spc.export.exporting')}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="mr-2 h-4 w-4" />
+                        {t('spc.export.button')}
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportReport('page')}>
+                    {t('spc.export.currentPage', { rows: rowsPerPage })}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportReport('tab')}>
+                    {t('spc.export.currentTab')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportReport('all')}>
+                    {t('spc.export.allData')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </div>
