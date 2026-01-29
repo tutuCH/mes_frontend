@@ -8,6 +8,8 @@ import { useEffect, useRef, useCallback } from 'react'
 import { sseService } from '@/services/sse'
 import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
 import { createLogger } from '@/utils/logger'
+import { summarizeLiveTiming } from '@/utils/spcTimingDebug'
+import { evaluateGapDelta, selectEventTimestamp } from '@/utils/streamTimestamps'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 
 export interface DataPoint {
@@ -32,6 +34,9 @@ interface StreamAggregatorReturn {
 
 const MAX_BUFFER_SIZE = 100 // Maximum data points to keep (sliding window)
 const logger = createLogger('useSPCStreamAggregator')
+const DEBUG_TIMING = import.meta.env.VITE_DEBUG_SPC_TIMING === 'true' ||
+  (typeof window !== 'undefined' && (window as typeof window & { __SPC_DEBUG_TIMING__?: boolean }).__SPC_DEBUG_TIMING__ === true)
+const GAP_WARNING_THRESHOLD_MS = 2 * 60 * 1000
 
 /**
  * Hook to aggregate real-time data from the stream for a specific field
@@ -47,6 +52,8 @@ export function useSPCStreamAggregator({
 }: StreamAggregatorOptions): StreamAggregatorReturn {
   const dataBufferRef = useRef<DataPoint[]>([])
   const isSubscribedRef = useRef(false)
+  const lastHistoricXRef = useRef<number | null>(null)
+  const firstLiveLoggedRef = useRef(false)
 
   // Add data point to buffer (sliding window)
   const addDataPoint = useCallback(
@@ -58,8 +65,13 @@ export function useSPCStreamAggregator({
       // Enforce monotonic timestamps - only append if new timestamp is greater than last
       const lastPoint = buffer[buffer.length - 1]
       if (lastPoint && point.x <= lastPoint.x) {
-        // Drop out-of-order point to prevent line connection issues
-        logger.warn(`[SPC] Dropping out-of-order point for field "${field}": new x=${point.x} <= last x=${lastPoint.x}`)
+        if (DEBUG_TIMING) {
+          logger.debug('[SPC] Dropping out-of-order point', {
+            field,
+            newX: point.x,
+            lastX: lastPoint.x,
+          })
+        }
         return
       }
 
@@ -86,6 +98,8 @@ export function useSPCStreamAggregator({
       // CRITICAL FIX: Use initialData directly instead of creating a copy
       // This ensures dataBufferRef.current is the SAME array reference that the chart was initialized with
       dataBufferRef.current = initialData
+      lastHistoricXRef.current = initialData[initialData.length - 1].x
+      firstLiveLoggedRef.current = false
 
       if (onDataUpdate) {
         const snapshot = [...dataBufferRef.current]
@@ -102,10 +116,49 @@ export function useSPCStreamAggregator({
       try {
         const normalized = normalizeRealtimeData(event)
         const value = normalized[field as keyof typeof normalized]
+        const selection = selectEventTimestamp(event, {
+          sourceHint: 'realtime-update',
+          debug: DEBUG_TIMING,
+          logger,
+        })
 
         if (typeof value === 'number' && !isNaN(value)) {
+          const x = selection.x
+          if (!Number.isFinite(x)) {
+            logger.warn('[SPC] Invalid realtime timestamp', {
+              field,
+              source: selection.source,
+              raw: selection.raw,
+            })
+            return
+          }
+
+          if (DEBUG_TIMING && !firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
+            const summary = summarizeLiveTiming({
+              lastHistoricX: lastHistoricXRef.current,
+              liveX: x,
+              source: selection.source,
+              raw: selection.raw,
+            })
+            logger.debug('[SPC] First live realtime point', {
+              field,
+              summary,
+              rawEvent: event,
+              point: { x, y: value },
+            })
+            const gapEval = evaluateGapDelta(lastHistoricXRef.current, x, GAP_WARNING_THRESHOLD_MS)
+            if (gapEval?.shouldWarn) {
+              logger.warn('[SPC] Large gap between history and live point', {
+                field,
+                summary,
+                thresholdMs: GAP_WARNING_THRESHOLD_MS,
+              })
+            }
+            firstLiveLoggedRef.current = true
+          }
+
           addDataPoint({
-            x: new Date(event.timestamp).getTime(),
+            x,
             y: value,
           })
         }
@@ -124,10 +177,49 @@ export function useSPCStreamAggregator({
       try {
         const normalized = normalizeSPCData(event)
         const value = normalized[field as keyof typeof normalized]
+        const selection = selectEventTimestamp(event, {
+          sourceHint: 'spc-update',
+          debug: DEBUG_TIMING,
+          logger,
+        })
 
         if (typeof value === 'number' && !isNaN(value)) {
+          const x = selection.x
+          if (!Number.isFinite(x)) {
+            logger.warn('[SPC] Invalid SPC timestamp', {
+              field,
+              source: selection.source,
+              raw: selection.raw,
+            })
+            return
+          }
+
+          if (DEBUG_TIMING && !firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
+            const summary = summarizeLiveTiming({
+              lastHistoricX: lastHistoricXRef.current,
+              liveX: x,
+              source: selection.source,
+              raw: selection.raw,
+            })
+            logger.debug('[SPC] First live SPC point', {
+              field,
+              summary,
+              rawEvent: event,
+              point: { x, y: value },
+            })
+            const gapEval = evaluateGapDelta(lastHistoricXRef.current, x, GAP_WARNING_THRESHOLD_MS)
+            if (gapEval?.shouldWarn) {
+              logger.warn('[SPC] Large gap between history and live point', {
+                field,
+                summary,
+                thresholdMs: GAP_WARNING_THRESHOLD_MS,
+              })
+            }
+            firstLiveLoggedRef.current = true
+          }
+
           addDataPoint({
-            x: new Date(event.timestamp).getTime(),
+            x,
             y: value,
           })
         }
@@ -165,6 +257,8 @@ export function useSPCStreamAggregator({
   // Clear buffer when device, field, or time window changes
   useEffect(() => {
     dataBufferRef.current = []
+    lastHistoricXRef.current = null
+    firstLiveLoggedRef.current = false
     if (onDataUpdate) {
       onDataUpdate([])
     }

@@ -145,6 +145,7 @@ It summarizes commands, conventions, and key patterns.
 - `src/utils/fieldMapping.ts` (data normalization)
 - `src/components/ui/` (design system)
 - `CLAUDE.md` (architecture overview)
+- Backend repo: `/Users/harrytu/Documents/my-projects/opcua-dashboard/backend/opcua-backend`
 
 ## Rule Files
 - `.cursor/rules/`, `.cursorrules`, and `.github/copilot-instructions.md` not present.

@@ -13,15 +13,14 @@ import { useSPCStreamAggregator, type DataPoint } from '@/hooks/useSPCStreamAggr
 import type { SpcSeriesResponse, SpcSeriesStats } from '@/types/api'
 import { api } from '@/services/api'
 import { createLogger } from '@/utils/logger'
+import { summarizeSeriesTiming } from '@/utils/spcTimingDebug'
+import { mapSeriesToChartPoints } from '@/utils/spcSeriesTransform'
 
 import { SPCStatsPanel } from './SPCStatsPanel'
 
 const logger = createLogger('SPCChart')
-const DEBUG = import.meta.env.VITE_DEBUG_SPC === 'true'
-
-const debugLog = (...args: unknown[]) => {
-  if (DEBUG) logger.debug('[SPCChart]', ...args)
-}
+const DEBUG_TIMING = import.meta.env.VITE_DEBUG_SPC_TIMING === 'true' ||
+  (typeof window !== 'undefined' && (window as typeof window & { __SPC_DEBUG_TIMING__?: boolean }).__SPC_DEBUG_TIMING__ === true)
 
 type TimeWindow = 'last_15m' | 'last_1h' | 'last_6h' | 'last_24h' | 'last_3d' | 'last_7d'
 export type { TimeWindow }
@@ -73,7 +72,7 @@ export const SPCChart = memo(function SPCChart({
 
   const currentWindow = timeWindow || 'last_1h'
   const getDownsampleMethod = (window: TimeWindow): string => {
-    const longWindows: TimeWindow[] = ['last_24h', 'last_3d', 'last_7d']
+    const longWindows: TimeWindow[] = ['last_6h', 'last_24h', 'last_3d', 'last_7d']
     return longWindows.includes(window) ? 'avg' : 'none'
   }
 
@@ -83,7 +82,6 @@ export const SPCChart = memo(function SPCChart({
     if (newData.length > 0) {
       const val = newData[newData.length - 1].y
       setCurrentValue(val)
-      debugLog('Current value updated:', val)
     }
   }, [])
 
@@ -106,8 +104,6 @@ export const SPCChart = memo(function SPCChart({
       setError(null)
 
       try {
-        debugLog('Fetching series data for:', { machineId, field, timeWindow: currentWindow })
-
         const seriesRes: SpcSeriesResponse = await api.getSPCSeries(
           machineId,
           field,
@@ -118,17 +114,7 @@ export const SPCChart = memo(function SPCChart({
           true
         )
 
-        debugLog('Received series response:', {
-          hasSeries: !!seriesRes.series,
-          seriesLength: seriesRes.series?.length,
-          hasLimits: !!seriesRes.limits,
-          limits: seriesRes.limits,
-          hasStats: !!seriesRes.stats,
-          stats: seriesRes.stats
-        })
-
         if (!seriesRes.series || seriesRes.series.length === 0) {
-          debugLog('No series data available')
           setInitialData([])
           setDataLoaded(true)
           setLoading(false)
@@ -137,12 +123,37 @@ export const SPCChart = memo(function SPCChart({
           return
         }
 
-        const historicalPoints: DataPoint[] = seriesRes.series.map(p => ({
-          x: new Date(p.ts).getTime(),
-          y: p.value
-        })).filter((p): p is DataPoint => !isNaN(p.y))
+        const fallbackWindowEndMs = Date.now()
+        const metaEndMs = Date.parse(seriesRes.meta?.generatedAt ?? '')
+        const windowEndMs = Number.isFinite(metaEndMs) ? metaEndMs : fallbackWindowEndMs
+        const shouldUseInterval = ['last_6h', 'last_24h', 'last_3d', 'last_7d'].includes(currentWindow)
+          ? seriesRes.sampling?.intervalMs ?? null
+          : null
+        const historicalPoints: DataPoint[] = mapSeriesToChartPoints({
+          series: seriesRes.series,
+          intervalMs: shouldUseInterval,
+          windowEndMs,
+        }).filter((p): p is DataPoint => !isNaN(p.y))
 
-        debugLog('Mapped historical points:', { count: historicalPoints.length })
+        if (DEBUG_TIMING && seriesRes.series.length > 0) {
+          logger.debug('[SPCChart] Series timing summary', {
+            field,
+            machineId,
+            windowEndMs,
+            intervalMs: shouldUseInterval,
+            summary: summarizeSeriesTiming({
+              window: currentWindow,
+              sampling: seriesRes.sampling,
+              series: seriesRes.series,
+            }),
+          })
+          logger.debug('[SPCChart] Mapped historical points', {
+            field,
+            count: historicalPoints.length,
+            first: historicalPoints[0],
+            last: historicalPoints[historicalPoints.length - 1],
+          })
+        }
         setInitialData(historicalPoints)
         setDataLoaded(true)
         setSeries(seriesRes)
@@ -157,20 +168,16 @@ export const SPCChart = memo(function SPCChart({
             mean: seriesRes.limits.mean,
             sigma: seriesRes.limits.sigma
           }
-          debugLog('Setting limits:', newLimits)
           setLimits(newLimits)
           setLimitsLoaded(true)
         } else {
-          debugLog('Limits not available or incomplete')
           setLimits(null)
           setLimitsLoaded(true)
         }
 
         if (seriesRes.stats) {
-          debugLog('Setting stats:', seriesRes.stats)
           setStats(seriesRes.stats)
         } else {
-          debugLog('Stats not available')
           setStats(null)
         }
 
@@ -206,6 +213,16 @@ export const SPCChart = memo(function SPCChart({
 
     // Initialize dataRef with initial data
     dataRef.current = dataBuffer
+
+    if (DEBUG_TIMING && dataBuffer.length > 0) {
+      logger.debug('[SPCChart] Chart init data', {
+        field,
+        count: dataBuffer.length,
+        first: dataBuffer[0],
+        last: dataBuffer[dataBuffer.length - 1],
+        xType: typeof dataBuffer[0].x,
+      })
+    }
 
     // Add control limit lines if available
     if (limits) {
@@ -272,6 +289,13 @@ export const SPCChart = memo(function SPCChart({
       data: chartData,
       options,
     })
+
+    if (DEBUG_TIMING && typeof window !== 'undefined' && chartRef.current) {
+      const debugKey = `${deviceId}:${field}`
+      const debugStore = (window as typeof window & { __spcChartDebug?: Record<string, unknown> }).__spcChartDebug ?? {}
+      debugStore[debugKey] = chartRef.current
+      ;(window as typeof window & { __spcChartDebug?: Record<string, unknown> }).__spcChartDebug = debugStore
+    }
 
     return () => {
       if (chartRef.current) {
