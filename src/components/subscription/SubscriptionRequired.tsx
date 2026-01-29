@@ -7,6 +7,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext'
 import { api } from '@/services/api'
 import { useAuth } from '@/context/AuthContext'
 import { Navigate } from 'react-router-dom'
+import { createLogger } from '@/utils/logger'
 
 const curatedFeatures = [
   'settings.payment.features.realtimeMonitoring',
@@ -17,6 +18,8 @@ const curatedFeatures = [
   'settings.payment.features.apiAccess',
   'settings.payment.features.prioritySupport',
 ]
+
+const logger = createLogger('SubscriptionRequired')
 
 export default function SubscriptionRequired() {
   const { t } = useTranslation()
@@ -58,7 +61,7 @@ export default function SubscriptionRequired() {
 
       window.location.href = session.url
     } catch (error) {
-      console.error('Failed to create checkout session:', error)
+      logger.error('Failed to create checkout session:', error)
       toast.error(t('settings.payment.checkoutFailed'))
       setIsRedirecting(false)
     }

@@ -1,12 +1,13 @@
 /**
  * useSPCStreamAggregator Hook
- * Aggregates real-time SPC and realtime data from WebSocket events
+ * Aggregates real-time SPC and realtime data from stream events
  * Maintains a sliding window buffer for chart rendering
  */
 
 import { useEffect, useRef, useCallback } from 'react'
-import { socketService } from '@/services/socket'
+import { sseService } from '@/services/sse'
 import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
+import { createLogger } from '@/utils/logger'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
 
 export interface DataPoint {
@@ -30,9 +31,10 @@ interface StreamAggregatorReturn {
 }
 
 const MAX_BUFFER_SIZE = 100 // Maximum data points to keep (sliding window)
+const logger = createLogger('useSPCStreamAggregator')
 
 /**
- * Hook to aggregate real-time data from WebSocket for a specific field
+ * Hook to aggregate real-time data from the stream for a specific field
  */
 export function useSPCStreamAggregator({
   deviceId,
@@ -57,7 +59,7 @@ export function useSPCStreamAggregator({
       const lastPoint = buffer[buffer.length - 1]
       if (lastPoint && point.x <= lastPoint.x) {
         // Drop out-of-order point to prevent line connection issues
-        console.warn(`[SPC] Dropping out-of-order point for field "${field}": new x=${point.x} <= last x=${lastPoint.x}`)
+        logger.warn(`[SPC] Dropping out-of-order point for field "${field}": new x=${point.x} <= last x=${lastPoint.x}`)
         return
       }
 
@@ -108,7 +110,7 @@ export function useSPCStreamAggregator({
           })
         }
       } catch (error) {
-        console.warn('[SPC] Error processing realtime update:', error)
+        logger.warn('[SPC] Error processing realtime update:', error)
       }
     },
     [deviceId, field, dataSource, addDataPoint]
@@ -130,30 +132,33 @@ export function useSPCStreamAggregator({
           })
         }
       } catch (error) {
-        console.warn('[SPC] Error processing SPC update:', error)
+        logger.warn('[SPC] Error processing SPC update:', error)
       }
     },
     [deviceId, field, dataSource, addDataPoint]
   )
 
-  // Subscribe to WebSocket events
+  // Subscribe to stream events
   useEffect(() => {
     if (!deviceId || isSubscribedRef.current) return
 
     // Subscribe to machine
-    socketService.subscribeToMachine(deviceId)
+    const didSubscribe = sseService.subscribeToMachine(deviceId)
+    if (!didSubscribe) return
     isSubscribedRef.current = true
 
     // Listen for updates
-    socketService.on('realtime-update', handleRealtimeUpdate)
-    socketService.on('spc-update', handleSPCUpdate)
+    sseService.on('realtime-update', handleRealtimeUpdate)
+    sseService.on('spc-update', handleSPCUpdate)
 
     // Cleanup
     return () => {
-      socketService.off('realtime-update', handleRealtimeUpdate)
-      socketService.off('spc-update', handleSPCUpdate)
-      socketService.unsubscribeFromMachine(deviceId)
-      isSubscribedRef.current = false
+      sseService.off('realtime-update', handleRealtimeUpdate)
+      sseService.off('spc-update', handleSPCUpdate)
+      if (isSubscribedRef.current) {
+        sseService.unsubscribeFromMachine(deviceId)
+        isSubscribedRef.current = false
+      }
     }
   }, [deviceId, handleRealtimeUpdate, handleSPCUpdate])
 

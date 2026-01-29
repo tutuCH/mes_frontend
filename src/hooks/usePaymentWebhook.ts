@@ -6,6 +6,9 @@ import {
   stopWebhookPolling,
   incrementWebhookPollCount,
 } from '@/store/slices/paymentSlice'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('usePaymentWebhook')
 
 export interface UsePaymentWebhookReturn {
   startPolling: () => void
@@ -109,7 +112,7 @@ export function usePaymentWebhook(): UsePaymentWebhookReturn {
           dispatch(stopWebhookPolling())
         }
       } catch (error) {
-        console.error('[usePaymentWebhook] Polling error:', error)
+        logger.error('[usePaymentWebhook] Polling error:', error)
         // Continue polling on error, but increment count
         dispatch(incrementWebhookPollCount())
       }

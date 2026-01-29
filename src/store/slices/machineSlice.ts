@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/tool
 import { type MachineState } from '@/types/machine'
 import { api } from '@/services/api'
 import { mapToOpMode } from '@/utils/fieldMapping'
+import { createLogger } from '@/utils/logger'
 
 interface MachinesState {
   machines: Record<string, MachineState>
@@ -14,6 +15,8 @@ const initialState: MachinesState = {
   loading: false,
   error: null
 }
+
+const logger = createLogger('machineSlice')
 
 // Helper function to find machine by backend device_id
 const findMachineByDeviceId = (state: MachinesState, deviceId: string): string | null => {
@@ -40,7 +43,7 @@ export const fetchMachines = createAsyncThunk(
               const historyRes = await api.getRealtimeHistory(machine.machineId, { limit: 1 })
               historyData = historyRes.data[0]
             } catch (error) {
-              console.warn(`[fetchMachines] Failed to fetch history for machine ${machine.machineId}:`, error)
+              logger.warn(`[fetchMachines] Failed to fetch history for machine ${machine.machineId}:`, error)
             }
 
             machines[machine.machineId] = {
@@ -83,7 +86,7 @@ const machineSlice = createSlice({
       if (machineId && state.machines[machineId]) {
         state.machines[machineId] = { ...state.machines[machineId], ...data }
       } else {
-        console.warn('[updateMachineStatus] Machine not found:', {
+        logger.warn('[updateMachineStatus] Machine not found:', {
           deviceId,
           id,
           resolvedMachineId: machineId,

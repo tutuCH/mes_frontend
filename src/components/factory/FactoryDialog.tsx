@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { createLogger } from '@/utils/logger'
 import type { Factory } from '@/types/api'
 
 interface FactoryDialogProps {
@@ -25,6 +26,8 @@ interface FactoryFormData {
   width: number
   height: number
 }
+
+const logger = createLogger('FactoryDialog')
 
 export function FactoryDialog({
   open,
@@ -143,7 +146,7 @@ export function FactoryDialog({
       onOpenChange(false)
       onSave?.()
     } catch (error) {
-      console.error('Failed to save factory:', error)
+      logger.error('Failed to save factory:', error)
       toast.error('Failed to save factory')
     } finally {
       setIsSubmitting(false)

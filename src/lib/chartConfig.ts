@@ -204,7 +204,8 @@ export function createViolationStyle(
 export function createCurrentValueIndicator(
   value: number,
   ucl: number,
-  lcl: number
+  lcl: number,
+  timestamp?: number  // Optional timestamp parameter
 ) {
   const status = getViolationStatus(value, ucl, lcl)
   const style = status === 'ucl-breach' ? createViolationStyle('red') : createViolationStyle('blue')
@@ -212,7 +213,7 @@ export function createCurrentValueIndicator(
   return {
     ...style,
     label: 'Current',
-    data: [{ x: Date.now(), y: value }],
+    data: [{ x: timestamp ?? Date.now(), y: value }],  // Use provided timestamp or fall back to Date.now()
   }
 }
 

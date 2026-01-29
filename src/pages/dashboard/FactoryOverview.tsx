@@ -7,14 +7,17 @@ import { type AppDispatch, type RootState } from '@/store'
 import { fetchFactoriesWithMachines } from '@/store/slices/factorySlice'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
-import { WebSocketStatusPanel } from '@/components/factory/WebSocketStatusPanel'
+import { RealtimeStatusPanel } from '@/components/factory/RealtimeStatusPanel'
 import { FactorySelectorDropdown } from '@/components/factory/FactorySelectorDropdown'
 import { FactoryCard } from '@/components/factory/FactoryCard'
 import { MachineDialog } from '@/components/factory/MachineDialog'
 import { FactoryDialog } from '@/components/factory/FactoryDialog'
 import { getNumericIndex } from '@/utils/gridUtils'
-import { useWebSocketStatus } from '@/hooks/useWebSocketStatus'
+import { useRealtimeStatus } from '@/hooks/useRealtimeStatus'
+import { createLogger } from '@/utils/logger'
 import type { Factory } from '@/types/api'
+
+const logger = createLogger('FactoryOverview')
 
 export default function FactoryOverview() {
   const { t } = useTranslation()
@@ -23,8 +26,8 @@ export default function FactoryOverview() {
   // Subscribe to real-time machine data from Redux
   const machines = useSelector((state: RootState) => state.machines.machines)
 
-  // Sync WebSocket status from socket service to Redux
-  useWebSocketStatus()
+  // Sync realtime status from stream service to Redux
+  useRealtimeStatus()
 
   const [selectedFactoryId, setSelectedFactoryId] = useState<number | 'all'>('all')
   const [isMachineDialogOpen, setIsMachineDialogOpen] = useState(false)
@@ -66,7 +69,7 @@ export default function FactoryOverview() {
       dispatch(fetchFactoriesWithMachines())
       toast.success('Machine moved successfully')
     } catch (error) {
-      console.error('Failed to move machine:', error)
+      logger.error('Failed to move machine:', error)
       toast.error('Failed to move machine')
     }
   }
@@ -78,7 +81,7 @@ export default function FactoryOverview() {
       dispatch(fetchFactoriesWithMachines())
       toast.success('Factory deleted successfully')
     } catch (error) {
-      console.error('Failed to delete factory:', error)
+      logger.error('Failed to delete factory:', error)
       toast.error('Failed to delete factory')
     }
   }
@@ -112,8 +115,8 @@ export default function FactoryOverview() {
         )}
       </div>
 
-      {/* WebSocket Status Panel */}
-      <WebSocketStatusPanel />
+      {/* Realtime Status Panel */}
+      <RealtimeStatusPanel />
 
       {/* Factory Selector */}
       {factories.length > 1 && (

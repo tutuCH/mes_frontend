@@ -10,6 +10,7 @@ import type { MachineState } from '@/types/machine'
 import { useSelector } from 'react-redux'
 import { type RootState } from '@/store'
 import { DragDropProvider, useDragDrop } from '@/context/DragDropContext'
+import { createLogger } from '@/utils/logger'
 
 interface BlueprintGridProps {
   factory: Factory
@@ -33,6 +34,8 @@ interface MachineCellData {
   alertSeverity?: string
   lastUpdate?: string
 }
+
+const logger = createLogger('BlueprintGrid')
 
 function BlueprintGridContent({
   factory,
@@ -61,7 +64,7 @@ function BlueprintGridContent({
           positions.set(`${row}-${col}`, machine)
         }
       } catch (error) {
-        console.error(`Invalid machine index: ${machine.machineIndex}`, error)
+        logger.error(`Invalid machine index: ${machine.machineIndex}`, error)
       }
     })
     return positions

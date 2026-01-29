@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { createLogger } from '@/utils/logger'
 
 interface Props {
   children: ReactNode
@@ -12,6 +13,8 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private logger = createLogger('ErrorBoundary')
+
   public state: State = {
     hasError: false,
     error: null,
@@ -22,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo)
+    this.logger.error('Uncaught error:', error, errorInfo)
   }
 
   public render() {

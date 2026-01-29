@@ -3,7 +3,7 @@ import { Activity, AlertCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { type RootState } from '@/store'
 
-export function WebSocketStatusPanel() {
+export function RealtimeStatusPanel() {
   const { t } = useTranslation()
   const factories = useSelector((state: RootState) => state.factories.factories)
   const realtimeEventCount = useSelector((state: RootState) => state.factories.realtimeEventCount)
@@ -40,7 +40,7 @@ export function WebSocketStatusPanel() {
         <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
           <div className="flex-1">
-            <div className="text-sm font-medium text-red-900">WebSocket Error</div>
+            <div className="text-sm font-medium text-red-900">{t('websocket.socketError')}</div>
             <div className="text-xs text-red-700">{websocketError}</div>
           </div>
         </div>

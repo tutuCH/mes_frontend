@@ -15,7 +15,10 @@ import {
 import { Loader2, CreditCard, CheckCircle, Zap, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/services/api'
+import { createLogger } from '@/utils/logger'
 import type { BillingSubscription, BillingPlan, PaymentMethod, BillingDemoInfo } from '@/types/api'
+
+const logger = createLogger('PaymentSettingsTab')
 
 // Normalize subscription status to ensure we have a valid translation key
 const normalizeSubscriptionStatus = (status: string | undefined | null): string => {
@@ -38,7 +41,7 @@ const normalizeSubscriptionStatus = (status: string | undefined | null): string 
   const normalizedStatus = statusMap[status.toLowerCase()] || 'inactive'
 
   if (import.meta.env.DEV && !statusMap[status.toLowerCase()]) {
-    console.warn('[Payment] Unknown subscription status:', status, '→ Normalized to:', normalizedStatus)
+    logger.warn('[Payment] Unknown subscription status:', status, '→ Normalized to:', normalizedStatus)
   }
 
   return normalizedStatus
@@ -75,7 +78,7 @@ export function PaymentSettingsTab() {
       setPlans(plansData)
       setPaymentMethods(paymentMethodsData)
     } catch (error) {
-      console.error('Failed to fetch billing data:', error)
+      logger.error('Failed to fetch billing data:', error)
       toast.error(t('settings.payment.loadFailed'))
     } finally {
       setIsLoading(false)
@@ -106,7 +109,7 @@ export function PaymentSettingsTab() {
       // Redirect to Stripe Checkout
       window.location.href = session.url
     } catch (error) {
-      console.error('Failed to create checkout session:', error)
+      logger.error('Failed to create checkout session:', error)
       toast.error(t('settings.payment.checkoutFailed'))
       setIsRedirecting(false)
     }
@@ -136,13 +139,13 @@ export function PaymentSettingsTab() {
 
       // Validate URL starts with https:// (Stripe portal URLs should be HTTPS)
       if (!session.url.startsWith('https://')) {
-        console.warn('[Billing Portal] URL is not HTTPS:', session.url)
+        logger.warn('[Billing Portal] URL is not HTTPS:', session.url)
       }
 
       window.location.href = session.url
 
     } catch (error) {
-      console.error('[Billing Portal] Failed to create portal session:', error)
+      logger.error('[Billing Portal] Failed to create portal session:', error)
 
       // More specific error messages
       if (error instanceof Error) {
@@ -170,7 +173,7 @@ export function PaymentSettingsTab() {
       setIsCancelDialogOpen(false)
       toast.success(t('settings.payment.cancellationScheduled'))
     } catch (error) {
-      console.error('Failed to cancel subscription:', error)
+      logger.error('Failed to cancel subscription:', error)
       toast.error(t('settings.payment.cancellationFailed'))
     } finally {
       setCancelingSubscription(false)

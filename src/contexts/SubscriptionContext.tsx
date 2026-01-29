@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { api } from '@/services/api'
 import { useSubscriptionPolling } from '@/hooks/useSubscriptionPolling'
+import { useAuth } from '@/context/AuthContext'
+import { createLogger } from '@/utils/logger'
 import type { BillingSubscription, BillingPlan, PaymentMethod, BillingDemoInfo } from '@/types/api'
 
 interface SubscriptionContextValue {
@@ -18,8 +20,10 @@ interface SubscriptionContextValue {
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined)
+const logger = createLogger('SubscriptionContext')
 
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
+  const { user, isLoading: isAuthLoading } = useAuth()
   const [subscription, setSubscription] = useState<BillingSubscription | BillingDemoInfo | null>(null)
   const [plans, setPlans] = useState<BillingPlan[]>([])
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
@@ -39,7 +43,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setPlans(plansData)
       setPaymentMethods(paymentMethodsData)
     } catch (err) {
-      console.error('Failed to fetch subscription data:', err)
+      logger.error('Failed to fetch subscription data:', err)
       setError(err instanceof Error ? err.message : 'Failed to load subscription data')
     } finally {
       setIsLoading(false)
@@ -47,7 +51,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [])
 
   const { forceRefresh } = useSubscriptionPolling({
-    enabled: true,
+    enabled: Boolean(user) && !isAuthLoading,
     interval: 120000,
     onRefresh: fetchSubscriptionData,
   })
@@ -103,8 +107,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
+    if (isAuthLoading) return
+
+    if (!user) {
+      setSubscription(null)
+      setPlans([])
+      setPaymentMethods([])
+      setError(null)
+      setIsLoading(false)
+      return
+    }
+
     fetchSubscriptionData()
-  }, [fetchSubscriptionData])
+  }, [fetchSubscriptionData, user, isAuthLoading])
 
   useEffect(() => {
     const paymentStatus = new URLSearchParams(window.location.search).get('payment')

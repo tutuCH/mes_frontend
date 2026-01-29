@@ -26,7 +26,6 @@ npm run preview
 
 Copy `.env.example` to `.env.development` or `.env.production` and configure:
 - `VITE_API_URL` - Backend API endpoint (default: http://localhost:3000)
-- `VITE_WS_URL` - WebSocket server URL (default: http://localhost:3000)
 - `VITE_GOOGLE_CLIENT_ID` - Google OAuth client ID (optional for SSO)
 
 ## Architecture
@@ -41,22 +40,20 @@ Copy `.env.example` to `.env.development` or `.env.production` and configure:
 
 Access state via `useSelector` and dispatch actions via `useDispatch<AppDispatch>`.
 
-### WebSocket Architecture
+### SSE Architecture
 
-**Critical**: WebSocket connection is managed globally and persists across the entire application:
+**Critical**: SSE connection is managed globally and persists across the entire application:
 
-1. **GlobalWebSocketManager** (`src/components/GlobalWebSocketManager.tsx`) - Wraps protected routes in `App.tsx`, initializes the WebSocket connection once at startup
-2. **socketService** (`src/services/socket.ts`) - Singleton service managing Socket.IO connection with:
-   - Auto-reconnection logic
-   - Keep-alive ping mechanism (30s intervals)
+1. **GlobalSSEManager** (`src/components/GlobalSSEManager.tsx`) - Wraps protected routes in `App.tsx`, initializes the stream connection once at startup
+2. **sseService** (`src/services/sse.ts`) - Singleton service managing EventSource connections with:
+   - Ticket-based authentication
+   - Auto-reconnect with backoff
    - Machine subscription tracking
-   - Auth token integration
-3. **useRealtimeData** hook (`src/hooks/useRealtimeData.ts`) - Connects to socket, subscribes to all machines, processes events (realtime-update, spc-update, machine-status, machine-alert, alarm-update)
+3. **useRealtimeData** hook (`src/hooks/useRealtimeData.ts`) - Connects to stream, subscribes to all machines, processes events (realtime-update, spc-update, machine-status, machine-alert, alarm-update)
 
-**WebSocket Events Flow**:
+**Stream Events Flow**:
 - Backend emits: `realtime-update`, `spc-update`, `machine-status`, `machine-alert`, `alarm-update`
-- Frontend emits: `subscribe-machine`, `unsubscribe-machine`, `ping`
-- Connection lifecycle: connect → subscribe to machines → receive updates → persist globally
+- Connection lifecycle: request ticket → open stream → receive updates → reconnect on error
 
 **Important**: Do NOT disconnect WebSocket on component unmount. The connection is shared across all pages and managed by GlobalWebSocketManager.
 

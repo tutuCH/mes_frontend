@@ -5,7 +5,7 @@ import { Suspense, lazy } from "react"
 import LoadingScreen from "@/components/ui/LoadingScreen"
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { Toaster } from "sonner"
-import { GlobalWebSocketManager } from "@/components/GlobalWebSocketManager"
+import { GlobalSSEManager } from "@/components/GlobalSSEManager"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { I18nextProvider } from "react-i18next"
 import { LanguageProvider } from "@/contexts/LanguageContext"
@@ -38,7 +38,7 @@ function App() {
               <BrowserRouter>
               <Suspense fallback={<LoadingScreen />}>
                 <Routes>
-                  {/* Auth pages OUTSIDE GlobalWebSocketManager - no WebSocket connection before auth */}
+                  {/* Auth pages OUTSIDE GlobalSSEManager - no stream connection before auth */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignUpPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -46,12 +46,12 @@ function App() {
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route path="/access-denied" element={<AccessDeniedPage />} />
 
-                  {/* Protected routes INSIDE GlobalWebSocketManager - WebSocket connects after login */}
+                  {/* Protected routes INSIDE GlobalSSEManager - stream connects after login */}
                   <Route path="/" element={
                     <ProtectedRoute requireSubscription>
-                      <GlobalWebSocketManager>
+                      <GlobalSSEManager>
                         <DashboardLayout />
-                      </GlobalWebSocketManager>
+                      </GlobalSSEManager>
                     </ProtectedRoute>
                   }>
                     <Route index element={<FactoryOverview />} />

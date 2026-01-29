@@ -1,4 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('useSubscriptionPolling')
 
 interface UseSubscriptionPollingOptions {
   enabled?: boolean
@@ -25,7 +28,7 @@ export function useSubscriptionPolling({
         await onRefresh?.()
         lastRefreshTimeRef.current = Date.now()
       } catch (error) {
-        console.error('[Subscription Polling] Error refreshing subscription:', error)
+        logger.error('[Subscription Polling] Error refreshing subscription:', error)
       }
     }
 

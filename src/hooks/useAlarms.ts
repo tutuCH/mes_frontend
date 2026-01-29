@@ -2,7 +2,7 @@ import { useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { type AppDispatch, type RootState } from '@/store';
 import { fetchAlarms, addAlarm } from '@/store/slices/alarmSlice';
-import { socketService } from '@/services/socket';
+import { sseService } from '@/services/sse';
 import type { AlarmUpdateEvent } from '@/types/api';
 
 interface UseAlarmsOptions {
@@ -31,7 +31,7 @@ export function useAlarms(options: UseAlarmsOptions = {}) {
     }
   }, [dispatch, machineId, timeRange]);
 
-  // Handle real-time alarm updates from WebSocket
+  // Handle real-time alarm updates from the stream
   const handleAlarmUpdate = useCallback((payload: AlarmUpdateEvent) => {
     // Filter by machine if specified
     if (!machineId || payload.deviceId === machineId.toString()) {
@@ -39,14 +39,14 @@ export function useAlarms(options: UseAlarmsOptions = {}) {
     }
   }, [dispatch, machineId]);
 
-  // Subscribe to WebSocket alarm updates
+  // Subscribe to stream alarm updates
   useEffect(() => {
     if (enableWebSocket) {
-      socketService.connect();
-      socketService.on('alarm-update', handleAlarmUpdate);
+      sseService.connect();
+      sseService.on('alarm-update', handleAlarmUpdate);
 
       return () => {
-        socketService.off('alarm-update', handleAlarmUpdate);
+        sseService.off('alarm-update', handleAlarmUpdate);
       };
     }
   }, [handleAlarmUpdate, enableWebSocket]);

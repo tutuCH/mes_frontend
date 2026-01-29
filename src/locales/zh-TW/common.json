@@ -207,7 +207,7 @@
     "allFactories": "全部廠區",
     "machineTooltip": {
       "status": "狀態",
-      "websocket": "WebSocket",
+      "websocket": "即時連線",
       "oilTemp": "油溫",
       "mode": "模式",
       "manual": "手動",
@@ -425,15 +425,16 @@
     "millimeterPerSecond": "毫米/秒"
   },
   "websocket": {
-    "connected": "已連接即時伺服器",
-    "disconnected": "伺服器中斷連線",
+    "connected": "已連接即時串流",
+    "disconnected": "已從即時串流中斷連線",
     "disconnectedByServer": "伺服器中斷連線",
     "connectionLost": "連線中斷，重新連線中...",
     "reconnecting": "重新連線中...",
-    "connectFailed": "無法連接即時伺服器",
-    "reconnected": "已重新連接",
+    "connectFailed": "無法連接即時串流",
+    "reconnected": "已重新連接即時串流",
     "reconnectFailed": "重新連線失敗，請重新整理頁面",
-    "socketError": "Socket 錯誤"
+    "socketError": "即時連線錯誤",
+    "deviceLimitReached": "已達裝置上限（最多 {{limit}} 台）。請先取消訂閱其他裝置。"
   },
   "settings": {
     "title": "設定",

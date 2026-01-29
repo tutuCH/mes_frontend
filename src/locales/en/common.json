@@ -207,7 +207,7 @@
     "allFactories": "All Factories",
     "machineTooltip": {
       "status": "Status",
-      "websocket": "WebSocket",
+      "websocket": "Realtime",
       "oilTemp": "Oil Temp",
       "mode": "Mode",
       "manual": "Manual",
@@ -425,15 +425,16 @@
     "millimeterPerSecond": "mm/s"
   },
   "websocket": {
-    "connected": "Connected to real-time server",
-    "disconnected": "Disconnected",
+    "connected": "Connected to realtime stream",
+    "disconnected": "Disconnected from realtime stream",
     "disconnectedByServer": "Disconnected by server",
     "connectionLost": "Connection lost. Reconnecting...",
     "reconnecting": "Reconnecting...",
-    "connectFailed": "Unable to connect to real-time server",
-    "reconnected": "Reconnected to real-time server",
+    "connectFailed": "Unable to connect to realtime stream",
+    "reconnected": "Reconnected to realtime stream",
     "reconnectFailed": "Failed to reconnect. Please refresh the page.",
-    "socketError": "Socket error"
+    "socketError": "Realtime error",
+    "deviceLimitReached": "Device limit reached (max {{limit}}). Unsubscribe another device to add more."
   },
   "settings": {
     "title": "Settings",

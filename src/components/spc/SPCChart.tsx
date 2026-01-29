@@ -4,21 +4,23 @@
  */
 
 import { useEffect, useRef, memo, useState, useCallback } from 'react'
-import { useTranslation } from 'react-i18next'
+
+import { Loader2 } from 'lucide-react'
+
 import { ChartJS, defaultChartOptions, createControlLimitLine, createDataLine, createCurrentValueIndicator, createStdDevLine, createMedianLine, createP95Line } from '@/lib/chartConfig'
 import type { ChartOptions, ChartData } from '@/lib/chartConfig'
 import { useSPCStreamAggregator, type DataPoint } from '@/hooks/useSPCStreamAggregator'
 import type { SpcSeriesResponse, SpcSeriesStats } from '@/types/api'
 import { api } from '@/services/api'
-import { Loader2, ChevronDown } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
+import { createLogger } from '@/utils/logger'
+
 import { SPCStatsPanel } from './SPCStatsPanel'
 
-const DEBUG = true
+const logger = createLogger('SPCChart')
+const DEBUG = import.meta.env.VITE_DEBUG_SPC === 'true'
 
 const debugLog = (...args: unknown[]) => {
-  if (DEBUG) console.log('[SPCChart]', ...args)
+  if (DEBUG) logger.debug('[SPCChart]', ...args)
 }
 
 type TimeWindow = 'last_15m' | 'last_1h' | 'last_6h' | 'last_24h' | 'last_3d' | 'last_7d'
@@ -59,7 +61,6 @@ export const SPCChart = memo(function SPCChart({
   const prevDataLengthRef = useRef<number>(0)
   const renderTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const renderLoopStartedRef = useRef(false)
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [initialData, setInitialData] = useState<DataPoint[]>([])
@@ -68,7 +69,6 @@ export const SPCChart = memo(function SPCChart({
   const [limits, setLimits] = useState<ControlLimits | null>(null)
   const [limitsLoaded, setLimitsLoaded] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
-  const [collapsibleOpen, setCollapsibleOpen] = useState(false)
   const [currentValue, setCurrentValue] = useState<number | null>(null)
 
   const currentWindow = timeWindow || 'last_1h'
@@ -176,7 +176,7 @@ export const SPCChart = memo(function SPCChart({
 
         setLoading(false)
       } catch (err) {
-        console.error('Failed to fetch SPC series:', err)
+        logger.error('Failed to fetch SPC series:', err)
         setError('Failed to load chart data')
         setDataLoaded(true)
         setLimitsLoaded(true)
@@ -240,8 +240,8 @@ export const SPCChart = memo(function SPCChart({
 
       // Add current value indicator if data exists
       if (dataBuffer.length > 0) {
-        const val = dataBuffer[dataBuffer.length - 1].y
-        chartData.datasets.push(createCurrentValueIndicator(val, ucl, lcl))
+        const lastPoint = dataBuffer[dataBuffer.length - 1]
+        chartData.datasets.push(createCurrentValueIndicator(lastPoint.y, ucl, lcl, lastPoint.x))
       }
 
       debugLog('Chart initialized with datasets:', chartData.datasets.length)
@@ -425,8 +425,9 @@ export const SPCChart = memo(function SPCChart({
 
         // Update current value indicator
         if (data.length > 0 && chart.data.datasets[datasetIndex]) {
-          const val = data[data.length - 1].y
-          chart.data.datasets[datasetIndex].data = [{ x: Date.now(), y: val }]
+          const lastPoint = data[data.length - 1]
+          const val = lastPoint.y
+          chart.data.datasets[datasetIndex].data = [{ x: lastPoint.x, y: val }]
         }
       }
 
@@ -452,7 +453,6 @@ export const SPCChart = memo(function SPCChart({
     loading,
     dataLoaded,
     limitsLoaded,
-    collapsibleOpen,
     hasStats: !!stats,
     hasLimits: !!limits,
     hasSeries: !!series
@@ -487,81 +487,40 @@ export const SPCChart = memo(function SPCChart({
   debugLog('Stats data ready:', hasStatsData)
 
   return (
-    <section className="w-full rounded-lg border bg-card">
-      <div className="space-y-4 p-4">
-        {/* Chart Section - Fixed Height */}
-        <div className="relative h-80 w-full rounded-md bg-background">
-          <canvas ref={canvasRef} className="h-full w-full" />
-        </div>
-
-        {/* Stats Panel - Collapsible */}
-        {hasStatsData && (
-          <>
-            <div className="border-t border-border/60 pt-3 sm:hidden">
-              <Collapsible open={collapsibleOpen} onOpenChange={setCollapsibleOpen}>
-                <CollapsibleTrigger
-                  render={
-                    <Button variant="outline" className="w-full justify-between px-3 text-sm">
-                      <span>{t(`spc.${collapsibleOpen ? 'hideDetails' : 'seeDetails'}`)}</span>
-                      <ChevronDown className="ml-auto h-4 w-4 group-data-[state=open]/collapsible-trigger:rotate-180" />
-                    </Button>
-                  }
-                />
-                <CollapsibleContent className="mt-3 rounded-md bg-muted/40 p-3 text-sm">
-                  <SPCStatsPanel
-                    field={field}
-                    unit={unit}
-                    name={name}
-                    current={currentValue || 0}
-                    mean={limits.mean}
-                    ucl={limits.ucl}
-                    lcl={limits.lcl}
-                    count={stats.count}
-                    stdDev={stats.stdDev}
-                    median={stats.median}
-                    min={stats.min}
-                    max={stats.max}
-                    p95={stats.p95}
-                    windowStart={series.window?.start || ''}
-                    windowEnd={series.window?.end || ''}
-                    sigma={limits.sigma ?? 0}
-                    method={series.limits?.method || ''}
-                    dataPoints={initialData.map(p => ({
-                      ts: new Date(p.x).toISOString(),
-                      value: p.y
-                    }))}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            </div>
-            <div className="hidden border-t border-border/60 pt-4 sm:block">
-              <SPCStatsPanel
-                field={field}
-                unit={unit}
-                name={name}
-                current={currentValue || 0}
-                mean={limits.mean}
-                ucl={limits.ucl}
-                lcl={limits.lcl}
-                count={stats.count}
-                stdDev={stats.stdDev}
-                median={stats.median}
-                min={stats.min}
-                max={stats.max}
-                p95={stats.p95}
-                windowStart={series.window?.start || ''}
-                windowEnd={series.window?.end || ''}
-                sigma={limits.sigma ?? 0}
-                method={series.limits?.method || ''}
-                dataPoints={initialData.map(p => ({
-                  ts: new Date(p.x).toISOString(),
-                  value: p.y
-                }))}
-              />
-            </div>
-          </>
-        )}
+    <section className="w-full space-y-4">
+      {/* Chart Section - Fixed Height */}
+      <div className="relative h-80 w-full">
+        <canvas ref={canvasRef} className="h-full w-full" />
       </div>
+
+      {/* Stats Panel - Collapsible */}
+      {hasStatsData && (
+        <div className="border-t border-border/60 pt-4">
+          <SPCStatsPanel
+            field={field}
+            unit={unit}
+            name={name}
+            current={currentValue || 0}
+            mean={limits.mean}
+            ucl={limits.ucl}
+            lcl={limits.lcl}
+            count={stats.count}
+            stdDev={stats.stdDev}
+            median={stats.median}
+            min={stats.min}
+            max={stats.max}
+            p95={stats.p95}
+            windowStart={series.window?.start || ''}
+            windowEnd={series.window?.end || ''}
+            sigma={limits.sigma ?? 0}
+            method={series.limits?.method || ''}
+            dataPoints={initialData.map(p => ({
+              ts: new Date(p.x).toISOString(),
+              value: p.y
+            }))}
+          />
+        </div>
+      )}
     </section>
   )
 })

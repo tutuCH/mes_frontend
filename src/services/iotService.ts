@@ -1,5 +1,8 @@
 import { api } from './api'
 import type { ParsedIoTMessage } from '@/types/iot'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('iotService')
 
 export const fetchIoTMessages = async (): Promise<ParsedIoTMessage[]> => {
   try {
@@ -21,7 +24,7 @@ export const fetchIoTMessages = async (): Promise<ParsedIoTMessage[]> => {
 
         return [...realtimeMsgs, ...spcMsgs]
       } catch (e) {
-        console.warn(`Failed to fetch history for machine ${machine.machineId}`, e)
+        logger.warn(`Failed to fetch history for machine ${machine.machineId}`, e)
         return []
       }
     })
@@ -29,7 +32,7 @@ export const fetchIoTMessages = async (): Promise<ParsedIoTMessage[]> => {
     const results = await Promise.all(promises)
     return results.flat().sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime())
   } catch (error) {
-    console.error('Error fetching IoT messages from backend:', error)
+    logger.error('Error fetching IoT messages from backend:', error)
     // Fallback to empty array or re-throw depending on requirements. 
     // For now, let's return empty array to avoid breaking the UI completely if backend is down.
     return [] 

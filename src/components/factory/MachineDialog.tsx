@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '@/services/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { createLogger } from '@/utils/logger'
 import type { Factory, Machine } from '@/types/api'
 
 interface MachineDialogProps {
@@ -23,6 +24,8 @@ interface MachineDialogProps {
 interface MachineFormData {
   machineName: string
 }
+
+const logger = createLogger('MachineDialog')
 
 export function MachineDialog({
   open,
@@ -99,7 +102,7 @@ export function MachineDialog({
       onOpenChange(false)
       onSave?.()
     } catch (error) {
-      console.error('Failed to save machine:', error)
+      logger.error('Failed to save machine:', error)
       toast.error(isEditing ? 'Failed to update machine' : 'Failed to create machine')
     } finally {
       setIsSubmitting(false)

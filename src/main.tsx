@@ -4,6 +4,21 @@ import { Provider } from 'react-redux'
 import { store } from './store'
 import './index.css'
 import App from './App.tsx'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('main')
+
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => {
+      registration.unregister().catch((error) => {
+        logger.warn('Failed to unregister service worker', error)
+      })
+    })
+  }).catch((error) => {
+    logger.warn('Failed to fetch service worker registrations', error)
+  })
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

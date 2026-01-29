@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react'
-import { socketService } from '@/services/socket'
+import { sseService } from '@/services/sse'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import type { MachineAlertEvent } from '@/types/api'
 
 /**
- * Hook to handle machine-alert events from WebSocket.
+ * Hook to handle machine-alert events from the stream.
  * Displays toast notifications for alerts and updates the UI.
  *
  * Call this hook in components that need to show machine alerts.
@@ -36,7 +36,7 @@ export function useMachineAlerts() {
   }, [t])
 
   useEffect(() => {
-    socketService.on('machine-alert', handleMachineAlert)
-    return () => socketService.off('machine-alert', handleMachineAlert)
+    sseService.on('machine-alert', handleMachineAlert)
+    return () => sseService.off('machine-alert', handleMachineAlert)
   }, [handleMachineAlert])
 }

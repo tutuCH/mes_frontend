@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
 import { fetchIoTMessages } from '@/services/iotService'
-import { socketService } from '@/services/socket'
+import { sseService } from '@/services/sse'
 import { useTranslation } from 'react-i18next'
 import type { ParsedIoTMessage } from '@/types/iot'
 import { IoTMessageTable } from '@/components/iot/IoTMessageTable'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import { AlertTriangle } from 'lucide-react'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('IoTData')
 
 export default function IoTData() {
   const { t } = useTranslation()
@@ -14,7 +17,7 @@ export default function IoTData() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Handle real-time WebSocket updates
+  // Handle real-time stream updates
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
     const rawData = (payload.data ?? {}) as Record<string, unknown>
     const deviceId = (typeof rawData.device_id === 'string' ? rawData.device_id : undefined) || payload.deviceId
@@ -26,7 +29,7 @@ export default function IoTData() {
     const topic = typeof rawData.topic === 'string' ? rawData.topic : 'realtime'
     const payloadData = rawData.payload ?? (Object.keys(rawData).length > 0 ? rawData : payload.Data ?? {})
 
-    // Convert WebSocket event to ParsedIoTMessage format
+    // Convert stream event to ParsedIoTMessage format
     const newMessage: ParsedIoTMessage = {
       deviceId: deviceId,
       topic,
@@ -64,7 +67,7 @@ export default function IoTData() {
     const topic = typeof rawData.topic === 'string' ? rawData.topic : 'spc'
     const payloadData = rawData.payload ?? (Object.keys(rawData).length > 0 ? rawData : payload.Data ?? {})
 
-    // Convert WebSocket event to ParsedIoTMessage format
+    // Convert stream event to ParsedIoTMessage format
     const newMessage: ParsedIoTMessage = {
       deviceId: deviceId,
       topic,
@@ -101,7 +104,7 @@ export default function IoTData() {
         )
         setData(sortedMessages)
       } catch (err) {
-        console.error(err)
+        logger.error('Failed to load IoT messages', err)
         setError(t('iot.loadFailed'))
       } finally {
         setLoading(false)
@@ -110,13 +113,13 @@ export default function IoTData() {
 
     loadData()
 
-    // Subscribe to WebSocket events for real-time updates
-    socketService.on('realtime-update', handleRealtimeUpdate)
-    socketService.on('spc-update', handleSPCUpdate)
+    // Subscribe to stream events for real-time updates
+    sseService.on('realtime-update', handleRealtimeUpdate)
+    sseService.on('spc-update', handleSPCUpdate)
 
     return () => {
-      socketService.off('realtime-update', handleRealtimeUpdate)
-      socketService.off('spc-update', handleSPCUpdate)
+      sseService.off('realtime-update', handleRealtimeUpdate)
+      sseService.off('spc-update', handleSPCUpdate)
     }
   }, [handleRealtimeUpdate, handleSPCUpdate])
 

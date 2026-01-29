@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '@/services/api'
 import type { UpdateProfileRequest, ChangePasswordRequest, BackendUser } from '@/types/api'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('AuthContext')
 
 interface User {
   id: string
@@ -60,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const profile = await api.getProfile()
           setUser(mapBackendUser(profile))
         } catch (error) {
-          console.error('Auth check failed:', error)
+          logger.error('Auth check failed:', error)
           api.setToken(null)
         }
       }
@@ -84,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await api.getProfile()
       setUser(mapBackendUser(profile))
     } catch (error) {
-      console.error('Login error:', error)
+      logger.error('Login error:', error)
       throw error
     }
   }
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await api.getProfile()
       setUser(mapBackendUser(profile))
     } catch (error) {
-      console.error('Google login error:', error)
+      logger.error('Google login error:', error)
       throw error
     }
   }
@@ -114,7 +117,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // After signup, user needs to verify email before logging in
       // So we don't set user or token here
     } catch (error) {
-      console.error('Signup error:', error)
+      logger.error('Signup error:', error)
       throw error
     }
   }

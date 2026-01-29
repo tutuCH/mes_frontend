@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { type AppDispatch, type RootState } from '@/store'
 import { fetchMachines, updateMachineStatus } from '@/store/slices/machineSlice'
 import { addSubscribedMachine, removeSubscribedMachine } from '@/store/slices/factorySlice'
-import { socketService } from '@/services/socket'
+import { sseService } from '@/services/sse'
 import { normalizeRealtimeData, normalizeSPCData, mapToMachineStatus, mapToOpMode } from '@/utils/fieldMapping'
 import { toast } from 'sonner'
 import { createLogger } from '@/utils/logger'
@@ -18,10 +18,10 @@ export function useRealtimeData() {
   const dispatch = useDispatch<AppDispatch>()
   const { machines, error } = useSelector((state: RootState) => state.machines)
   const subscribedRef = useRef<Set<string>>(new Set())
+  const MAX_AUTO_SUBSCRIPTIONS = 10
 
-  // Track socket connection status to trigger subscription when connected
-  const [isSocketConnected, setIsSocketConnected] = useState(
-    socketService.getConnectionStatus() === 'connected'
+  const [connectionStatus, setConnectionStatus] = useState(
+    sseService.getConnectionStatus()
   )
 
   useEffect(() => {
@@ -29,12 +29,11 @@ export function useRealtimeData() {
     dispatch(fetchMachines())
   }, [dispatch])
 
-  // Subscribe to socket status changes to trigger subscription when connected
+  // Subscribe to stream status changes
   useEffect(() => {
-    const unsubscribe = socketService.onStatusChange((status) => {
-      const connected = status === 'connected'
-      logger.debug('Socket status changed:', status, '→ isConnected:', connected)
-      setIsSocketConnected(connected)
+    const unsubscribe = sseService.onStatusChange((status) => {
+      logger.debug('Stream status changed:', status)
+      setConnectionStatus(status)
     })
     return unsubscribe
   }, [])
@@ -80,7 +79,7 @@ export function useRealtimeData() {
     }
 
     dispatch(updateMachineStatus({
-      deviceId: normalized.deviceId,  // Use deviceId for WebSocket events
+      deviceId: normalized.deviceId,  // Use deviceId for stream events
       data: {
         temperature: normalized.temp_1,
         oilTemp: normalized.oil_temp,
@@ -96,7 +95,7 @@ export function useRealtimeData() {
     const normalized = normalizeSPCData(payload)
 
     dispatch(updateMachineStatus({
-      deviceId: normalized.deviceId,  // Use deviceId for WebSocket events
+      deviceId: normalized.deviceId,  // Use deviceId for stream events
       data: {
         cycleTime: normalized.cycle_time,
         // Calculate efficiency based on cycle time vs target (assume 45s target)
@@ -110,7 +109,7 @@ export function useRealtimeData() {
 
   const handleMachineStatus = useCallback((payload: MachineStatusEvent) => {
     dispatch(updateMachineStatus({
-      deviceId: payload.deviceId,  // Use deviceId for WebSocket events
+      deviceId: payload.deviceId,  // Use deviceId for stream events
       data: {
         status: mapToMachineStatus(payload.status),
         lastUpdate: payload.timestamp
@@ -140,49 +139,53 @@ export function useRealtimeData() {
   }, [])
 
   useEffect(() => {
-    // Connect socket ONCE when hook mounts
-    socketService.connect()
+    // Connect stream ONCE when hook mounts
+    sseService.connect()
   }, []) // Empty deps - only run once
 
   // Separate effect for listeners (can re-run if callbacks change)
   useEffect(() => {
-    socketService.on('realtime-update', handleRealtimeUpdate)
-    socketService.on('spc-update', handleSPCUpdate)
-    socketService.on('machine-status', handleMachineStatus)
-    socketService.on('machine-alert', handleMachineAlert)
-    socketService.on('alarm-update', handleAlarmUpdate)
+    sseService.on('realtime-update', handleRealtimeUpdate)
+    sseService.on('spc-update', handleSPCUpdate)
+    sseService.on('machine-status', handleMachineStatus)
+    sseService.on('machine-alert', handleMachineAlert)
+    sseService.on('alarm-update', handleAlarmUpdate)
 
     return () => {
-      socketService.off('realtime-update', handleRealtimeUpdate)
-      socketService.off('spc-update', handleSPCUpdate)
-      socketService.off('machine-status', handleMachineStatus)
-      socketService.off('machine-alert', handleMachineAlert)
-      socketService.off('alarm-update', handleAlarmUpdate)
+      sseService.off('realtime-update', handleRealtimeUpdate)
+      sseService.off('spc-update', handleSPCUpdate)
+      sseService.off('machine-status', handleMachineStatus)
+      sseService.off('machine-alert', handleMachineAlert)
+      sseService.off('alarm-update', handleAlarmUpdate)
     }
   }, [handleRealtimeUpdate, handleSPCUpdate, handleMachineStatus, handleMachineAlert, handleAlarmUpdate])
 
   // Subscribe to machines when they are loaded AND socket is connected
   // This effect re-runs when either machines change OR socket becomes connected
   useEffect(() => {
-    // Only subscribe if socket is connected
-    if (!isSocketConnected) {
-      if (DEBUG_REALTIME) logger.debug('Socket not connected, skipping subscriptions')
-      return
-    }
-
-    const machineIds = Object.keys(machines)
-    if (DEBUG_REALTIME) logger.debug('Subscribing to machines. Socket connected:', isSocketConnected, ', Machines:', machineIds.length)
+    const machineEntries = Object.entries(machines)
+      .map(([id, machine]) => ({
+        id,
+        deviceId: machine?.deviceId || id
+      }))
+      .sort((a, b) => a.deviceId.localeCompare(b.deviceId))
+    const machineIds = machineEntries.map(entry => entry.id)
+    if (DEBUG_REALTIME) logger.debug('Subscribing to machines. Status:', connectionStatus, ', Machines:', machineIds.length)
 
     // Subscribe to new machines using deviceId (which is the machineName from backend)
-    machineIds.forEach(id => {
-      const machine = machines[id]
-      const deviceId = machine?.deviceId || id
+    machineEntries.slice(0, MAX_AUTO_SUBSCRIPTIONS).forEach(entry => {
+      const deviceId = entry.deviceId
+      const id = entry.id
 
       if (!subscribedRef.current.has(deviceId)) {
         if (DEBUG_REALTIME) logger.debug('Subscribing to new machine:', deviceId, '(ID:', id, ')')
-        socketService.subscribeToMachine(deviceId)
-        subscribedRef.current.add(deviceId)
-        dispatch(addSubscribedMachine(deviceId))
+        const didSubscribe = sseService.subscribeToMachine(deviceId)
+        if (didSubscribe) {
+          subscribedRef.current.add(deviceId)
+          dispatch(addSubscribedMachine(deviceId))
+        } else if (DEBUG_REALTIME) {
+          logger.debug('Subscription skipped (limit reached) for machine:', deviceId)
+        }
       }
     })
 
@@ -192,20 +195,20 @@ export function useRealtimeData() {
       const stillExists = Object.values(machines).some(m => m.deviceId === deviceId)
       if (!stillExists) {
         if (DEBUG_REALTIME) logger.debug('Unsubscribing from removed machine:', deviceId)
-        socketService.unsubscribeFromMachine(deviceId)
+        sseService.unsubscribeFromMachine(deviceId)
         subscribedRef.current.delete(deviceId)
         dispatch(removeSubscribedMachine(deviceId))
       }
     })
 
     if (DEBUG_REALTIME) logger.debug('Total subscribed machines:', subscribedRef.current.size)
-  }, [machines, isSocketConnected, dispatch])
+  }, [machines, connectionStatus, dispatch])
 
   // Sync existing socket service subscriptions to Redux when socket connects
   // This handles the case where socket might already have subscriptions from a previous session
   useEffect(() => {
-    if (isSocketConnected) {
-      const currentlySubscribed = socketService.getSubscribedMachines()
+    if (connectionStatus === 'connected') {
+      const currentlySubscribed = sseService.getSubscribedMachines()
       if (currentlySubscribed.length > 0) {
         if (DEBUG_REALTIME) logger.debug('Syncing existing subscriptions to Redux:', currentlySubscribed)
         currentlySubscribed.forEach(machineName => {
@@ -214,16 +217,16 @@ export function useRealtimeData() {
         })
       }
     }
-  }, [isSocketConnected, dispatch])
+  }, [connectionStatus, dispatch])
 
   // Cleanup on unmount
-  // NOTE: We do NOT unsubscribe from machines or disconnect socket here
-  // because we want WebSocket connection to persist globally across the app
-  // Subscriptions are managed globally by GlobalWebSocketManager
+  // NOTE: We do NOT unsubscribe from machines or disconnect stream here
+  // because we want SSE connection to persist globally across the app
+  // Subscriptions are managed globally by GlobalSSEManager
   useEffect(() => {
     return () => {
       // NO-OP: Keep subscriptions and connection alive
-      // The GlobalWebSocketManager in App.tsx handles the lifecycle
+      // The GlobalSSEManager in App.tsx handles the lifecycle
     }
   }, [])
 }
@@ -268,16 +271,16 @@ export function useMachineRealtimeData(machineId: string | number) {
   }, [dispatch, machineId])
 
   useEffect(() => {
-    socketService.connect()
-    socketService.subscribeToMachine(machineId.toString())
+    sseService.connect()
+    sseService.subscribeToMachine(machineId.toString())
 
-    socketService.on('realtime-update', handleRealtimeUpdate)
-    socketService.on('spc-update', handleSPCUpdate)
+    sseService.on('realtime-update', handleRealtimeUpdate)
+    sseService.on('spc-update', handleSPCUpdate)
 
     return () => {
-      socketService.off('realtime-update', handleRealtimeUpdate)
-      socketService.off('spc-update', handleSPCUpdate)
-      socketService.unsubscribeFromMachine(machineId.toString())
+      sseService.off('realtime-update', handleRealtimeUpdate)
+      sseService.off('spc-update', handleSPCUpdate)
+      sseService.unsubscribeFromMachine(machineId.toString())
     }
   }, [machineId, handleRealtimeUpdate, handleSPCUpdate])
 

@@ -17,6 +17,9 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Key, Languages, LogOut, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { createLogger } from '@/utils/logger'
+
+const logger = createLogger('PersonalSettingsSection')
 
 export default function PersonalSettingsSection() {
   const { t } = useTranslation()
@@ -67,7 +70,7 @@ export default function PersonalSettingsSection() {
       await refreshProfile()
       setUpdateMessage({ type: 'success', text: t('settings.personal.alerts.profileUpdated') })
     } catch (error) {
-      console.error('Failed to update profile:', error)
+      logger.error('Failed to update profile:', error)
       setUpdateMessage({ type: 'error', text: t('settings.personal.alerts.updateFailed') })
     } finally {
       setIsUpdating(false)
@@ -113,7 +116,7 @@ export default function PersonalSettingsSection() {
       })
       setPasswordErrors({})
     } catch (error) {
-      console.error('Failed to change password:', error)
+      logger.error('Failed to change password:', error)
       toast.error(t('settings.personal.alerts.updateFailed'))
     } finally {
       setIsChangingPassword(false)

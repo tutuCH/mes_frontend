@@ -12,10 +12,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, Calendar, RefreshCcw, ChevronDown, ChevronUp, Loader2, Play, Pause } from 'lucide-react'
 import { type RootState } from '@/store'
 import { api } from '@/services/api'
-import { socketService } from '@/services/socket'
+import { sseService } from '@/services/sse'
 import { formatLocaleTime, formatLocaleString } from '@/utils/dateUtils'
 import { exportSPCDataToExcel } from '@/utils/exportExcel'
 import { normalizeRealtimeData, normalizeSPCData } from '@/utils/fieldMapping'
+import { createLogger } from '@/utils/logger'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import type { RealtimeUpdateEvent, SPCUpdateEvent } from '@/types/api'
@@ -32,6 +33,8 @@ const TIME_RANGE_TO_WINDOW: Record<TimeRange, string> = {
   last3d: 'last_3d',
   last7d: 'last_7d'
 }
+
+const logger = createLogger('SPCAnalysis')
 
 export default function SPCAnalysis() {
   const { t } = useTranslation()
@@ -118,7 +121,9 @@ export default function SPCAnalysis() {
     }
   }, [machineList, selectedMachineId])
 
-  const selectedMachine = machines[selectedMachineId] || { name: t('machine.notFound') }
+  const selectedMachine = machines[selectedMachineId]
+  const selectedMachineLabel = selectedMachine?.name ?? t('machine.notFound')
+  const selectedDeviceId = selectedMachine?.deviceId ?? selectedMachine?.name ?? selectedMachineId
 
   // Use local last update time from auto-refresh
   const lastUpdate = lastDataUpdate
@@ -169,7 +174,7 @@ export default function SPCAnalysis() {
         setChartSpcHistory(spcRes.data)
         setLastDataUpdate(new Date())
       } catch (error) {
-        console.error('Failed to fetch chart data:', error)
+      logger.error('Failed to fetch chart data:', error)
       } finally {
         setLoading(false)
       }
@@ -275,13 +280,13 @@ export default function SPCAnalysis() {
     }
   }, [])
 
-  // WebSocket handlers for real-time updates (with ingestion throttle - Task 3)
+  // Stream handlers for real-time updates (with ingestion throttle - Task 3)
   const handleRealtimeUpdate = useCallback((payload: RealtimeUpdateEvent) => {
     // Skip if paused
     if (isPaused) return
 
     // Only process if it's for the selected machine
-    if (payload.deviceId !== selectedMachine?.name) return
+    if (payload.deviceId !== selectedDeviceId) return
 
     // Process function (inlined to avoid circular dependency)
     const processRealtime = () => {
@@ -308,14 +313,14 @@ export default function SPCAnalysis() {
       const delay = INGESTION_THROTTLE_MS - timeSinceLastIngest
       realtimeTimerRef.current = setTimeout(() => { lastRealtimeIngestRef.current = Date.now(); realtimeTimerRef.current = null; processRealtime() }, delay)
     }
-  }, [selectedMachine?.name, isPaused, activeTab, throttledProcessQueue])
+  }, [selectedDeviceId, isPaused, activeTab, throttledProcessQueue])
 
   const handleSPCUpdate = useCallback((payload: SPCUpdateEvent) => {
     // Skip if paused
     if (isPaused) return
 
     // Only process if it's for the selected machine
-    if (payload.deviceId !== selectedMachine?.name) return
+    if (payload.deviceId !== selectedDeviceId) return
 
     // Process function (inlined to avoid circular dependency)
     const processSpc = () => {
@@ -347,9 +352,9 @@ export default function SPCAnalysis() {
       const delay = INGESTION_THROTTLE_MS - timeSinceLastIngest
       spcTimerRef.current = setTimeout(() => { lastSpcIngestRef.current = Date.now(); spcTimerRef.current = null; processSpc() }, delay)
     }
-  }, [selectedMachine?.name, isPaused, activeTab, throttledProcessQueue])
+  }, [selectedDeviceId, isPaused, activeTab, throttledProcessQueue])
 
-  // Use refs to stabilize WebSocket handlers (prevents re-subscription on callback changes)
+  // Use refs to stabilize stream handlers (prevents re-subscription on callback changes)
   const handleRealtimeUpdateRef = useRef(handleRealtimeUpdate)
   const handleSPCUpdateRef = useRef(handleSPCUpdate)
 
@@ -357,31 +362,31 @@ export default function SPCAnalysis() {
   handleRealtimeUpdateRef.current = handleRealtimeUpdate
   handleSPCUpdateRef.current = handleSPCUpdate
 
-  // Subscribe to machine and listen for WebSocket updates
+  // Subscribe to machine and listen for stream updates
   useEffect(() => {
-    if (!selectedMachineId || !selectedMachine) return
+    if (!selectedMachineId || !selectedDeviceId) return
 
-    // Subscribe to the machine (using machineName as deviceId)
-    socketService.subscribeToMachine(selectedMachine.name)
-    setIsSubscribed(true)
+    // Subscribe to the machine (using deviceId from backend mapping)
+    const didSubscribe = sseService.subscribeToMachine(selectedDeviceId)
+    setIsSubscribed(didSubscribe)
 
     // Listen for realtime and SPC updates using ref pattern
      const realtimeHandler = (payload: RealtimeUpdateEvent) => handleRealtimeUpdateRef.current(payload)
      const spcHandler = (payload: SPCUpdateEvent) => handleSPCUpdateRef.current(payload)
 
-     socketService.on('realtime-update', realtimeHandler)
-     socketService.on('spc-update', spcHandler)
+     sseService.on('realtime-update', realtimeHandler)
+     sseService.on('spc-update', spcHandler)
 
     return () => {
       // Unsubscribe from machine when changing machines or unmounting
-      if (selectedMachine.name) {
-        socketService.unsubscribeFromMachine(selectedMachine.name)
+      if (selectedDeviceId) {
+        sseService.unsubscribeFromMachine(selectedDeviceId)
       }
-      socketService.off('realtime-update', realtimeHandler)
-      socketService.off('spc-update', spcHandler)
+      sseService.off('realtime-update', realtimeHandler)
+      sseService.off('spc-update', spcHandler)
       setIsSubscribed(false)
     }
-  }, [selectedMachineId, selectedMachine?.name]) // Removed handler dependencies
+  }, [selectedMachineId, selectedDeviceId]) // Removed handler dependencies
 
   // Fetch paginated table data based on active tab (server-side pagination)
   useEffect(() => {
@@ -421,7 +426,7 @@ export default function SPCAnalysis() {
           setSpcPagination(spcRes.pagination)
         }
       } catch (error) {
-        console.error('Failed to fetch table data:', error)
+        logger.error('Failed to fetch table data:', error)
       } finally {
         setTableLoading(false)
       }
@@ -508,18 +513,18 @@ export default function SPCAnalysis() {
         const filename = exportSPCDataToExcel(
           spcHistory,
           realtimeHistory,
-          selectedMachine.name
+          selectedMachineLabel
         )
         toast.success(`${t('spc.export.currentPage', { rows: rowsPerPage })}: ${filename}`)
       } else if (scope === 'tab') {
         // Fetch all data for active tab
         if (activeTab === 'tech' || activeTab === 'realtime') {
           const res = await api.getRealtimeHistory(selectedMachineId, { start, end, limit: 1000 })
-          const filename = exportSPCDataToExcel([], res.data, selectedMachine.name)
+          const filename = exportSPCDataToExcel([], res.data, selectedMachineLabel)
           toast.success(`${t('spc.tabs.' + activeTab)} ${t('common.export')}: ${filename}`)
         } else if (activeTab === 'spc') {
           const res = await api.getSPCHistory(selectedMachineId, { start, end, limit: 1000 })
-          const filename = exportSPCDataToExcel(res.data, [], selectedMachine.name)
+          const filename = exportSPCDataToExcel(res.data, [], selectedMachineLabel)
           toast.success(`${t('spc.tabs.spc')} ${t('common.export')}: ${filename}`)
         }
       } else if (scope === 'all') {
@@ -529,11 +534,11 @@ export default function SPCAnalysis() {
           api.getSPCHistory(selectedMachineId, { start, end, limit: 1000 }),
           api.getRealtimeHistory(selectedMachineId, { start, end, limit: 1000 })
         ])
-        const filename = exportSPCDataToExcel(spcRes.data, realtimeRes.data, selectedMachine.name)
+          const filename = exportSPCDataToExcel(spcRes.data, realtimeRes.data, selectedMachineLabel)
         toast.success(`${t('spc.export.allData')}: ${filename}`)
       }
     } catch (error) {
-      console.error('Export failed:', error)
+    logger.error('Export failed:', error)
       toast.error('Failed to export report. Please try again.')
     } finally {
       setIsExporting(false)
@@ -626,7 +631,7 @@ export default function SPCAnalysis() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1.5">
           <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{t('spc.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('spc.subtitle', { machine: selectedMachine.name })}</p>
+          <p className="text-sm text-muted-foreground">{t('spc.subtitle', { machine: selectedMachineLabel })}</p>
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {isSubscribed && (
               <Badge
@@ -769,7 +774,7 @@ export default function SPCAnalysis() {
               isOpen={isCategoryOpen(cat.category)}
               onOpenChange={() => toggleCategoryOpen(cat.category)}
               machineId={selectedMachineId}
-              deviceId={selectedMachine.deviceId}
+              deviceId={selectedDeviceId}
               isPaused={isPaused}
               timeWindow={TIME_RANGE_TO_WINDOW[selectedTimeRange]}
             />

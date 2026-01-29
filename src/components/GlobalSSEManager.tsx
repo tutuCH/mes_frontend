@@ -2,19 +2,19 @@ import type { ReactNode } from 'react'
 import { useRealtimeData } from '@/hooks/useRealtimeData'
 
 /**
- * GlobalWebSocketManager
+ * GlobalSSEManager
  *
- * This component ensures WebSocket connection is established once and persists
+ * This component ensures the SSE connection is established once and persists
  * across the entire application, regardless of route changes.
  *
  * Key behaviors:
- * - Connects to WebSocket on mount
+ * - Connects to the stream on mount
  * - Fetches and subscribes to all machines
  * - Does NOT disconnect on unmount (connection persists across navigation)
- * - Handles WebSocket events for realtime updates
+ * - Handles stream events for realtime updates
  */
-export function GlobalWebSocketManager({ children }: { children: ReactNode }) {
-  // Initialize WebSocket connection and fetch machines
+export function GlobalSSEManager({ children }: { children: ReactNode }) {
+  // Initialize stream connection and fetch machines
   // This will run once when the app starts and persist across all pages
   useRealtimeData()
 
