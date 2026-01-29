@@ -19,6 +19,7 @@ import { mapSeriesToChartPoints } from '@/utils/spcSeriesTransform'
 import { SPCStatsPanel } from './SPCStatsPanel'
 
 const logger = createLogger('SPCChart')
+const debugLog = logger.debug.bind(logger)
 const DEBUG_TIMING = import.meta.env.VITE_DEBUG_SPC_TIMING === 'true' ||
   (typeof window !== 'undefined' && (window as typeof window & { __SPC_DEBUG_TIMING__?: boolean }).__SPC_DEBUG_TIMING__ === true)
 
