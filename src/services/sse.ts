@@ -73,6 +73,7 @@ class SSEService {
   private alertsStream: StreamState = createStreamState();
   private listeners: Map<string, EventCallback[]> = new Map();
   private subscribedMachines: Set<string> = new Set();
+  private deviceRefCounts: Map<string, number> = new Map();
   private connectionStatus: ConnectionStatus = 'disconnected';
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private maxReconnectAttempts = 10;
@@ -98,34 +99,51 @@ class SSEService {
   disconnect() {
     this.isEnabled = false;
     this.subscribedMachines.clear();
+    this.deviceRefCounts.clear();
     this.clearDataRefresh();
     this.closeAlertsStream();
     this.closeDataStream();
     this.setConnectionStatus('disconnected');
   }
 
-  subscribeToMachine(deviceId: string): boolean {
-    if (!deviceId) return false;
-    if (this.subscribedMachines.has(deviceId)) return true;
-    if (this.subscribedMachines.size >= MAX_DEVICES_PER_STREAM) {
+  subscribeToMachine(deviceId: string): () => void {
+    if (!deviceId) return () => undefined;
+
+    const currentCount = this.deviceRefCounts.get(deviceId) ?? 0;
+    if (currentCount === 0 && this.subscribedMachines.size >= MAX_DEVICES_PER_STREAM) {
       this.notifyDeviceLimitReached();
       logger.warn('SSE device limit reached', {
         deviceId,
         limit: MAX_DEVICES_PER_STREAM,
       });
-      return false;
+      return () => undefined;
     }
-    this.subscribedMachines.add(deviceId);
-    if (!this.isEnabled) {
-      this.connect();
-      return true;
+
+    this.deviceRefCounts.set(deviceId, currentCount + 1);
+
+    if (currentCount === 0) {
+      this.subscribedMachines.add(deviceId);
+      if (!this.isEnabled) {
+        this.connect();
+      } else {
+        this.scheduleDataRefresh();
+      }
     }
-    this.scheduleDataRefresh();
-    return true;
+
+    return () => this.unsubscribeFromMachine(deviceId);
   }
 
   unsubscribeFromMachine(deviceId: string) {
-    if (!this.subscribedMachines.has(deviceId)) return;
+    const currentCount = this.deviceRefCounts.get(deviceId);
+    if (!currentCount) return;
+
+    const nextCount = currentCount - 1;
+    if (nextCount > 0) {
+      this.deviceRefCounts.set(deviceId, nextCount);
+      return;
+    }
+
+    this.deviceRefCounts.delete(deviceId);
     this.subscribedMachines.delete(deviceId);
     if (this.subscribedMachines.size === 0) {
       this.clearDataRefresh();

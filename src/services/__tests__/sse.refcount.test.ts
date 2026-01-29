@@ -55,4 +55,22 @@ describe('sseService refcount', () => {
     unsubscribe2()
     expect(dataStreams[0].readyState).toBe(2)
   })
+
+  it('keeps stream open until last unsubscribe', async () => {
+    const unsubscribe1 = sseService.subscribeToMachine('C02')
+    const unsubscribe2 = sseService.subscribeToMachine('C02')
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    const dataStreams = MockEventSource.instances.filter((instance) =>
+      instance.url.includes('/sse/stream')
+    )
+    expect(dataStreams.length).toBe(1)
+
+    unsubscribe1()
+    expect(dataStreams[0].readyState).toBe(0)
+
+    unsubscribe2()
+    expect(dataStreams[0].readyState).toBe(2)
+  })
 })
