@@ -15,6 +15,7 @@ It summarizes commands, conventions, and key patterns.
 - All tests: `npm run test`
 - Watch mode: `npm run test:watch`
 - Single test: `npm run test -- <pattern>`
+- E2E tests (Playwright): `npm run test:e2e` (requires running backend + browsers via `npx playwright install`)
 
 ## Language & Tooling
 - React 19 + TypeScript (strict) + Vite.
