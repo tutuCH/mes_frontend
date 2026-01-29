@@ -13,6 +13,7 @@ import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SSE');
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const DEBUG_SSE = import.meta.env.VITE_DEBUG_SSE === 'true';
 const MAX_DEVICES_PER_STREAM = 10;
 const DEFAULT_TICKET_TTL_SECONDS = 300;
 const TICKET_REFRESH_BUFFER_SECONDS = 30;
@@ -119,7 +120,15 @@ class SSEService {
       return () => undefined;
     }
 
-    this.deviceRefCounts.set(deviceId, currentCount + 1);
+    const nextCount = currentCount + 1;
+    this.deviceRefCounts.set(deviceId, nextCount);
+    if (DEBUG_SSE) {
+      logger.debug('SSE subscribe', {
+        deviceId,
+        refCount: nextCount,
+        uniqueDevices: this.subscribedMachines.size + (currentCount === 0 ? 1 : 0),
+      });
+    }
 
     if (currentCount === 0) {
       this.subscribedMachines.add(deviceId);
@@ -140,11 +149,25 @@ class SSEService {
     const nextCount = currentCount - 1;
     if (nextCount > 0) {
       this.deviceRefCounts.set(deviceId, nextCount);
+      if (DEBUG_SSE) {
+        logger.debug('SSE unsubscribe', {
+          deviceId,
+          refCount: nextCount,
+          uniqueDevices: this.subscribedMachines.size,
+        });
+      }
       return;
     }
 
     this.deviceRefCounts.delete(deviceId);
     this.subscribedMachines.delete(deviceId);
+    if (DEBUG_SSE) {
+      logger.debug('SSE unsubscribe', {
+        deviceId,
+        refCount: 0,
+        uniqueDevices: this.subscribedMachines.size,
+      });
+    }
     if (this.subscribedMachines.size === 0) {
       this.clearDataRefresh();
       this.closeDataStream();
@@ -390,6 +413,9 @@ class SSEService {
       stream.ticketRefreshTimeout = null;
     }
 
+    if (stream.source && DEBUG_SSE) {
+      logger.debug('Closing SSE stream', { url: stream.url });
+    }
     stream.source?.close();
     stream.source = null;
     stream.url = null;
