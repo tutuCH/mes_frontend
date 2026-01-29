@@ -11,12 +11,10 @@ It summarizes commands, conventions, and key patterns.
 - Preview build: `npm run preview`
 
 ### Tests
-- No test runner is configured in `package.json`.
-- No `*.test.*`/`*.spec.*` files were found in `src/`.
-- Single-test command: not applicable until a test runner is added.
-- If adding tests, prefer Vitest and document:
-  - All tests: `npm run test`
-  - Single test: `npm run test -- <pattern>`
+- Test runner: Vitest.
+- All tests: `npm run test`
+- Watch mode: `npm run test:watch`
+- Single test: `npm run test -- <pattern>`
 
 ## Language & Tooling
 - React 19 + TypeScript (strict) + Vite.
