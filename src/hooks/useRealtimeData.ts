@@ -18,6 +18,7 @@ export function useRealtimeData() {
   const dispatch = useDispatch<AppDispatch>()
   const { machines, error } = useSelector((state: RootState) => state.machines)
   const subscribedRef = useRef<Set<string>>(new Set())
+  const unsubscribeRef = useRef<Map<string, () => void>>(new Map())
   const MAX_AUTO_SUBSCRIPTIONS = 10
 
   const [connectionStatus, setConnectionStatus] = useState(
@@ -179,9 +180,10 @@ export function useRealtimeData() {
 
       if (!subscribedRef.current.has(deviceId)) {
         if (DEBUG_REALTIME) logger.debug('Subscribing to new machine:', deviceId, '(ID:', id, ')')
-        const didSubscribe = sseService.subscribeToMachine(deviceId)
-        if (didSubscribe) {
+        const unsubscribe = sseService.subscribeToMachine(deviceId)
+        if (sseService.isSubscribed(deviceId)) {
           subscribedRef.current.add(deviceId)
+          unsubscribeRef.current.set(deviceId, unsubscribe)
           dispatch(addSubscribedMachine(deviceId))
         } else if (DEBUG_REALTIME) {
           logger.debug('Subscription skipped (limit reached) for machine:', deviceId)
@@ -195,7 +197,13 @@ export function useRealtimeData() {
       const stillExists = Object.values(machines).some(m => m.deviceId === deviceId)
       if (!stillExists) {
         if (DEBUG_REALTIME) logger.debug('Unsubscribing from removed machine:', deviceId)
-        sseService.unsubscribeFromMachine(deviceId)
+        const unsubscribe = unsubscribeRef.current.get(deviceId)
+        if (unsubscribe) {
+          unsubscribe()
+          unsubscribeRef.current.delete(deviceId)
+        } else {
+          sseService.unsubscribeFromMachine(deviceId)
+        }
         subscribedRef.current.delete(deviceId)
         dispatch(removeSubscribedMachine(deviceId))
       }
@@ -272,7 +280,7 @@ export function useMachineRealtimeData(machineId: string | number) {
 
   useEffect(() => {
     sseService.connect()
-    sseService.subscribeToMachine(machineId.toString())
+    const unsubscribe = sseService.subscribeToMachine(machineId.toString())
 
     sseService.on('realtime-update', handleRealtimeUpdate)
     sseService.on('spc-update', handleSPCUpdate)
@@ -280,7 +288,7 @@ export function useMachineRealtimeData(machineId: string | number) {
     return () => {
       sseService.off('realtime-update', handleRealtimeUpdate)
       sseService.off('spc-update', handleSPCUpdate)
-      sseService.unsubscribeFromMachine(machineId.toString())
+      unsubscribe()
     }
   }, [machineId, handleRealtimeUpdate, handleSPCUpdate])
 

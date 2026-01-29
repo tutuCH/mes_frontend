@@ -367,8 +367,8 @@ export default function SPCAnalysis() {
     if (!selectedMachineId || !selectedDeviceId) return
 
     // Subscribe to the machine (using deviceId from backend mapping)
-    const didSubscribe = sseService.subscribeToMachine(selectedDeviceId)
-    setIsSubscribed(didSubscribe)
+    const unsubscribe = sseService.subscribeToMachine(selectedDeviceId)
+    setIsSubscribed(sseService.isSubscribed(selectedDeviceId))
 
     // Listen for realtime and SPC updates using ref pattern
      const realtimeHandler = (payload: RealtimeUpdateEvent) => handleRealtimeUpdateRef.current(payload)
@@ -379,9 +379,7 @@ export default function SPCAnalysis() {
 
     return () => {
       // Unsubscribe from machine when changing machines or unmounting
-      if (selectedDeviceId) {
-        sseService.unsubscribeFromMachine(selectedDeviceId)
-      }
+      unsubscribe()
       sseService.off('realtime-update', realtimeHandler)
       sseService.off('spc-update', spcHandler)
       setIsSubscribed(false)

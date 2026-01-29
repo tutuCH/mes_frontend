@@ -143,8 +143,8 @@ export function useSPCStreamAggregator({
     if (!deviceId || isSubscribedRef.current) return
 
     // Subscribe to machine
-    const didSubscribe = sseService.subscribeToMachine(deviceId)
-    if (!didSubscribe) return
+    const unsubscribe = sseService.subscribeToMachine(deviceId)
+    if (!sseService.isSubscribed(deviceId)) return
     isSubscribedRef.current = true
 
     // Listen for updates
@@ -156,7 +156,7 @@ export function useSPCStreamAggregator({
       sseService.off('realtime-update', handleRealtimeUpdate)
       sseService.off('spc-update', handleSPCUpdate)
       if (isSubscribedRef.current) {
-        sseService.unsubscribeFromMachine(deviceId)
+        unsubscribe()
         isSubscribedRef.current = false
       }
     }
