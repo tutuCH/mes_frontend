@@ -7,7 +7,7 @@ import { useEffect, useRef, memo, useState, useCallback } from 'react'
 
 import { Loader2 } from 'lucide-react'
 
-import { ChartJS, defaultChartOptions, createControlLimitLine, createDataLine, createCurrentValueIndicator, createStdDevLine, createMedianLine, createP95Line } from '@/lib/chartConfig'
+import { ChartJS, defaultChartOptions } from '@/lib/chartConfig'
 import type { ChartOptions, ChartData } from '@/lib/chartConfig'
 import { useSPCStreamAggregator, type DataPoint } from '@/hooks/useSPCStreamAggregator'
 import type { SpcSeriesResponse, SpcSeriesStats } from '@/types/api'
@@ -15,6 +15,7 @@ import { api } from '@/services/api'
 import { createLogger } from '@/utils/logger'
 import { summarizeSeriesTiming } from '@/utils/spcTimingDebug'
 import { mapSeriesToChartPoints } from '@/utils/spcSeriesTransform'
+import { buildSpcDatasets } from '@/utils/spcChartDatasets'
 
 import { SPCStatsPanel } from './SPCStatsPanel'
 
@@ -207,9 +208,13 @@ export const SPCChart = memo(function SPCChart({
 
     // Create chart with initial data - new references will be provided via handleDataUpdate
     const chartData: ChartData = {
-      datasets: [
-        createDataLine(dataBuffer, `${name} (${unit})`),
-      ],
+      datasets: buildSpcDatasets({
+        data: dataBuffer,
+        name,
+        unit,
+        limits,
+        stats,
+      }),
     }
 
     // Initialize dataRef with initial data
@@ -225,46 +230,8 @@ export const SPCChart = memo(function SPCChart({
       })
     }
 
-    // Add control limit lines if available
-    if (limits) {
-      const { ucl, lcl, mean } = limits
-      void ucl; void lcl; void mean // Values used in render loop
-      chartData.datasets.push(
-        createControlLimitLine([], 'rgb(239, 68, 68)', 'UCL', [5, 5]), // red-500
-        createControlLimitLine([], 'rgb(239, 68, 68)', 'LCL', [5, 5]), // red-500
-        createControlLimitLine([], 'rgb(34, 197, 94)', 'Mean', [3, 3]) // green-500
-      )
-
-      // Add statistical lines if stats available
-      if (stats) {
-        // P95 line
-        chartData.datasets.push(createP95Line([]))
-
-        // Median line
-        chartData.datasets.push(createMedianLine([]))
-
-        // +1σ line (if stdDev available)
-        if (stats.stdDev) {
-          chartData.datasets.push(createStdDevLine([], 'rgb(251, 191, 36)', '+1σ', [2, 4])) // amber-400
-          chartData.datasets.push(createStdDevLine([], 'rgb(251, 191, 36)', '-1σ', [2, 4]))
-        }
-
-        // +2σ line (if stdDev available)
-        if (stats.stdDev) {
-          chartData.datasets.push(createStdDevLine([], 'rgb(156, 163, 175)', '+2σ', [1, 3])) // gray-400
-          chartData.datasets.push(createStdDevLine([], 'rgb(156, 163, 175)', '-2σ', [1, 3]))
-        }
-      }
-
-      // Add current value indicator if data exists
-      if (dataBuffer.length > 0) {
-        const lastPoint = dataBuffer[dataBuffer.length - 1]
-        chartData.datasets.push(createCurrentValueIndicator(lastPoint.y, ucl, lcl, lastPoint.x))
-      }
-
-      debugLog('Chart initialized with datasets:', chartData.datasets.length)
-      debugLog('Chart instance created')
-    }
+    debugLog('Chart initialized with datasets:', chartData.datasets.length)
+    debugLog('Chart instance created')
 
     // Chart options
     const options: ChartOptions = {
@@ -307,23 +274,19 @@ export const SPCChart = memo(function SPCChart({
     }
   }, [loading, limitsLoaded, dataBuffer, name, unit, field, timeWindow, limits, stats])
 
-  // Update control limits when they load (fallback for edge cases)
-  // Note: With limitsLoaded in the chart init dependencies, this is primarily defensive
+  // Sync datasets when limits/stats change to avoid missing metric lines
   useEffect(() => {
-    if (!chartRef.current || !limitsLoaded || !limits) return
+    if (!chartRef.current || !dataLoaded || !limitsLoaded) return
 
-    const chart = chartRef.current
-
-    // Add control limit lines if they don't exist (defensive fallback)
-    if (chart.data.datasets.length === 1) {
-      chart.data.datasets.push(
-        createControlLimitLine([], 'rgb(239, 68, 68)', 'UCL', [5, 5]), // red-500
-        createControlLimitLine([], 'rgb(239, 68, 68)', 'LCL', [5, 5]), // red-500
-        createControlLimitLine([], 'rgb(34, 197, 94)', 'Mean', [3, 3]) // green-500
-      )
-      chart.update()
-    }
-  }, [limitsLoaded, limits])
+    chartRef.current.data.datasets = buildSpcDatasets({
+      data: dataRef.current,
+      name,
+      unit,
+      limits,
+      stats,
+    })
+    chartRef.current.update('none')
+  }, [dataLoaded, limitsLoaded, limits, stats, name, unit])
 
   // Render loop - update chart at fixed interval
   // Note: Depends on dataLoaded and limitsLoaded (state) rather than chartRef.current (ref)

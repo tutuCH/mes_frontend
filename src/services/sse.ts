@@ -45,6 +45,8 @@ type SSEEventMap = {
 type SSEEventKey = keyof SSEEventMap;
 type EventCallback = (data: any) => void;
 
+const ALERTS_EVENTS: SSEEventKey[] = ['system', 'machine-alert', 'alarm-update'];
+
 type StreamState = {
   source: EventSource | null;
   url: string | null;
@@ -79,6 +81,7 @@ class SSEService {
   private statusListeners: Set<(status: ConnectionStatus) => void> = new Set();
   private maxReconnectAttempts = 10;
   private isEnabled = false;
+  private alertsEnabled = true;
   private lastDeviceLimitToastAt: number | null = null;
 
   getConnectionStatus(): ConnectionStatus {
@@ -93,7 +96,9 @@ class SSEService {
   connect() {
     if (this.isEnabled) return;
     this.isEnabled = true;
-    this.openAlertsStream();
+    if (this.alertsEnabled) {
+      this.openAlertsStream();
+    }
     this.openDataStream();
   }
 
@@ -208,9 +213,36 @@ class SSEService {
     if (this.isEnabled) {
       this.closeAlertsStream();
       this.closeDataStream();
-      this.openAlertsStream();
+      if (this.alertsEnabled) {
+        this.openAlertsStream();
+      }
       this.openDataStream();
     }
+  }
+
+  setAlertsEnabled(enabled: boolean) {
+    if (this.alertsEnabled === enabled) return;
+    this.alertsEnabled = enabled;
+    if (!enabled) {
+      this.closeAlertsStream();
+      return;
+    }
+    if (this.isEnabled) {
+      this.openAlertsStream({ silent: true });
+    }
+  }
+
+  receiveExternalEvent(eventName: SSEEventKey, payload: SSEEventMap[SSEEventKey]) {
+    this.processEvent(eventName, payload);
+  }
+
+  onAlertsEvent(callback: (eventName: SSEEventKey, payload: SSEEventMap[SSEEventKey]) => void) {
+    const handlers = ALERTS_EVENTS.map((eventName) => {
+      const handler = (payload: SSEEventMap[SSEEventKey]) => callback(eventName, payload);
+      this.on(eventName, handler);
+      return () => this.off(eventName, handler);
+    });
+    return () => handlers.forEach((off) => off());
   }
 
   private emit<K extends SSEEventKey>(event: K, data: SSEEventMap[K]): void;
@@ -336,7 +368,7 @@ class SSEService {
   }
 
   private async openAlertsStream(options: { force?: boolean; silent?: boolean; reopenDelayMs?: number } = {}) {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled || !this.alertsEnabled) return;
 
     if (options.force) {
       this.closeAlertsStream();
@@ -449,17 +481,21 @@ class SSEService {
 
     try {
       const payload = JSON.parse(event.data);
-      this.emit(eventName, payload as SSEEventMap[SSEEventKey]);
-
-      if (eventName === 'machine-alert') {
-        this.handleMachineAlert(payload as MachineAlertEvent);
-      }
-
-      if (eventName === 'alarm-update') {
-        this.handleAlarmUpdate(payload as AlarmUpdateEvent);
-      }
+      this.processEvent(eventName, payload as SSEEventMap[SSEEventKey]);
     } catch (error) {
       logger.error('Failed to parse SSE event', { eventName, error });
+    }
+  }
+
+  private processEvent(eventName: SSEEventKey, payload: SSEEventMap[SSEEventKey]) {
+    this.emit(eventName, payload);
+
+    if (eventName === 'machine-alert') {
+      this.handleMachineAlert(payload as MachineAlertEvent);
+    }
+
+    if (eventName === 'alarm-update') {
+      this.handleAlarmUpdate(payload as AlarmUpdateEvent);
     }
   }
 

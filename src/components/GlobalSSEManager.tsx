@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useAlertsStreamCoordinator } from '@/hooks/useAlertsStreamCoordinator'
 import { useRealtimeData } from '@/hooks/useRealtimeData'
 
 /**
@@ -14,6 +15,7 @@ import { useRealtimeData } from '@/hooks/useRealtimeData'
  * - Handles stream events for realtime updates
  */
 export function GlobalSSEManager({ children }: { children: ReactNode }) {
+  useAlertsStreamCoordinator()
   // Initialize stream connection and fetch machines
   // This will run once when the app starts and persist across all pages
   useRealtimeData()
