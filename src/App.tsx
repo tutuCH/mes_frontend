@@ -27,6 +27,8 @@ const MaintenanceDashboard = lazy(() => import("@/pages/maintenance/MaintenanceD
 const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"))
 const SubscriptionRequired = lazy(() => import("@/pages/subscription/SubscriptionRequired"))
 const IoTData = lazy(() => import("@/pages/iot/IoTData"))
+const InventoryDashboard = lazy(() => import("@/pages/inventory/InventoryDashboard"))
+const MaterialDetail = lazy(() => import("@/pages/inventory/MaterialDetail"))
 
 function App() {
   return (
@@ -59,6 +61,8 @@ function App() {
                     <Route path="spc" element={<SPCAnalysis />} />
                     <Route path="alarms" element={<AlarmList />} />
                     <Route path="maintenance" element={<MaintenanceDashboard />} />
+                    <Route path="inventory" element={<InventoryDashboard />} />
+                    <Route path="inventory/:materialId" element={<MaterialDetail />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="iot" element={<IoTData />} />
                   </Route>

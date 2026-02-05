@@ -198,6 +198,84 @@ export interface UpdateMachineRequest {
   status?: string;
 }
 
+// ============ Inventory Types ============
+export type MaterialType = 'virgin' | 'regrind' | 'additive';
+
+export interface Material {
+  materialId: string;
+  name: string;
+  materialType: MaterialType;
+  densityKgPerM3?: number;
+  defaultCostPerKg?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type InventoryLotStatus = 'available' | 'reserved' | 'consumed';
+
+export interface InventoryLot {
+  lotId: string;
+  materialId: string;
+  supplier?: string;
+  batchNumber?: string;
+  quantityKg: number;
+  receivedAt?: string;
+  expiresAt?: string | null;
+  factoryId?: number;
+  location?: string;
+  status: InventoryLotStatus;
+}
+
+export interface MaterialAssignment {
+  assignmentId: string;
+  machineId: number;
+  materialId: string;
+  activeLotId?: string | null;
+  shotWeightG?: number | null;
+  scrapPercent?: number | null;
+  cavities?: number | null;
+  effectiveAt?: string;
+  effectiveUntil?: string | null;
+}
+
+export type MaterialAssignmentInput = Omit<MaterialAssignment, 'assignmentId'>;
+
+export interface MaterialSummary {
+  materialId: string;
+  name: string;
+  availableKg: number;
+  reservedKg: number;
+  remainingHours: number | null;
+  status: 'ok' | 'warning' | 'critical';
+}
+
+export interface MaterialConsumptionPoint {
+  timestamp: string;
+  consumedKg: number;
+}
+
+export interface InventoryTrendPoint {
+  timestamp: string;
+  consumedKg: number;
+}
+
+export interface LotStockPoint {
+  lotId: string;
+  quantityKg: number;
+  status: InventoryLotStatus;
+}
+
+export interface InventoryAlert {
+  alertId: string;
+  materialId: string;
+  machineId?: number;
+  severity: 'warning' | 'critical';
+  message: string;
+  remainingHours?: number | null;
+  remainingKg?: number | null;
+  createdAt: string;
+}
+
 // ============ Tech Configuration Types ============
 // Tech configuration stored in Redis cache (TTL: 1 hour)
 // Available via GET /machines/:id/status

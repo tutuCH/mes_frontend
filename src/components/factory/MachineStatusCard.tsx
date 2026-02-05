@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { X, AlertTriangle, GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getStatusColor, getStatusIcon } from '@/utils/gridUtils'
+import { MaterialGauge } from '@/components/inventory/MaterialGauge'
 import type { Machine } from '@/types/api'
 
 interface MachineStatusCardProps {
@@ -18,6 +19,8 @@ interface MachineStatusCardProps {
   alertMessage?: string
   alertSeverity?: string
   lastUpdate?: string
+  materialRemainingHours?: number | null
+  materialStatus?: 'ok' | 'warning' | 'critical' | null
 }
 
 export function MachineStatusCard({
@@ -32,6 +35,8 @@ export function MachineStatusCard({
   alertMessage,
   alertSeverity,
   lastUpdate,
+  materialRemainingHours = null,
+  materialStatus = null,
 }: MachineStatusCardProps) {
   // When connected via WebSocket, show as running regardless of actual status
   const effectiveStatus = isConnected ? 'running' : (realtimeStatus || machine.status || 'offline')
@@ -124,6 +129,10 @@ export function MachineStatusCard({
         <span className="font-medium text-center text-[10px] sm:text-xs leading-tight max-w-full truncate px-1 text-foreground">
           {machine.machineName}
         </span>
+
+        {(materialRemainingHours != null || materialStatus != null) && (
+          <MaterialGauge remainingHours={materialRemainingHours} status={materialStatus} />
+        )}
 
         {/* Last update timestamp */}
         {lastUpdate && isConnected && (

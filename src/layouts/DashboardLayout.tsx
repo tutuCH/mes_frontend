@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, Database, Circle, Menu } from 'lucide-react'
+import { LayoutDashboard, LogOut, Settings, LineChart, AlertTriangle, Wrench, Database, Circle, Menu, Boxes } from 'lucide-react'
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher"
 import { type RootState } from '@/store'
 import { cn } from '@/lib/utils'
@@ -46,6 +46,10 @@ export default function DashboardLayout() {
       <Link to="/alarms" className={navLinkClass('/alarms')} onClick={onLinkClick}>
         <AlertTriangle className="h-4 w-4" />
         {t('navigation.alarms')}
+      </Link>
+      <Link to="/inventory" className={navLinkClass('/inventory', false)} onClick={onLinkClick}>
+        <Boxes className="h-4 w-4" />
+        {t('navigation.inventory')}
       </Link>
       <Link to="/maintenance" className={navLinkClass('/maintenance')} onClick={onLinkClick}>
         <Wrench className="h-4 w-4" />
@@ -159,6 +163,7 @@ export default function DashboardLayout() {
                 {location.pathname === '/spc' && t('spc.title')}
                 {location.pathname === '/alarms' && t('alarms.title')}
                 {location.pathname === '/maintenance' && t('maintenance.title')}
+                {location.pathname.startsWith('/inventory') && t('inventory.title')}
                 {location.pathname === '/settings' && t('settings.title')}
                 {location.pathname.includes('/admin') && t('system') + ' ' + t('navigation.users')}
                 {location.pathname.includes('/machine') && t('machine.notFound')}

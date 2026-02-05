@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { type RootState } from '@/store'
 import { NowPanel } from '@/components/machine/NowPanel'
 import { EventTimeline } from '@/components/machine/EventTimeline'
+import { MaterialSetupCard } from '@/components/machine/MaterialSetupCard'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -54,6 +55,7 @@ export default function MachineDetail() {
       <NowPanel machine={machine} />
 
       <div className="grid gap-4">
+        <MaterialSetupCard machineId={Number(machine.id)} />
         <EventTimeline events={events} />
       </div>
     </div>

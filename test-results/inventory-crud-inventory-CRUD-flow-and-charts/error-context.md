@@ -1,0 +1,121 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]:
+        - heading "NexusMES" [level=1] [ref=e8]
+        - paragraph [ref=e9]: 生產控制
+      - navigation [ref=e10]:
+        - link "控制室" [ref=e11] [cursor=pointer]:
+          - /url: /
+          - img [ref=e12]
+          - text: 控制室
+        - link "SPC 分析" [ref=e17] [cursor=pointer]:
+          - /url: /spc
+          - img [ref=e18]
+          - text: SPC 分析
+        - link "警報" [ref=e21] [cursor=pointer]:
+          - /url: /alarms
+          - img [ref=e22]
+          - text: 警報
+        - link "庫存" [ref=e24] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e25]
+          - text: 庫存
+        - link "維護" [ref=e35] [cursor=pointer]:
+          - /url: /maintenance
+          - img [ref=e36]
+          - text: 維護
+        - link "IoT 數據" [ref=e38] [cursor=pointer]:
+          - /url: /iot
+          - img [ref=e39]
+          - text: IoT 數據
+        - heading "系統" [level=4] [ref=e44]
+        - link "設定" [ref=e45] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e46]
+          - text: 設定
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: h
+          - generic [ref=e52]:
+            - paragraph [ref=e53]: harry company
+            - paragraph [ref=e54]: operator
+        - button "登出" [ref=e55] [cursor=pointer]:
+          - img
+          - text: 登出
+    - main [ref=e56]:
+      - generic [ref=e57]:
+        - heading "庫存" [level=2] [ref=e59]
+        - generic [ref=e60]:
+          - combobox [ref=e61] [cursor=pointer]:
+            - generic: 🇹🇼繁體中文
+            - img [ref=e62]
+          - generic [ref=e64]:
+            - img [ref=e65]
+            - generic [ref=e67]: 離線
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]:
+            - heading "庫存" [level=1] [ref=e72]
+            - paragraph [ref=e73]: 材料可用量與耗用
+          - button "刷新" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]:
+          - generic [ref=e77]:
+            - generic [ref=e78]: 庫存總價值
+            - generic [ref=e79]: $3,840
+            - generic [ref=e80]: 可用 + 預留
+          - generic [ref=e82]:
+            - generic [ref=e83]: 風險材料
+            - generic [ref=e84]: "1"
+            - generic [ref=e85]: 警告或嚴重庫存
+          - generic [ref=e87]:
+            - generic [ref=e88]: 風險機台
+            - generic [ref=e89]: "0"
+            - generic [ref=e90]: 指定批次材料不足
+          - generic [ref=e92]:
+            - generic [ref=e93]: 受阻訂單
+            - generic [ref=e94]: "0"
+            - generic [ref=e95]: 需訂單資料
+        - generic [ref=e96]:
+          - generic [ref=e98]: 材料總覽
+          - table [ref=e102]:
+            - rowgroup [ref=e103]:
+              - row "材料 可用 預留 預估剩餘小時 狀態" [ref=e104]:
+                - columnheader "材料" [ref=e105]
+                - columnheader "可用" [ref=e106]
+                - columnheader "預留" [ref=e107]
+                - columnheader "預估剩餘小時" [ref=e108]
+                - columnheader "狀態" [ref=e109]
+            - rowgroup [ref=e110]:
+              - row "ABS 600 kg 400 kg 115.5 h 正常" [ref=e111]:
+                - cell "ABS" [ref=e112]:
+                  - link "ABS" [ref=e113] [cursor=pointer]:
+                    - /url: /inventory/mat_001
+                - cell "600 kg" [ref=e114]
+                - cell "400 kg" [ref=e115]
+                - cell "115.5 h" [ref=e116]
+                - cell "正常" [ref=e117]:
+                  - generic [ref=e118]: 正常
+              - row "PP 800 kg 0 kg -- 正常" [ref=e119]:
+                - cell "PP" [ref=e120]:
+                  - link "PP" [ref=e121] [cursor=pointer]:
+                    - /url: /inventory/mat_002
+                - cell "800 kg" [ref=e122]
+                - cell "0 kg" [ref=e123]
+                - cell "--" [ref=e124]
+                - cell "正常" [ref=e125]:
+                  - generic [ref=e126]: 正常
+              - row "Color Masterbatch 0 kg 0 kg -- 嚴重" [ref=e127]:
+                - cell "Color Masterbatch" [ref=e128]:
+                  - link "Color Masterbatch" [ref=e129] [cursor=pointer]:
+                    - /url: /inventory/mat_003
+                - cell "0 kg" [ref=e130]
+                - cell "0 kg" [ref=e131]
+                - cell "--" [ref=e132]
+                - cell "嚴重" [ref=e133]:
+                  - generic [ref=e134]: 嚴重
+  - region "Notifications alt+T"
+```

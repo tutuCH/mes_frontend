@@ -6,6 +6,7 @@
     "spcAnalysis": "SPC 分析",
     "alarms": "警報",
     "maintenance": "維護",
+    "inventory": "庫存",
     "iotData": "IoT 數據",
     "devices": "設備",
     "users": "用戶",
@@ -18,6 +19,7 @@
     "noData": "無可用數據",
     "save": "保存",
     "cancel": "取消",
+    "none": "無",
     "delete": "刪除",
     "edit": "編輯",
     "add": "新增",
@@ -153,6 +155,95 @@
     "subtitle": "預測性洞察與維護排程",
     "createWorkOrder": "創建工單"
   },
+  "inventory": {
+    "title": "庫存",
+    "subtitle": "材料可用量與耗用",
+    "kpi": {
+      "totalValue": "庫存總價值",
+      "totalValueSubtitle": "可用 + 預留",
+      "materialsAtRisk": "風險材料",
+      "materialsAtRiskSubtitle": "警告或嚴重庫存",
+      "machinesAtRisk": "風險機台",
+      "machinesAtRiskSubtitle": "指定批次材料不足",
+      "ordersBlocked": "受阻訂單",
+      "ordersBlockedSubtitle": "需訂單資料"
+    },
+    "table": {
+      "title": "材料總覽",
+      "material": "材料",
+      "type": "類型",
+      "density": "密度",
+      "cost": "成本/公斤",
+      "available": "可用",
+      "reserved": "預留",
+      "remainingHours": "預估剩餘小時",
+      "status": "狀態",
+      "actions": "操作",
+      "empty": "沒有材料資料"
+    },
+    "materials": {
+      "add": "新增材料",
+      "addTitle": "新增材料",
+      "create": "建立材料",
+      "name": "材料名稱",
+      "namePlaceholder": "例如：ABS",
+      "type": "材料類型",
+      "density": "密度 (kg/m³)",
+      "densityPlaceholder": "例如：1040",
+      "cost": "每公斤成本",
+      "costPlaceholder": "例如：2.4"
+    },
+    "materialType": {
+      "virgin": "原生料",
+      "regrind": "再生料",
+      "additive": "添加劑"
+    },
+    "charts": {
+      "title": "庫存趨勢",
+      "consumption": "總耗用"
+    },
+    "status": {
+      "ok": "正常",
+      "warning": "警告",
+      "critical": "嚴重"
+    },
+    "lotStatus": {
+      "available": "可用",
+      "reserved": "預留",
+      "consumed": "已耗用"
+    },
+    "detail": {
+      "missingMaterial": "未指定材料。",
+      "notFound": "找不到材料。",
+      "materialType": "類型",
+      "available": "可用",
+      "reserved": "預留",
+      "remainingHours": "預估剩餘小時",
+      "stockByLot": "批次庫存",
+      "addLot": "新增批次",
+      "createLot": "建立批次",
+      "lotId": "批次 ID",
+      "batch": "批號",
+      "batchPlaceholder": "例如：ABS-2026-01",
+      "quantity": "數量",
+      "quantityPlaceholder": "例如：500",
+      "status": "狀態",
+      "supplier": "供應商",
+      "supplierPlaceholder": "例如：ACME 樹脂",
+      "location": "位置",
+      "locationPlaceholder": "例如：倉庫 A",
+      "noLots": "沒有批次資料",
+      "machinesConsuming": "耗用機台",
+      "machine": "機台",
+      "shotWeight": "射出重量",
+      "scrap": "報廢率",
+      "noAssignments": "沒有機台指派",
+      "consumptionTrend": "耗用趨勢",
+      "timestamp": "時間",
+      "consumed": "耗用量",
+      "noConsumption": "沒有耗用資料"
+    }
+  },
   "factory": {
     "title": "工廠概覽",
     "filterMachine": "選擇機台",
@@ -256,7 +347,16 @@
     "id": "ID",
     "availability": "可用性",
     "running": "運行中",
-    "runningCount": "{{running}}/{{total}} 運行中"
+    "runningCount": "{{running}}/{{total}} 運行中",
+    "materialSetup": {
+      "title": "材料設定",
+      "empty": "目前沒有可用材料。",
+      "material": "材料",
+      "activeLot": "使用批次",
+      "shotWeight": "射出重量 (g)",
+      "scrap": "報廢率 (%)",
+      "cavities": "穴數"
+    }
   },
   "iot": {
     "title": "IoT 數據瀏覽器",

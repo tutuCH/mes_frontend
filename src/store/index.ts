@@ -4,6 +4,7 @@ import factoryReducer from './slices/factorySlice'
 import userReducer from './slices/userSlice'
 import alarmReducer from './slices/alarmSlice'
 import paymentReducer from './slices/paymentSlice'
+import inventoryReducer from './slices/inventorySlice'
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ export const store = configureStore({
     users: userReducer,
     alarms: alarmReducer,
     payment: paymentReducer,
+    inventory: inventoryReducer,
   },
 })
 

@@ -17,6 +17,8 @@ interface GridCellProps {
   alertMessage?: string
   alertSeverity?: string
   lastUpdate?: string
+  materialRemainingHours?: number | null
+  materialStatus?: 'ok' | 'warning' | 'critical' | null
   onCellClick: () => void
   onMachineDelete?: (_e: React.MouseEvent, machineId: number) => void
   selectionMode?: boolean
@@ -34,6 +36,8 @@ export function GridCell({
   alertMessage,
   alertSeverity,
   lastUpdate,
+  materialRemainingHours = null,
+  materialStatus = null,
   onCellClick,
   onMachineDelete,
   selectionMode = false,
@@ -141,6 +145,8 @@ export function GridCell({
         alertMessage={alertMessage}
         alertSeverity={alertSeverity}
         lastUpdate={lastUpdate}
+        materialRemainingHours={materialRemainingHours}
+        materialStatus={materialStatus}
         onHandleRef={!disableDragDrop ? (element) => {
           handleRef.current = element
         } : undefined}

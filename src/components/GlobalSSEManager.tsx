@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAlertsStreamCoordinator } from '@/hooks/useAlertsStreamCoordinator'
 import { useRealtimeData } from '@/hooks/useRealtimeData'
+import { useInventoryState } from '@/hooks/useInventoryState'
 
 /**
  * GlobalSSEManager
@@ -19,6 +20,7 @@ export function GlobalSSEManager({ children }: { children: ReactNode }) {
   // Initialize stream connection and fetch machines
   // This will run once when the app starts and persist across all pages
   useRealtimeData()
+  useInventoryState()
 
   return <>{children}</>
 }

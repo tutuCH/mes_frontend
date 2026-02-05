@@ -11,6 +11,8 @@ import { useSelector } from 'react-redux'
 import { type RootState } from '@/store'
 import { DragDropProvider, useDragDrop } from '@/context/DragDropContext'
 import { createLogger } from '@/utils/logger'
+import { calculateRemainingHours, classifyMaterialStatus } from '@/utils/inventoryCalc'
+import { DEFAULT_MATERIAL_THRESHOLDS } from '@/utils/inventoryThresholds'
 
 interface BlueprintGridProps {
   factory: Factory
@@ -33,6 +35,8 @@ interface MachineCellData {
   alertMessage?: string
   alertSeverity?: string
   lastUpdate?: string
+  materialRemainingHours?: number | null
+  materialStatus?: 'ok' | 'warning' | 'critical' | null
 }
 
 const logger = createLogger('BlueprintGrid')
@@ -50,6 +54,8 @@ function BlueprintGridContent({
   const gridHeight = factory.factoryHeight || 10
 
   const subscribedMachines = useSelector((state: RootState) => state.factories.subscribedMachines)
+  const inventoryAssignments = useSelector((state: RootState) => state.inventory.assignments)
+  const inventoryLots = useSelector((state: RootState) => state.inventory.lots)
   const { activeMachine, isDragging } = useDragDrop()
 
   // Map of machine positions by grid coordinate
@@ -70,6 +76,47 @@ function BlueprintGridContent({
     return positions
   }, [machines, gridWidth])
 
+  const assignmentsByMachineId = useMemo(() => {
+    return new Map(inventoryAssignments.map(assignment => [assignment.machineId, assignment]))
+  }, [inventoryAssignments])
+
+  const lotsById = useMemo(() => {
+    return new Map(inventoryLots.map(lot => [lot.lotId, lot]))
+  }, [inventoryLots])
+
+  const gaugeByMachineId = useMemo(() => {
+    const gaugeMap = new Map<number, { remainingHours: number | null; status: 'ok' | 'warning' | 'critical' | null }>()
+
+    machines.forEach((machine) => {
+      const assignment = assignmentsByMachineId.get(machine.machineId)
+      if (!assignment) return
+
+      const lot = assignment.activeLotId ? lotsById.get(assignment.activeLotId) : null
+      const remainingKg = lot?.quantityKg ?? null
+      if (remainingKg == null) return
+
+      const realtime = realtimeMachines?.[machine.machineId.toString()]
+      const cycleTime = realtime?.cycleTime ?? 0
+      const cyclesPerHour = cycleTime > 0 ? 3600 / cycleTime : null
+      const remainingHours = calculateRemainingHours(
+        remainingKg,
+        cyclesPerHour,
+        assignment.shotWeightG ?? null,
+        assignment.scrapPercent ?? 0
+      )
+
+      const status = classifyMaterialStatus({
+        remainingKg,
+        remainingHours,
+        thresholds: DEFAULT_MATERIAL_THRESHOLDS,
+      })
+
+      gaugeMap.set(machine.machineId, { remainingHours, status })
+    })
+
+    return gaugeMap
+  }, [machines, assignmentsByMachineId, lotsById, realtimeMachines])
+
   // Generate grid cells with real-time data
   const gridCells = useMemo(() => {
     const cells: MachineCellData[] = []
@@ -77,6 +124,7 @@ function BlueprintGridContent({
       for (let col = 0; col < gridWidth; col++) {
         const machine = machinePositions.get(`${row}-${col}`)
         const realtime = realtimeMachines?.[machine?.machineId.toString() ?? '']
+        const gauge = machine ? gaugeByMachineId.get(machine.machineId) : null
 
         cells.push({
           row,
@@ -88,11 +136,13 @@ function BlueprintGridContent({
           alertMessage: realtime?.alertMessage,
           alertSeverity: realtime?.alertSeverity,
           lastUpdate: realtime?.lastUpdate,
+          materialRemainingHours: gauge?.remainingHours ?? null,
+          materialStatus: gauge?.status ?? null,
         })
       }
     }
     return cells
-  }, [gridWidth, gridHeight, machinePositions, realtimeMachines, subscribedMachines, machines])
+  }, [gridWidth, gridHeight, machinePositions, realtimeMachines, subscribedMachines, machines, gaugeByMachineId])
 
   // Prepare drag overlay content
   const dragOverlay = activeMachine ? (
@@ -106,6 +156,8 @@ function BlueprintGridContent({
         alertMessage={realtimeMachines?.[activeMachine.machineId.toString()]?.alertMessage}
         alertSeverity={realtimeMachines?.[activeMachine.machineId.toString()]?.alertSeverity}
         lastUpdate={realtimeMachines?.[activeMachine.machineId.toString()]?.lastUpdate}
+        materialRemainingHours={gaugeByMachineId.get(activeMachine.machineId)?.remainingHours ?? null}
+        materialStatus={gaugeByMachineId.get(activeMachine.machineId)?.status ?? null}
       />
     </div>
   ) : null
@@ -151,6 +203,8 @@ function BlueprintGridContent({
                     alertMessage={cell.alertMessage}
                     alertSeverity={cell.alertSeverity}
                     lastUpdate={cell.lastUpdate}
+                    materialRemainingHours={cell.materialRemainingHours}
+                    materialStatus={cell.materialStatus}
                     onCellClick={() => onCellClick(cell.row, cell.col)}
                     selectionMode={selectionMode}
                     selectedPosition={selectedPosition}
