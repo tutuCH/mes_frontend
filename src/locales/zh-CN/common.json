@@ -171,46 +171,16 @@
     "table": {
       "title": "材料总览",
       "material": "材料",
-      "type": "类型",
-      "density": "密度",
-      "cost": "成本/公斤",
       "available": "可用",
       "reserved": "预留",
       "remainingHours": "预计剩余小时",
       "status": "状态",
-      "actions": "操作",
       "empty": "没有材料数据"
-    },
-    "materials": {
-      "add": "新增材料",
-      "addTitle": "新增材料",
-      "create": "创建材料",
-      "name": "材料名称",
-      "namePlaceholder": "例如：ABS",
-      "type": "材料类型",
-      "density": "密度 (kg/m³)",
-      "densityPlaceholder": "例如：1040",
-      "cost": "每公斤成本",
-      "costPlaceholder": "例如：2.4"
-    },
-    "materialType": {
-      "virgin": "原生料",
-      "regrind": "再生料",
-      "additive": "添加剂"
-    },
-    "charts": {
-      "title": "库存趋势",
-      "consumption": "总耗用"
     },
     "status": {
       "ok": "正常",
       "warning": "警告",
       "critical": "严重"
-    },
-    "lotStatus": {
-      "available": "可用",
-      "reserved": "预留",
-      "consumed": "已耗用"
     },
     "detail": {
       "missingMaterial": "未指定材料。",
@@ -220,18 +190,10 @@
       "reserved": "预留",
       "remainingHours": "预计剩余小时",
       "stockByLot": "批次库存",
-      "addLot": "新增批次",
-      "createLot": "创建批次",
       "lotId": "批次 ID",
       "batch": "批号",
-      "batchPlaceholder": "例如：ABS-2026-01",
       "quantity": "数量",
-      "quantityPlaceholder": "例如：500",
       "status": "状态",
-      "supplier": "供应商",
-      "supplierPlaceholder": "例如：ACME 树脂",
-      "location": "位置",
-      "locationPlaceholder": "例如：仓库 A",
       "noLots": "没有批次数据",
       "machinesConsuming": "耗用机台",
       "machine": "机台",

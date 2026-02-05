@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
+import { useMemo } from 'react'
+import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -28,6 +29,9 @@ import {
   fetchMaterialAssignments,
 } from '@/store/slices/inventorySlice'
 import type { Material, MaterialType } from '@/types/api'
+import { MaterialStatusBadge } from '@/components/inventory/MaterialStatusBadge'
+import { useInventoryState } from '@/hooks/useInventoryState'
+import type { RootState } from '@/store'
 import { calculateRemainingHours, classifyMaterialStatus } from '@/utils/inventoryCalc'
 import { DEFAULT_MATERIAL_THRESHOLDS } from '@/utils/inventoryThresholds'
 
@@ -40,16 +44,8 @@ const currencyFormatter = new Intl.NumberFormat(undefined, {
 
 export default function InventoryDashboard() {
   const { t } = useTranslation()
-  const dispatch = useDispatch<AppDispatch>()
   const { materials, summary, assignments, lots, loading, error, refetchAll } = useInventoryState()
   const machines = useSelector((state: RootState) => state.machines.machines)
-  const trend = useSelector((state: RootState) => state.inventory.trend)
-  const trendLoading = useSelector((state: RootState) => state.inventory.loading.trend)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-
-  useEffect(() => {
-    dispatch(fetchInventoryTrend())
-  }, [dispatch])
 
   const materialsById = useMemo(() => {
     return new Map(materials.map(material => [material.materialId, material]))
@@ -88,16 +84,13 @@ export default function InventoryDashboard() {
         thresholds: DEFAULT_MATERIAL_THRESHOLDS,
       })
 
-      const material = materialsById.get(item.materialId)
-
       return {
         ...item,
-        name: material?.name ?? item.name,
         remainingHours,
         status,
       }
     })
-  }, [summary, machineRatesByMaterial, materialsById])
+  }, [summary, machineRatesByMaterial])
 
   const totalValue = useMemo(() => {
     return derivedSummary.reduce((sum, item) => {
@@ -108,20 +101,6 @@ export default function InventoryDashboard() {
   }, [derivedSummary, materialsById])
 
   const materialsAtRisk = derivedSummary.filter(item => item.status !== 'ok').length
-
-  const statusCounts = useMemo(() => {
-    return derivedSummary.reduce(
-      (acc, item) => {
-        acc[item.status] += 1
-        return acc
-      },
-      { ok: 0, warning: 0, critical: 0 }
-    )
-  }, [derivedSummary])
-
-  const stockLabels = useMemo(() => derivedSummary.map(item => item.name), [derivedSummary])
-  const availableData = useMemo(() => derivedSummary.map(item => item.availableKg), [derivedSummary])
-  const reservedData = useMemo(() => derivedSummary.map(item => item.reservedKg), [derivedSummary])
 
   const machinesAtRisk = useMemo(() => {
     let count = 0
@@ -153,27 +132,6 @@ export default function InventoryDashboard() {
 
     return count
   }, [assignments, lotsById, machines])
-
-  const handleCreateMaterial = useCallback(async (input: {
-    name: string
-    materialType: MaterialType
-    densityKgPerM3?: number
-    defaultCostPerKg?: number
-  }) => {
-    await dispatch(createMaterial(input)).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-  }, [dispatch])
-
-  const handleUpdateMaterial = useCallback(async (materialId: string, patch: Partial<Material>) => {
-    await dispatch(updateMaterial({ materialId, patch })).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-  }, [dispatch])
-
-  const handleDeleteMaterial = useCallback(async (materialId: string) => {
-    await dispatch(deleteMaterial(materialId)).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-    await dispatch(fetchMaterialAssignments()).unwrap()
-  }, [dispatch])
 
   return (
     <div className="space-y-6">
@@ -223,16 +181,8 @@ export default function InventoryDashboard() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader>
           <CardTitle>{t('inventory.table.title')}</CardTitle>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsDialogOpen(true)}
-            data-testid="inventory-add-material"
-          >
-            {t('inventory.materials.add')}
-          </Button>
         </CardHeader>
         <CardContent className="pt-0">
           {loading.summary ? (
@@ -244,94 +194,47 @@ export default function InventoryDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t('inventory.table.material')}</TableHead>
-                  <TableHead>{t('inventory.table.type')}</TableHead>
-                  <TableHead>{t('inventory.table.density')}</TableHead>
-                  <TableHead>{t('inventory.table.cost')}</TableHead>
                   <TableHead>{t('inventory.table.available')}</TableHead>
                   <TableHead>{t('inventory.table.reserved')}</TableHead>
                   <TableHead>{t('inventory.table.remainingHours')}</TableHead>
                   <TableHead>{t('inventory.table.status')}</TableHead>
-                  <TableHead className="text-right">{t('inventory.table.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {derivedSummary.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       {t('inventory.table.empty')}
                     </TableCell>
                   </TableRow>
                 )}
                 {derivedSummary.map((item) => (
-                  <MaterialRowEditor
-                    key={item.materialId}
-                    summary={item}
-                    material={materialsById.get(item.materialId)}
-                    onSave={handleUpdateMaterial}
-                    onDelete={handleDeleteMaterial}
-                  />
+                  <TableRow key={item.materialId} data-testid={`inventory-row-${item.materialId}`}>
+                    <TableCell>
+                      <Link
+                        to={`/inventory/${item.materialId}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {item.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{numberFormatter.format(item.availableKg)} kg</TableCell>
+                    <TableCell>{numberFormatter.format(item.reservedKg)} kg</TableCell>
+                    <TableCell>
+                      {item.remainingHours == null
+                        ? '--'
+                        : `${numberFormatter.format(item.remainingHours)} h`}
+                    </TableCell>
+                    <TableCell>
+                      <MaterialStatusBadge status={item.status} />
+                    </TableCell>
+                  </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('inventory.charts.title')}</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              {trendLoading ? (
-                <div className="h-64 flex items-center justify-center text-sm text-muted-foreground">
-                  {t('common.loading')}
-                </div>
-              ) : (
-                <InventoryLineChart
-                  points={trend}
-                  label={t('inventory.charts.consumption')}
-                  testId="inventory-trend-chart"
-                />
-              )}
-            </div>
-            <InventoryDoughnutChart
-              labels={[
-                t('inventory.status.ok'),
-                t('inventory.status.warning'),
-                t('inventory.status.critical'),
-              ]}
-              data={[statusCounts.ok, statusCounts.warning, statusCounts.critical]}
-              testId="inventory-status-chart"
-            />
-          </div>
-          <div className="mt-6">
-            <InventoryBarChart
-              labels={stockLabels}
-              datasets={[
-                {
-                  label: t('inventory.table.available'),
-                  data: availableData,
-                  backgroundColor: 'rgba(59, 130, 246, 0.7)',
-                },
-                {
-                  label: t('inventory.table.reserved'),
-                  data: reservedData,
-                  backgroundColor: 'rgba(148, 163, 184, 0.7)',
-                },
-              ]}
-              testId="inventory-stock-chart"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <MaterialDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onCreate={handleCreateMaterial}
-      />
     </div>
   )
 }

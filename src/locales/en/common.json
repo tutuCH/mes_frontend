@@ -171,46 +171,16 @@
     "table": {
       "title": "Material overview",
       "material": "Material",
-      "type": "Type",
-      "density": "Density",
-      "cost": "Cost/kg",
       "available": "Available",
       "reserved": "Reserved",
       "remainingHours": "Est. hours remaining",
       "status": "Status",
-      "actions": "Actions",
       "empty": "No materials found"
-    },
-    "materials": {
-      "add": "Add material",
-      "addTitle": "Add material",
-      "create": "Create material",
-      "name": "Material name",
-      "namePlaceholder": "e.g., ABS",
-      "type": "Material type",
-      "density": "Density (kg/m³)",
-      "densityPlaceholder": "e.g., 1040",
-      "cost": "Default cost per kg",
-      "costPlaceholder": "e.g., 2.4"
-    },
-    "materialType": {
-      "virgin": "Virgin",
-      "regrind": "Regrind",
-      "additive": "Additive"
-    },
-    "charts": {
-      "title": "Inventory trends",
-      "consumption": "Total consumption"
     },
     "status": {
       "ok": "OK",
       "warning": "Warning",
       "critical": "Critical"
-    },
-    "lotStatus": {
-      "available": "Available",
-      "reserved": "Reserved",
-      "consumed": "Consumed"
     },
     "detail": {
       "missingMaterial": "Material selection missing.",
@@ -220,18 +190,10 @@
       "reserved": "Reserved",
       "remainingHours": "Est. hours remaining",
       "stockByLot": "Stock by lot",
-      "addLot": "Add lot",
-      "createLot": "Create lot",
       "lotId": "Lot ID",
       "batch": "Batch",
-      "batchPlaceholder": "e.g., ABS-2026-01",
       "quantity": "Quantity",
-      "quantityPlaceholder": "e.g., 500",
       "status": "Status",
-      "supplier": "Supplier",
-      "supplierPlaceholder": "e.g., ACME Resins",
-      "location": "Location",
-      "locationPlaceholder": "e.g., Warehouse A",
       "noLots": "No lots found",
       "machinesConsuming": "Machines consuming",
       "machine": "Machine",

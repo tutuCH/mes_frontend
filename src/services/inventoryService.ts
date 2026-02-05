@@ -6,13 +6,10 @@ import type {
   MaterialAssignment,
   MaterialSummary,
   MaterialConsumptionPoint,
-  InventoryTrendPoint,
-  LotStockPoint,
 } from '@/types/api'
 
 let materialCounter = 3
 let lotCounter = 3
-let assignmentCounter = 2
 
 const seedMaterials: Material[] = [
   {
@@ -107,7 +104,6 @@ let assignments = [...seedAssignments]
 export function __resetInventoryMocks() {
   materialCounter = 3
   lotCounter = 3
-  assignmentCounter = 2
   materials = [...seedMaterials]
   lots = [...seedLots]
   assignments = [...seedAssignments]
@@ -121,11 +117,6 @@ function nextMaterialId() {
 function nextLotId() {
   lotCounter += 1
   return `lot_${String(lotCounter).padStart(3, '0')}`
-}
-
-function nextAssignmentId() {
-  assignmentCounter += 1
-  return `ma_${String(assignmentCounter).padStart(3, '0')}`
 }
 
 export async function getMaterials(): Promise<Material[]> {
@@ -162,7 +153,6 @@ export async function updateMaterial(materialId: string, patch: Partial<Material
 export async function deleteMaterial(materialId: string): Promise<void> {
   materials = materials.filter(m => m.materialId !== materialId)
   lots = lots.filter(l => l.materialId !== materialId)
-  assignments = assignments.filter(a => a.materialId !== materialId)
 }
 
 export async function getInventoryLots(filter?: {
@@ -204,33 +194,6 @@ export async function getMaterialAssignments(): Promise<MaterialAssignment[]> {
   return [...assignments]
 }
 
-export async function createMaterialAssignment(
-  input: Omit<MaterialAssignment, 'assignmentId'>
-): Promise<MaterialAssignment> {
-  const assignment: MaterialAssignment = {
-    ...input,
-    assignmentId: nextAssignmentId(),
-  }
-  assignments = [...assignments, assignment]
-  return assignment
-}
-
-export async function updateMaterialAssignment(
-  assignmentId: string,
-  patch: Partial<MaterialAssignment>
-): Promise<MaterialAssignment> {
-  const index = assignments.findIndex(a => a.assignmentId === assignmentId)
-  if (index === -1) throw new Error('Assignment not found')
-
-  const updated = { ...assignments[index], ...patch }
-  assignments = assignments.map(a => (a.assignmentId === assignmentId ? updated : a))
-  return updated
-}
-
-export async function deleteMaterialAssignment(assignmentId: string): Promise<void> {
-  assignments = assignments.filter(a => a.assignmentId !== assignmentId)
-}
-
 export async function getInventorySummary(): Promise<MaterialSummary[]> {
   return materials.map(material => {
     const materialLots = lots.filter(l => l.materialId === material.materialId)
@@ -266,27 +229,4 @@ export async function getMaterialConsumption(
     })
   }
   return points
-}
-
-export async function getInventoryTrend(): Promise<InventoryTrendPoint[]> {
-  const start = new Date(Date.now() - 6 * 3600 * 1000)
-  const points: InventoryTrendPoint[] = []
-  for (let i = 0; i < 6; i += 1) {
-    const ts = new Date(start.getTime() + i * 60 * 60 * 1000)
-    points.push({
-      timestamp: ts.toISOString(),
-      consumedKg: Math.max(15, 40 - i * 3),
-    })
-  }
-  return points
-}
-
-export async function getLotStockSeries(materialId: string): Promise<LotStockPoint[]> {
-  return lots
-    .filter(l => l.materialId === materialId)
-    .map(lot => ({
-      lotId: lot.lotId,
-      quantityKg: lot.quantityKg,
-      status: lot.status,
-    }))
 }

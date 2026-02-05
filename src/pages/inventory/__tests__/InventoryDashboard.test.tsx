@@ -30,19 +30,6 @@ async function waitForCondition(condition: () => boolean, timeout = 1000) {
   throw new Error('Timed out waiting for condition')
 }
 
-function setNativeValue(element: HTMLInputElement | HTMLSelectElement, value: string) {
-  const valueSetter =
-    Object.getOwnPropertyDescriptor(element, 'value')?.set ||
-    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value')?.set
-  if (valueSetter) {
-    valueSetter.call(element, value)
-  } else {
-    element.value = value
-  }
-  element.dispatchEvent(new Event('input', { bubbles: true }))
-  element.dispatchEvent(new Event('change', { bubbles: true }))
-}
-
 describe('InventoryDashboard', () => {
   beforeEach(() => {
     __resetInventoryMocks()
@@ -51,7 +38,6 @@ describe('InventoryDashboard', () => {
   it('renders inventory summary rows', async () => {
     const store = createStore()
     const container = document.createElement('div')
-    document.body.appendChild(container)
     const root = createRoot(container)
 
     await act(async () => {
@@ -72,112 +58,5 @@ describe('InventoryDashboard', () => {
     await act(async () => {
       root.unmount()
     })
-    container.remove()
-  })
-
-  it('edits a material name inline', async () => {
-    const store = createStore()
-    const container = document.createElement('div')
-    document.body.appendChild(container)
-    const root = createRoot(container)
-
-    await act(async () => {
-      root.render(
-        <Provider store={store}>
-          <MemoryRouter>
-            <InventoryDashboard />
-          </MemoryRouter>
-        </Provider>
-      )
-    })
-
-    await waitForCondition(() => container.textContent?.includes('ABS') ?? false)
-
-    const editButton = container.querySelector('[data-testid="inventory-edit-mat_001"]')
-    expect(editButton).toBeTruthy()
-    await act(async () => {
-      ;(editButton as HTMLButtonElement | null)?.click()
-    })
-
-    // console.log('After edit click:', container.innerHTML)
-
-    await waitForCondition(() => !!container.querySelector('[data-testid="material-name-input"]'))
-
-    const nameInput = container.querySelector('[data-testid="material-name-input"]') as HTMLInputElement | null
-    expect(nameInput).toBeTruthy()
-    if (nameInput) {
-      await act(async () => {
-        setNativeValue(nameInput, 'ABS Prime')
-      })
-    }
-
-    const saveButton = container.querySelector('[data-testid="inventory-save-mat_001"]')
-    expect(saveButton).toBeTruthy()
-    await act(async () => {
-      ;(saveButton as HTMLButtonElement | null)?.click()
-    })
-
-    await waitForCondition(() => container.textContent?.includes('ABS Prime') ?? false)
-
-    await act(async () => {
-      root.unmount()
-    })
-    container.remove()
-  })
-
-  it('adds a new material via dialog', async () => {
-    const store = createStore()
-    const container = document.createElement('div')
-    document.body.appendChild(container)
-    const root = createRoot(container)
-
-    await act(async () => {
-      root.render(
-        <Provider store={store}>
-          <MemoryRouter>
-            <InventoryDashboard />
-          </MemoryRouter>
-        </Provider>
-      )
-    })
-
-    const addButton = container.querySelector('[data-testid="inventory-add-material"]')
-    expect(addButton).toBeTruthy()
-    await act(async () => {
-      ;(addButton as HTMLButtonElement | null)?.click()
-    })
-
-    // console.log('After add click:', document.body.innerHTML)
-
-    await waitForCondition(() => !!document.querySelector('[data-testid="material-dialog-name"]'))
-
-    const nameInput = document.querySelector('[data-testid="material-dialog-name"]') as HTMLInputElement | null
-    expect(nameInput).toBeTruthy()
-    if (nameInput) {
-      await act(async () => {
-        setNativeValue(nameInput, 'Nylon')
-      })
-    }
-
-    const typeSelect = document.querySelector('[data-testid="material-dialog-type"]') as HTMLSelectElement | null
-    expect(typeSelect).toBeTruthy()
-    if (typeSelect) {
-      await act(async () => {
-        setNativeValue(typeSelect, 'virgin')
-      })
-    }
-
-    const createButton = document.querySelector('[data-testid="material-dialog-submit"]')
-    expect(createButton).toBeTruthy()
-    await act(async () => {
-      ;(createButton as HTMLButtonElement | null)?.click()
-    })
-
-    await waitForCondition(() => container.textContent?.includes('Nylon') ?? false)
-
-    await act(async () => {
-      root.unmount()
-    })
-    container.remove()
   })
 })

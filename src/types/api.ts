@@ -238,8 +238,6 @@ export interface MaterialAssignment {
   effectiveUntil?: string | null;
 }
 
-export type MaterialAssignmentInput = Omit<MaterialAssignment, 'assignmentId'>;
-
 export interface MaterialSummary {
   materialId: string;
   name: string;
@@ -252,17 +250,6 @@ export interface MaterialSummary {
 export interface MaterialConsumptionPoint {
   timestamp: string;
   consumedKg: number;
-}
-
-export interface InventoryTrendPoint {
-  timestamp: string;
-  consumedKg: number;
-}
-
-export interface LotStockPoint {
-  lotId: string;
-  quantityKg: number;
-  status: InventoryLotStatus;
 }
 
 export interface InventoryAlert {

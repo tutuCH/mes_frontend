@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
@@ -12,20 +12,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { InventoryBarChart } from '@/components/inventory/charts/InventoryBarChart'
-import { InventoryLineChart } from '@/components/inventory/charts/InventoryLineChart'
-import { LotDialog } from '@/components/inventory/LotDialog'
 import { MaterialStatusBadge } from '@/components/inventory/MaterialStatusBadge'
 import { useInventoryState } from '@/hooks/useInventoryState'
 import type { AppDispatch, RootState } from '@/store'
-import type { InventoryLotStatus } from '@/types/api'
-import {
-  createInventoryLot,
-  deleteInventoryLot,
-  fetchInventorySummary,
-  fetchMaterialConsumption,
-  updateInventoryLot,
-} from '@/store/slices/inventorySlice'
+import { fetchMaterialConsumption } from '@/store/slices/inventorySlice'
 import { calculateRemainingHours, classifyMaterialStatus } from '@/utils/inventoryCalc'
 import { DEFAULT_MATERIAL_THRESHOLDS } from '@/utils/inventoryThresholds'
 
@@ -38,11 +28,6 @@ export default function MaterialDetail() {
   const dispatch = useDispatch<AppDispatch>()
   const { materials, lots, assignments, summary, loading } = useInventoryState()
   const machines = useSelector((state: RootState) => state.machines.machines)
-  const [isLotDialogOpen, setIsLotDialogOpen] = useState(false)
-  const [editingLotId, setEditingLotId] = useState<string | null>(null)
-  const batchRef = useRef<HTMLInputElement | null>(null)
-  const quantityRef = useRef<HTMLInputElement | null>(null)
-  const statusRef = useRef<HTMLSelectElement | null>(null)
   const consumption = useSelector((state: RootState) =>
     materialId ? state.inventory.consumptionByMaterial[materialId] ?? emptyConsumption : emptyConsumption
   )
@@ -60,47 +45,6 @@ export default function MaterialDetail() {
   const materialSummary = summary.find(item => item.materialId === materialId)
   const materialLots = lots.filter(lot => lot.materialId === materialId)
   const materialAssignments = assignments.filter(assign => assign.materialId === materialId)
-
-  const lotStockLabels = useMemo(() => materialLots.map(lot => lot.batchNumber || lot.lotId), [materialLots])
-  const lotStockData = useMemo(() => materialLots.map(lot => lot.quantityKg), [materialLots])
-
-  const handleCreateLot = useCallback(async (input: {
-    batchNumber?: string
-    quantityKg: number
-    status: InventoryLotStatus
-    supplier?: string
-    location?: string
-  }) => {
-    if (!materialId) return
-    await dispatch(createInventoryLot({
-      materialId,
-      quantityKg: input.quantityKg,
-      status: input.status,
-      batchNumber: input.batchNumber,
-      supplier: input.supplier,
-      location: input.location,
-      receivedAt: new Date().toISOString(),
-    })).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-  }, [dispatch, materialId])
-
-  const handleUpdateLot = useCallback(async (lotId: string, existingStatus: InventoryLotStatus) => {
-    const quantityValue = Number(quantityRef.current?.value ?? '')
-    const patch = {
-      batchNumber: batchRef.current?.value || undefined,
-      quantityKg: Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : undefined,
-      status: (statusRef.current?.value as InventoryLotStatus) || existingStatus,
-    }
-
-    await dispatch(updateInventoryLot({ lotId, patch })).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-    setEditingLotId(null)
-  }, [dispatch])
-
-  const handleDeleteLot = useCallback(async (lotId: string) => {
-    await dispatch(deleteInventoryLot(lotId)).unwrap()
-    await dispatch(fetchInventorySummary()).unwrap()
-  }, [dispatch])
 
   const remainingHours = useMemo(() => {
     if (!materialSummary) return null
@@ -216,16 +160,8 @@ export default function MaterialDetail() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardHeader>
           <CardTitle>{t('inventory.detail.stockByLot')}</CardTitle>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsLotDialogOpen(true)}
-            data-testid="inventory-add-lot"
-          >
-            {t('inventory.detail.addLot')}
-          </Button>
         </CardHeader>
         <CardContent className="pt-0">
           <Table>
@@ -235,13 +171,12 @@ export default function MaterialDetail() {
                 <TableHead>{t('inventory.detail.batch')}</TableHead>
                 <TableHead>{t('inventory.detail.quantity')}</TableHead>
                 <TableHead>{t('inventory.detail.status')}</TableHead>
-                <TableHead className="text-right">{t('inventory.table.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {materialLots.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     {t('inventory.detail.noLots')}
                   </TableCell>
                 </TableRow>
@@ -249,113 +184,15 @@ export default function MaterialDetail() {
               {materialLots.map(lot => (
                 <TableRow key={lot.lotId} data-testid={`lot-row-${lot.lotId}`}>
                   <TableCell className="font-medium">{lot.lotId}</TableCell>
-                  <TableCell>
-                    {editingLotId === lot.lotId ? (
-                      <input
-                        className="h-9 w-full rounded-lg border border-border bg-card px-3 text-sm"
-                        defaultValue={lot.batchNumber ?? ''}
-                        ref={batchRef}
-                      />
-                    ) : (
-                      lot.batchNumber || '--'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingLotId === lot.lotId ? (
-                      <input
-                        className="h-9 w-full rounded-lg border border-border bg-card px-3 text-sm"
-                        defaultValue={lot.quantityKg.toString()}
-                        data-testid="lot-quantity-input"
-                        ref={quantityRef}
-                      />
-                    ) : (
-                      `${numberFormatter.format(lot.quantityKg)} kg`
-                    )}
-                  </TableCell>
-                  <TableCell className="capitalize">
-                    {editingLotId === lot.lotId ? (
-                      <select
-                        className="h-9 w-full rounded-lg border border-border bg-card px-3 text-sm"
-                        defaultValue={lot.status}
-                        ref={statusRef}
-                      >
-                        <option value="available">{t('inventory.lotStatus.available')}</option>
-                        <option value="reserved">{t('inventory.lotStatus.reserved')}</option>
-                        <option value="consumed">{t('inventory.lotStatus.consumed')}</option>
-                      </select>
-                    ) : (
-                      t(`inventory.lotStatus.${lot.status}`)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {editingLotId === lot.lotId ? (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            onClick={() => handleUpdateLot(lot.lotId, lot.status)}
-                            data-testid={`lot-save-${lot.lotId}`}
-                          >
-                            {t('common.save')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingLotId(null)}
-                          >
-                            {t('common.cancel')}
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingLotId(lot.lotId)}
-                            data-testid={`lot-edit-${lot.lotId}`}
-                          >
-                            {t('common.edit')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDeleteLot(lot.lotId)}
-                            data-testid={`lot-delete-${lot.lotId}`}
-                          >
-                            {t('common.delete')}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+                  <TableCell>{lot.batchNumber || '--'}</TableCell>
+                  <TableCell>{numberFormatter.format(lot.quantityKg)} kg</TableCell>
+                  <TableCell className="capitalize">{lot.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-          {materialLots.length > 0 && (
-            <div className="mt-6">
-              <InventoryBarChart
-                labels={lotStockLabels}
-                datasets={[
-                  {
-                    label: t('inventory.detail.quantity'),
-                    data: lotStockData,
-                    backgroundColor: 'rgba(34, 197, 94, 0.65)',
-                  },
-                ]}
-                testId="material-lot-stock-chart"
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
-
-      <LotDialog
-        open={isLotDialogOpen}
-        onOpenChange={setIsLotDialogOpen}
-        onCreate={handleCreateLot}
-      />
 
       <Card>
         <CardHeader>
@@ -432,36 +269,29 @@ export default function MaterialDetail() {
           {consumptionLoading ? (
             <div className="py-6 text-sm text-muted-foreground">{t('common.loading')}</div>
           ) : (
-            <>
-              <InventoryLineChart
-                points={consumption}
-                label={t('inventory.detail.consumed')}
-                testId="material-consumption-chart"
-              />
-              <Table className="mt-4">
-                <TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('inventory.detail.timestamp')}</TableHead>
+                  <TableHead>{t('inventory.detail.consumed')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {consumption.length === 0 && (
                   <TableRow>
-                    <TableHead>{t('inventory.detail.timestamp')}</TableHead>
-                    <TableHead>{t('inventory.detail.consumed')}</TableHead>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                      {t('inventory.detail.noConsumption')}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {consumption.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center text-muted-foreground">
-                        {t('inventory.detail.noConsumption')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {consumption.map(point => (
-                    <TableRow key={point.timestamp}>
-                      <TableCell>{new Date(point.timestamp).toLocaleString()}</TableCell>
-                      <TableCell>{numberFormatter.format(point.consumedKg)} kg</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </>
+                )}
+                {consumption.map(point => (
+                  <TableRow key={point.timestamp}>
+                    <TableCell>{new Date(point.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>{numberFormatter.format(point.consumedKg)} kg</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
