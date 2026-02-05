@@ -125,24 +125,37 @@ export const SPCChart = memo(function SPCChart({
           return
         }
 
-        const fallbackWindowEndMs = Date.now()
-        const metaEndMs = Date.parse(seriesRes.meta?.generatedAt ?? '')
-        const windowEndMs = Number.isFinite(metaEndMs) ? metaEndMs : fallbackWindowEndMs
-        const shouldUseInterval = ['last_6h', 'last_24h', 'last_3d', 'last_7d'].includes(currentWindow)
-          ? seriesRes.sampling?.intervalMs ?? null
-          : null
+        // Use window.end for accurate window boundary (not meta.generatedAt which is response time)
+        const windowEndMs = Date.parse(seriesRes.window?.end ?? '') || Date.now()
+        // Apply intervalMs consistently for ALL time windows to ensure uniform time representation
+        const shouldUseInterval = seriesRes.sampling?.intervalMs ?? null
         const historicalPoints: DataPoint[] = mapSeriesToChartPoints({
           series: seriesRes.series,
           intervalMs: shouldUseInterval,
           windowEndMs,
+          debug: DEBUG_TIMING,
+          field,
+          logger: DEBUG_TIMING ? logger : undefined,
         }).filter((p): p is DataPoint => !isNaN(p.y))
 
         if (DEBUG_TIMING && seriesRes.series.length > 0) {
+          const firstPoint = seriesRes.series[0]
+          const lastPoint = seriesRes.series[seriesRes.series.length - 1]
           logger.debug('[SPCChart] Series timing summary', {
             field,
             machineId,
-            windowEndMs,
+            timeWindow: currentWindow,
+            windowEndMs: new Date(windowEndMs).toISOString(),
             intervalMs: shouldUseInterval,
+            seriesLength: seriesRes.series.length,
+            rawFirstTs: firstPoint?.ts,
+            rawLastTs: lastPoint?.ts,
+            parsedFirstTs: new Date(Date.parse(firstPoint?.ts || '')).toISOString(),
+            parsedLastTs: new Date(Date.parse(lastPoint?.ts || '')).toISOString(),
+            windowStart: seriesRes.window?.start,
+            windowEnd: seriesRes.window?.end,
+            metaGeneratedAt: seriesRes.meta?.generatedAt,
+            samplingMethod: seriesRes.sampling?.downsample,
             summary: summarizeSeriesTiming({
               window: currentWindow,
               sampling: seriesRes.sampling,
@@ -154,6 +167,9 @@ export const SPCChart = memo(function SPCChart({
             count: historicalPoints.length,
             first: historicalPoints[0],
             last: historicalPoints[historicalPoints.length - 1],
+            timeSpanMs: historicalPoints.length > 1 
+              ? historicalPoints[historicalPoints.length - 1].x - historicalPoints[0].x 
+              : 0,
           })
         }
         setInitialData(historicalPoints)
@@ -221,12 +237,27 @@ export const SPCChart = memo(function SPCChart({
     dataRef.current = dataBuffer
 
     if (DEBUG_TIMING && dataBuffer.length > 0) {
+      const firstPoint = dataBuffer[0]
+      const lastPoint = dataBuffer[dataBuffer.length - 1]
+      const timeSpanMs = lastPoint.x - firstPoint.x
       logger.debug('[SPCChart] Chart init data', {
         field,
+        deviceId,
         count: dataBuffer.length,
-        first: dataBuffer[0],
-        last: dataBuffer[dataBuffer.length - 1],
-        xType: typeof dataBuffer[0].x,
+        first: {
+          x: firstPoint.x,
+          xISO: new Date(firstPoint.x).toISOString(),
+          y: firstPoint.y,
+        },
+        last: {
+          x: lastPoint.x,
+          xISO: new Date(lastPoint.x).toISOString(),
+          y: lastPoint.y,
+        },
+        timeSpanMs,
+        timeSpanMinutes: timeSpanMs / 60000,
+        xType: typeof firstPoint.x,
+        avgIntervalMs: dataBuffer.length > 1 ? timeSpanMs / (dataBuffer.length - 1) : 0,
       })
     }
 

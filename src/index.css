@@ -97,4 +97,19 @@
   .text-label {
     @apply text-xs font-medium text-muted-foreground tracking-wide;
   }
+
+  .min-h-dvh {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  .h-dvh {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .safe-area-padding {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

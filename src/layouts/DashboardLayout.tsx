@@ -73,8 +73,8 @@ export default function DashboardLayout() {
   )
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
-      <div className="flex h-screen overflow-hidden">
+    <div className="min-h-dvh safe-area-padding bg-background text-foreground font-sans">
+      <div className="flex h-dvh overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-card border-r border-border hidden md:flex flex-col z-20">
           {/* Logo Section */}

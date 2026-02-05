@@ -5,6 +5,7 @@ import { store } from './store'
 import './index.css'
 import App from './App.tsx'
 import { createLogger } from '@/utils/logger'
+import { registerSW } from 'virtual:pwa-register'
 
 const logger = createLogger('main')
 
@@ -18,6 +19,10 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   }).catch((error) => {
     logger.warn('Failed to fetch service worker registrations', error)
   })
+}
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  registerSW({ immediate: true })
 }
 
 createRoot(document.getElementById('root')!).render(

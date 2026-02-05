@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-type Language = 'en' | 'zh-TW' | 'zh-CN'
+type Language = 'en' | 'zh-TW' | 'zh-CN' | 'vi'
 
 interface LanguageContextType {
   language: Language
@@ -18,7 +18,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Load saved language from localStorage
     const saved = localStorage.getItem('mes-language') as Language
-    if (saved && ['en', 'zh-TW', 'zh-CN'].includes(saved)) {
+    if (saved && ['en', 'zh-TW', 'zh-CN', 'vi'].includes(saved)) {
       setLanguageState(saved)
       i18n.changeLanguage(saved)
     }

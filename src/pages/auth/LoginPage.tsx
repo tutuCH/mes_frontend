@@ -51,7 +51,7 @@ export default function LoginPage() {
   const isDisabled = isLoading || isGoogleLoading
 
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t('login.title')}</CardTitle>

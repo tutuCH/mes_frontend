@@ -216,7 +216,7 @@ export async function getInventorySummary(): Promise<MaterialSummary[]> {
 }
 
 export async function getMaterialConsumption(
-  materialId: string,
+  _materialId: string,
   options?: { start?: string; end?: string }
 ): Promise<MaterialConsumptionPoint[]> {
   const start = options?.start ? new Date(options.start) : new Date(Date.now() - 6 * 3600 * 1000)

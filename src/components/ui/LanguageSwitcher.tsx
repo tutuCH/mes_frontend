@@ -4,7 +4,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const languages = [
   { code: 'zh-TW', name: '繁體中文', flag: '🇹🇼' },
   { code: 'zh-CN', name: '简体中文', flag: '🇨🇳' },
-  { code: 'en', name: 'English', flag: '🇺🇸' }
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' }
 ] as const
 
 export function LanguageSwitcher() {

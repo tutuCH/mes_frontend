@@ -124,7 +124,7 @@ export default function PersonalSettingsSection() {
   }
 
   const handleLanguageToggle = () => {
-    const languages: Array<'en' | 'zh-TW' | 'zh-CN'> = ['en', 'zh-TW', 'zh-CN']
+    const languages: Array<'en' | 'zh-TW' | 'zh-CN' | 'vi'> = ['en', 'zh-TW', 'zh-CN', 'vi']
     const currentIndex = languages.indexOf(language)
     const nextIndex = (currentIndex + 1) % languages.length
     setLanguage(languages[nextIndex])
@@ -138,6 +138,8 @@ export default function PersonalSettingsSection() {
         return '繁體中文'
       case 'zh-CN':
         return '简体中文'
+      case 'vi':
+        return 'Tiếng Việt'
       default:
         return lang
     }

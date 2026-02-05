@@ -33,17 +33,17 @@ export function InventoryLineChart({
     }
 
     const data = {
+      labels: points.map(point => point.timestamp),
       datasets: [
         {
           label,
-          data: points.map(point => ({ x: point.timestamp, y: point.consumedKg })),
+          data: points.map(point => point.consumedKg),
           borderColor: 'rgba(14, 165, 233, 1)',
           backgroundColor: 'rgba(14, 165, 233, 0.2)',
           tension: 0.3,
           fill: true,
           pointRadius: 0,
           pointHoverRadius: 4,
-          parsing: false as const,
         },
       ],
     }

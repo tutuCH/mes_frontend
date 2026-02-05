@@ -6,6 +6,7 @@ import LanguageDetector from 'i18next-browser-languagedetector'
 import enCommon from '../locales/en/common.json'
 import zhTWCommon from '../locales/zh-TW/common.json'
 import zhCNCommon from '../locales/zh-CN/common.json'
+import viCommon from '../locales/vi/common.json'
 
 const resources = {
   en: {
@@ -16,6 +17,9 @@ const resources = {
   },
   'zh-CN': {
     common: zhCNCommon
+  },
+  vi: {
+    common: viCommon
   }
 }
 

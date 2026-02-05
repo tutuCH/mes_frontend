@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
   // Loading state
   if (status === 'loading') {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center">
@@ -64,7 +64,7 @@ export default function VerifyEmailPage() {
   // No token provided
   if (status === 'no-token') {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
@@ -86,7 +86,7 @@ export default function VerifyEmailPage() {
   // Success state
   if (status === 'success') {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
@@ -110,7 +110,7 @@ export default function VerifyEmailPage() {
 
   // Error state
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">

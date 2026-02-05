@@ -1,3 +1,0 @@
-- in Iot Data Explorer Data, need to show timestamp and Device ID, it should update once receive latest websocket message. use device_id for device id, _time for timestamp
-- in Raw Data Logs under /spc the time and value doesn't show appropriately
-- update code to correctly parse date in the format: 2026-01-06T23:29:20.8Z

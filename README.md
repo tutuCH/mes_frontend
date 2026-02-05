@@ -69,5 +69,24 @@ export default defineConfig([
       // other options...
     },
   },
-])
+  ])
 ```
+
+## PWA Testing
+
+Run a production build and preview:
+
+```bash
+npm run build
+npm run preview
+```
+
+Then open the preview URL (default `http://localhost:4173`) and run Lighthouse from Chrome DevTools.
+
+## PWA QA Checklist
+
+- Android: install prompt appears and launches in standalone.
+- iOS Safari: Add to Home Screen works, icon/title correct.
+- Offline: app shell loads and offline screen appears.
+- API caching: GET requests fall back briefly but do not stay stale.
+- No regressions in auth, routing, or SSE behavior.

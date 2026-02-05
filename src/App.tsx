@@ -7,9 +7,12 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
 import { Toaster } from "sonner"
 import { GlobalSSEManager } from "@/components/GlobalSSEManager"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
+import { IosInstallBanner } from "@/components/pwa/IosInstallBanner"
+import { OfflineBanner } from "@/components/pwa/OfflineBanner"
 import { I18nextProvider } from "react-i18next"
 import { LanguageProvider } from "@/contexts/LanguageContext"
 import i18n from "@/i18n/config"
+import OfflinePage from "@/pages/OfflinePage"
 
 // Lazy load layouts and pages
 const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"))
@@ -38,8 +41,10 @@ function App() {
           <AuthProvider>
             <SubscriptionProvider>
               <BrowserRouter>
-              <Suspense fallback={<LoadingScreen />}>
-                <Routes>
+                <IosInstallBanner />
+                <OfflineBanner />
+                <Suspense fallback={<LoadingScreen />}>
+                  <Routes>
                   {/* Auth pages OUTSIDE GlobalSSEManager - no stream connection before auth */}
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/signup" element={<SignUpPage />} />
@@ -47,6 +52,7 @@ function App() {
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route path="/access-denied" element={<AccessDeniedPage />} />
+                  <Route path="/offline" element={<OfflinePage />} />
 
                   {/* Protected routes INSIDE GlobalSSEManager - stream connects after login */}
                   <Route path="/" element={
@@ -75,10 +81,10 @@ function App() {
                   } />
 
                   <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Suspense>
-              <Toaster position="top-right" theme="dark" richColors />
-            </BrowserRouter>
+                  </Routes>
+                </Suspense>
+                <Toaster position="top-right" theme="dark" richColors />
+              </BrowserRouter>
           </SubscriptionProvider>
           </AuthProvider>
         </ErrorBoundary>
