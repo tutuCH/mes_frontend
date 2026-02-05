@@ -7,6 +7,7 @@ import type {
   MaterialAssignment,
   MaterialSummary,
   MaterialConsumptionPoint,
+  InventoryTrendPoint,
 } from '@/types/api'
 import {
   getMaterials,
@@ -18,8 +19,11 @@ import {
   updateInventoryLot as updateInventoryLotRequest,
   deleteInventoryLot as deleteInventoryLotRequest,
   getMaterialAssignments,
+  createMaterialAssignment as createMaterialAssignmentRequest,
+  updateMaterialAssignment as updateMaterialAssignmentRequest,
   getInventorySummary,
   getMaterialConsumption,
+  getInventoryTrend,
 } from '@/services/inventoryService'
 
 interface InventoryLoadingState {
@@ -27,6 +31,7 @@ interface InventoryLoadingState {
   lots: boolean
   assignments: boolean
   summary: boolean
+  trend: boolean
   consumption: Record<string, boolean>
 }
 
@@ -35,6 +40,7 @@ interface InventoryState {
   lots: InventoryLot[]
   assignments: MaterialAssignment[]
   summary: MaterialSummary[]
+  inventoryTrend: InventoryTrendPoint[]
   consumptionByMaterial: Record<string, MaterialConsumptionPoint[]>
   loading: InventoryLoadingState
   error: string | null
@@ -45,12 +51,14 @@ const initialState: InventoryState = {
   lots: [],
   assignments: [],
   summary: [],
+  inventoryTrend: [],
   consumptionByMaterial: {},
   loading: {
     materials: false,
     lots: false,
     assignments: false,
     summary: false,
+    trend: false,
     consumption: {},
   },
   error: null,
@@ -123,10 +131,31 @@ export const fetchMaterialAssignments = createAsyncThunk(
   }
 )
 
+export const createMaterialAssignment = createAsyncThunk(
+  'inventory/createMaterialAssignment',
+  async (input: Omit<MaterialAssignment, 'assignmentId'>) => {
+    return await createMaterialAssignmentRequest(input)
+  }
+)
+
+export const updateMaterialAssignment = createAsyncThunk(
+  'inventory/updateMaterialAssignment',
+  async ({ assignmentId, patch }: { assignmentId: string; patch: Partial<MaterialAssignment> }) => {
+    return await updateMaterialAssignmentRequest(assignmentId, patch)
+  }
+)
+
 export const fetchInventorySummary = createAsyncThunk(
   'inventory/fetchInventorySummary',
   async () => {
     return await getInventorySummary()
+  }
+)
+
+export const fetchInventoryTrend = createAsyncThunk(
+  'inventory/fetchInventoryTrend',
+  async () => {
+    return await getInventoryTrend()
   }
 )
 
@@ -212,6 +241,17 @@ const inventorySlice = createSlice({
         state.loading.assignments = false
         state.error = action.error.message || 'Failed to fetch material assignments'
       })
+      .addCase(createMaterialAssignment.fulfilled, (state, action) => {
+        state.assignments.push(action.payload)
+      })
+      .addCase(updateMaterialAssignment.fulfilled, (state, action) => {
+        const index = state.assignments.findIndex(item => item.assignmentId === action.payload.assignmentId)
+        if (index !== -1) {
+          state.assignments[index] = action.payload
+        } else {
+          state.assignments.push(action.payload)
+        }
+      })
       .addCase(fetchInventorySummary.pending, (state) => {
         state.loading.summary = true
         state.error = null
@@ -223,6 +263,18 @@ const inventorySlice = createSlice({
       .addCase(fetchInventorySummary.rejected, (state, action) => {
         state.loading.summary = false
         state.error = action.error.message || 'Failed to fetch inventory summary'
+      })
+      .addCase(fetchInventoryTrend.pending, (state) => {
+        state.loading.trend = true
+        state.error = null
+      })
+      .addCase(fetchInventoryTrend.fulfilled, (state, action) => {
+        state.loading.trend = false
+        state.inventoryTrend = action.payload
+      })
+      .addCase(fetchInventoryTrend.rejected, (state, action) => {
+        state.loading.trend = false
+        state.error = action.error.message || 'Failed to fetch inventory trend'
       })
       .addCase(fetchMaterialConsumption.pending, (state, action) => {
         state.loading.consumption[action.meta.arg.materialId] = true

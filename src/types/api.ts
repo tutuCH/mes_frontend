@@ -252,6 +252,11 @@ export interface MaterialConsumptionPoint {
   consumedKg: number;
 }
 
+export interface InventoryTrendPoint {
+  timestamp: string;
+  consumedKg: number;
+}
+
 export interface InventoryAlert {
   alertId: string;
   materialId: string;

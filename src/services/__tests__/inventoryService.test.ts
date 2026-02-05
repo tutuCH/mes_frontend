@@ -4,6 +4,9 @@ import {
   createMaterial,
   updateMaterial,
   deleteMaterial,
+  getMaterialAssignments,
+  createMaterialAssignment,
+  updateMaterialAssignment,
 } from '@/services/inventoryService'
 
 describe('inventoryService (mock)', () => {
@@ -34,5 +37,30 @@ describe('inventoryService (mock)', () => {
     await deleteMaterial(created.materialId)
     const afterDelete = await getMaterials()
     expect(afterDelete.find(m => m.materialId === created.materialId)).toBeUndefined()
+  })
+
+  it('creates and updates material assignments', async () => {
+    const existing = await getMaterialAssignments()
+    expect(existing.length).toBeGreaterThan(0)
+
+    const created = await createMaterialAssignment({
+      machineId: 3,
+      materialId: 'mat_002',
+      activeLotId: 'lot_003',
+      shotWeightG: 90,
+      scrapPercent: 0.03,
+      cavities: 2,
+      effectiveAt: new Date().toISOString(),
+    })
+
+    const afterCreate = await getMaterialAssignments()
+    expect(afterCreate.find(item => item.assignmentId === created.assignmentId)).toBeTruthy()
+
+    const updated = await updateMaterialAssignment(created.assignmentId, {
+      activeLotId: null,
+      shotWeightG: 100,
+    })
+    expect(updated.activeLotId).toBeNull()
+    expect(updated.shotWeightG).toBe(100)
   })
 })

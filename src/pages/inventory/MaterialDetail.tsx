@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { InventoryBarChart } from '@/components/inventory/charts/InventoryBarChart'
+import { InventoryLineChart } from '@/components/inventory/charts/InventoryLineChart'
 import { MaterialStatusBadge } from '@/components/inventory/MaterialStatusBadge'
 import { useInventoryState } from '@/hooks/useInventoryState'
 import type { AppDispatch, RootState } from '@/store'
@@ -45,6 +47,20 @@ export default function MaterialDetail() {
   const materialSummary = summary.find(item => item.materialId === materialId)
   const materialLots = lots.filter(lot => lot.materialId === materialId)
   const materialAssignments = assignments.filter(assign => assign.materialId === materialId)
+  const lotStockLabels = useMemo(
+    () => materialLots.map(lot => lot.batchNumber || lot.lotId),
+    [materialLots]
+  )
+  const lotStockDataset = useMemo(
+    () => [
+      {
+        label: t('inventory.detail.quantity'),
+        data: materialLots.map(lot => lot.quantityKg),
+        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+      },
+    ],
+    [materialLots, t]
+  )
 
   const remainingHours = useMemo(() => {
     if (!materialSummary) return null
@@ -193,6 +209,34 @@ export default function MaterialDetail() {
           </Table>
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('inventory.detail.consumptionTrend')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <InventoryLineChart
+              points={consumption}
+              testId="material-consumption-chart"
+              className="h-56"
+            />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('inventory.detail.stockByLot')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <InventoryBarChart
+              labels={lotStockLabels}
+              datasets={lotStockDataset}
+              testId="material-lot-stock-chart"
+              className="h-56"
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>

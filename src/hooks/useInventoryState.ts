@@ -6,19 +6,28 @@ import {
   fetchInventoryLots,
   fetchMaterialAssignments,
   fetchInventorySummary,
+  fetchInventoryTrend,
 } from '@/store/slices/inventorySlice'
-import type { Material, InventoryLot, MaterialAssignment, MaterialSummary } from '@/types/api'
+import type {
+  Material,
+  InventoryLot,
+  MaterialAssignment,
+  MaterialSummary,
+  InventoryTrendPoint,
+} from '@/types/api'
 
 export interface UseInventoryStateReturn {
   materials: Material[]
   lots: InventoryLot[]
   assignments: MaterialAssignment[]
   summary: MaterialSummary[]
+  inventoryTrend: InventoryTrendPoint[]
   loading: {
     materials: boolean
     lots: boolean
     assignments: boolean
     summary: boolean
+    trend: boolean
   }
   error: string | null
   refetchAll: () => void
@@ -27,7 +36,7 @@ export interface UseInventoryStateReturn {
 
 export function useInventoryState(): UseInventoryStateReturn {
   const dispatch = useDispatch<AppDispatch>()
-  const { materials, lots, assignments, summary, loading, error } = useSelector(
+  const { materials, lots, assignments, summary, inventoryTrend, loading, error } = useSelector(
     (state: RootState) => state.inventory
   )
 
@@ -36,6 +45,7 @@ export function useInventoryState(): UseInventoryStateReturn {
     dispatch(fetchInventoryLots())
     dispatch(fetchMaterialAssignments())
     dispatch(fetchInventorySummary())
+    dispatch(fetchInventoryTrend())
   }, [dispatch])
 
   const refetchAll = useCallback(() => {
@@ -43,6 +53,7 @@ export function useInventoryState(): UseInventoryStateReturn {
     dispatch(fetchInventoryLots())
     dispatch(fetchMaterialAssignments())
     dispatch(fetchInventorySummary())
+    dispatch(fetchInventoryTrend())
   }, [dispatch])
 
   const refetchSummary = useCallback(() => {
@@ -55,6 +66,7 @@ export function useInventoryState(): UseInventoryStateReturn {
       lots: loading.lots,
       assignments: loading.assignments,
       summary: loading.summary,
+      trend: loading.trend,
     }
   }, [loading])
 
@@ -63,6 +75,7 @@ export function useInventoryState(): UseInventoryStateReturn {
     lots,
     assignments,
     summary,
+    inventoryTrend,
     loading: loadingState,
     error,
     refetchAll,
