@@ -37,9 +37,10 @@ import type {
   SpcSeriesResponse,
 } from '@/types/api';
 import { createLogger } from '@/utils/logger';
+import { getApiBaseUrl } from '@/utils/apiBaseUrl';
 
 const logger = createLogger('API');
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const BASE_URL = getApiBaseUrl();
 
 interface RequestOptions extends RequestInit {
   token?: string;

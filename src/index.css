@@ -62,6 +62,25 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overscroll-behavior: none;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  #root {
+    height: 100vh;
+    height: 100dvh;
+    height: var(--app-height, 100dvh);
   }
 }
 
@@ -111,5 +130,29 @@
   .safe-area-padding {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+
+  .app-root-height {
+    height: 100vh;
+    height: 100dvh;
+    height: var(--app-height, 100dvh);
+    max-height: 100vh;
+    max-height: 100dvh;
+    max-height: var(--app-height, 100dvh);
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: var(--app-height, 100dvh);
   }
 }

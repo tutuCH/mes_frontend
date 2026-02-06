@@ -13,6 +13,7 @@ import { I18nextProvider } from "react-i18next"
 import { LanguageProvider } from "@/contexts/LanguageContext"
 import i18n from "@/i18n/config"
 import OfflinePage from "@/pages/OfflinePage"
+import { getToastMobileOffsets, getToastOffsets } from "@/utils/toastOffsets"
 
 // Lazy load layouts and pages
 const DashboardLayout = lazy(() => import("@/layouts/DashboardLayout"))
@@ -83,7 +84,13 @@ function App() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </Suspense>
-                <Toaster position="top-right" theme="dark" richColors />
+                <Toaster
+                  position="top-right"
+                  theme="dark"
+                  richColors
+                  offset={getToastOffsets()}
+                  mobileOffset={getToastMobileOffsets()}
+                />
               </BrowserRouter>
           </SubscriptionProvider>
           </AuthProvider>

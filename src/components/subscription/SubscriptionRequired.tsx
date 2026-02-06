@@ -68,7 +68,7 @@ export default function SubscriptionRequired() {
   }
 
   return (
-    <div className="min-h-dvh safe-area-padding bg-slate-50">
+    <div className="app-root-height safe-area-padding bg-slate-50">
       <div className="max-w-6xl mx-auto px-6 py-16">
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-3 text-slate-700">

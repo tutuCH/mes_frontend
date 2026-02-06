@@ -8,7 +8,7 @@ export default function OfflinePage() {
   const isOnline = useNetworkStatus()
 
   return (
-    <div className="min-h-dvh safe-area-padding bg-background text-foreground flex items-center justify-center p-6">
+    <div className="app-root-height safe-area-padding bg-background text-foreground flex items-center justify-center p-6">
       <div className="w-full max-w-md text-center space-y-4">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <WifiOff className="h-6 w-6" />

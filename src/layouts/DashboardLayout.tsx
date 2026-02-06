@@ -73,8 +73,8 @@ export default function DashboardLayout() {
   )
 
   return (
-    <div className="min-h-dvh safe-area-padding bg-background text-foreground font-sans">
-      <div className="flex h-dvh overflow-hidden">
+    <div className="app-root-height safe-area-bottom bg-background text-foreground font-sans">
+      <div className="flex h-full overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-card border-r border-border hidden md:flex flex-col z-20">
           {/* Logo Section */}
@@ -113,9 +113,11 @@ export default function DashboardLayout() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto relative z-10 bg-background">
+        <main className="flex-1 overflow-auto overscroll-contain relative z-10 bg-background">
           {/* Header */}
-          <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-6 lg:px-8 sticky top-0 z-30">
+          <header className="bg-card border-b border-border sticky top-0 z-30">
+            <div className="safe-area-top">
+              <div className="h-16 flex items-center justify-between px-4 md:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               {/* Mobile hamburger menu */}
               <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -125,7 +127,10 @@ export default function DashboardLayout() {
                     <span className="sr-only">Toggle navigation</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-64 p-0">
+                <SheetContent
+                  side="left"
+                  className="w-64 p-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+                >
                   {/* Mobile navigation header */}
                   <div className="p-6 border-b border-border">
                     <h1 className="text-xl font-semibold tracking-tight">
@@ -184,6 +189,8 @@ export default function DashboardLayout() {
                   {websocketStatus === 'connecting' && t('factoryView.connecting')}
                   {websocketStatus === 'disconnected' && t('factoryView.offline')}
                 </span>
+              </div>
+            </div>
               </div>
             </div>
           </header>

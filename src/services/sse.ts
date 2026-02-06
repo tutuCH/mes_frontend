@@ -8,11 +8,13 @@ import type {
   AlarmUpdateEvent,
 } from '@/types/api';
 import { api } from '@/services/api';
+import { getApiBaseUrl } from '@/utils/apiBaseUrl';
 import { t } from '@/utils/i18n';
 import { createLogger } from '@/utils/logger';
 
 const logger = createLogger('SSE');
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const BASE_URL = getApiBaseUrl();
 const DEBUG_SSE = import.meta.env.VITE_DEBUG_SSE === 'true';
 const MAX_DEVICES_PER_STREAM = 10;
 const DEFAULT_TICKET_TTL_SECONDS = 300;

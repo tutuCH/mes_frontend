@@ -8,7 +8,7 @@ export default function AccessDeniedPage() {
   const { t } = useTranslation()
 
   return (
-    <div className="flex min-h-dvh safe-area-padding items-center justify-center bg-slate-50">
+    <div className="flex app-root-height safe-area-padding items-center justify-center bg-slate-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">

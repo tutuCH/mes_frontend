@@ -6,8 +6,10 @@ import './index.css'
 import App from './App.tsx'
 import { createLogger } from '@/utils/logger'
 import { registerSW } from 'virtual:pwa-register'
+import { initIosViewportFix } from '@/utils/iosViewport'
 
 const logger = createLogger('main')
+initIosViewportFix()
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {

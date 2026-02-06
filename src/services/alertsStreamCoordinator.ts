@@ -1,3 +1,5 @@
+import { generateUUID } from '@/utils/uuid'
+
 const CHANNEL_NAME = 'mes-alerts-stream'
 const LOCK_KEY = 'mes_alerts_leader'
 const HEARTBEAT_MS = 5000
@@ -24,7 +26,7 @@ type BroadcastMessage = {
 }
 
 export class AlertsStreamCoordinator {
-  private tabId = crypto.randomUUID()
+  private tabId = generateUUID()
   private channel: BroadcastChannel | null = null
   private isLeader = false
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
