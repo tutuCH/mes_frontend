@@ -13,6 +13,7 @@ import { I18nextProvider } from "react-i18next"
 import { LanguageProvider } from "@/contexts/LanguageContext"
 import i18n from "@/i18n/config"
 import OfflinePage from "@/pages/OfflinePage"
+import MaterialDetail from "@/pages/inventory/MaterialDetail"
 import { getToastMobileOffsets, getToastOffsets } from "@/utils/toastOffsets"
 
 // Lazy load layouts and pages
@@ -32,7 +33,6 @@ const SettingsPage = lazy(() => import("@/pages/settings/SettingsPage"))
 const SubscriptionRequired = lazy(() => import("@/pages/subscription/SubscriptionRequired"))
 const IoTData = lazy(() => import("@/pages/iot/IoTData"))
 const InventoryDashboard = lazy(() => import("@/pages/inventory/InventoryDashboard"))
-const MaterialDetail = lazy(() => import("@/pages/inventory/MaterialDetail"))
 
 function App() {
   return (

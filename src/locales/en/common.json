@@ -158,6 +158,15 @@
   "inventory": {
     "title": "Inventory",
     "subtitle": "Material availability and consumption",
+    "materialType": {
+      "virgin": "Virgin",
+      "regrind": "Regrind",
+      "additive": "Additive"
+    },
+    "charts": {
+      "title": "Inventory charts",
+      "consumption": "Consumption trend"
+    },
     "kpi": {
       "totalValue": "Total inventory value",
       "totalValueSubtitle": "Available + reserved",
@@ -171,16 +180,37 @@
     "table": {
       "title": "Material overview",
       "material": "Material",
+      "type": "Type",
+      "density": "Density",
+      "cost": "Cost/kg",
       "available": "Available",
       "reserved": "Reserved",
       "remainingHours": "Est. hours remaining",
       "status": "Status",
+      "actions": "Actions",
       "empty": "No materials found"
+    },
+    "materials": {
+      "name": "Material name",
+      "type": "Material type",
+      "density": "Density",
+      "cost": "Cost/kg",
+      "add": "Add material",
+      "create": "Create material",
+      "addTitle": "Add new material",
+      "namePlaceholder": "e.g. ABS, PP",
+      "densityPlaceholder": "e.g. 1.05",
+      "costPlaceholder": "e.g. 1.85"
     },
     "status": {
       "ok": "OK",
       "warning": "Warning",
       "critical": "Critical"
+    },
+    "lotStatus": {
+      "available": "Available",
+      "reserved": "Reserved",
+      "consumed": "Consumed"
     },
     "detail": {
       "missingMaterial": "Material selection missing.",
@@ -203,7 +233,15 @@
       "consumptionTrend": "Consumption trend",
       "timestamp": "Timestamp",
       "consumed": "Consumed",
-      "noConsumption": "No consumption data"
+      "noConsumption": "No consumption data",
+      "addLot": "Add lot",
+      "createLot": "Create lot",
+      "supplier": "Supplier",
+      "location": "Location",
+      "quantityPlaceholder": "e.g. 1200",
+      "batchPlaceholder": "e.g. B2025-10",
+      "supplierPlaceholder": "e.g. Formosa",
+      "locationPlaceholder": "e.g. Warehouse A"
     }
   },
   "factory": {
@@ -348,6 +386,10 @@
     "saveChanges": "Save Changes",
     "noUsers": "No users found",
     "loadFailed": "Failed to load users",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "roles": {
       "admin": "Admin",
       "operator": "Operator",
@@ -536,7 +578,13 @@
         "language": {
           "title": "Language",
           "current": "Current language: {{lang}}",
-          "switch": "Switch Language"
+          "switch": "Switch Language",
+          "names": {
+            "en": "English",
+            "zhTW": "Traditional Chinese",
+            "zhCN": "Simplified Chinese",
+            "vi": "Vietnamese"
+          }
         },
         "logout": {
           "title": "Logout",

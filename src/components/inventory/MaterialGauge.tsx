@@ -21,13 +21,13 @@ export function MaterialGauge({
     <div
       data-testid="material-gauge"
       className={cn(
-        'mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold',
+        'mt-1 inline-flex max-w-full items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none sm:px-2 sm:text-[10px]',
         statusClass
       )}
       title="Material remaining"
     >
-      <span>Material</span>
-      <span>{display}</span>
+      <span className="hidden sm:inline">Material</span>
+      <span className="truncate">{display}</span>
     </div>
   )
 }

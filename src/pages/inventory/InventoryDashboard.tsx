@@ -297,39 +297,60 @@ export default function InventoryDashboard() {
               {t('common.loading')}
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('inventory.table.material')}</TableHead>
-                  <TableHead>{t('inventory.table.type')}</TableHead>
-                  <TableHead>{t('inventory.table.density')}</TableHead>
-                  <TableHead>{t('inventory.table.cost')}</TableHead>
-                  <TableHead>{t('inventory.table.available')}</TableHead>
-                  <TableHead>{t('inventory.table.reserved')}</TableHead>
-                  <TableHead>{t('inventory.table.remainingHours')}</TableHead>
-                  <TableHead>{t('inventory.table.status')}</TableHead>
-                  <TableHead className="text-right">{t('inventory.table.actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {derivedSummary.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
-                      {t('inventory.table.empty')}
-                    </TableCell>
-                  </TableRow>
+            <>
+              <div className="space-y-3 md:hidden">
+                {derivedSummary.length === 0 ? (
+                  <div className="py-6 text-center text-muted-foreground">{t('inventory.table.empty')}</div>
+                ) : (
+                  derivedSummary.map((item) => (
+                    <MaterialRowEditor
+                      key={`card-${item.materialId}`}
+                      mode="card"
+                      summary={item}
+                      material={materialsById.get(item.materialId)}
+                      onSave={handleSaveMaterial}
+                      onDelete={handleDeleteMaterial}
+                    />
+                  ))
                 )}
-                {derivedSummary.map((item) => (
-                  <MaterialRowEditor
-                    key={item.materialId}
-                    summary={item}
-                    material={materialsById.get(item.materialId)}
-                    onSave={handleSaveMaterial}
-                    onDelete={handleDeleteMaterial}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t('inventory.table.material')}</TableHead>
+                      <TableHead>{t('inventory.table.type')}</TableHead>
+                      <TableHead>{t('inventory.table.density')}</TableHead>
+                      <TableHead>{t('inventory.table.cost')}</TableHead>
+                      <TableHead>{t('inventory.table.available')}</TableHead>
+                      <TableHead>{t('inventory.table.reserved')}</TableHead>
+                      <TableHead>{t('inventory.table.remainingHours')}</TableHead>
+                      <TableHead>{t('inventory.table.status')}</TableHead>
+                      <TableHead className="text-right">{t('inventory.table.actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {derivedSummary.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center text-muted-foreground">
+                          {t('inventory.table.empty')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {derivedSummary.map((item) => (
+                      <MaterialRowEditor
+                        key={item.materialId}
+                        summary={item}
+                        material={materialsById.get(item.materialId)}
+                        onSave={handleSaveMaterial}
+                        onDelete={handleDeleteMaterial}
+                      />
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -158,6 +158,15 @@
   "inventory": {
     "title": "库存",
     "subtitle": "材料可用量与耗用",
+    "materialType": {
+      "virgin": "原生料",
+      "regrind": "回收料",
+      "additive": "添加剂"
+    },
+    "charts": {
+      "title": "库存图表",
+      "consumption": "耗用趋势"
+    },
     "kpi": {
       "totalValue": "库存总价值",
       "totalValueSubtitle": "可用 + 预留",
@@ -171,16 +180,37 @@
     "table": {
       "title": "材料总览",
       "material": "材料",
+      "type": "类型",
+      "density": "密度",
+      "cost": "单价/kg",
       "available": "可用",
       "reserved": "预留",
       "remainingHours": "预计剩余小时",
       "status": "状态",
+      "actions": "操作",
       "empty": "没有材料数据"
+    },
+    "materials": {
+      "name": "材料名称",
+      "type": "材料类型",
+      "density": "密度",
+      "cost": "单价/kg",
+      "add": "新增材料",
+      "create": "创建材料",
+      "addTitle": "新增材料",
+      "namePlaceholder": "例如：ABS、PP",
+      "densityPlaceholder": "例如：1.05",
+      "costPlaceholder": "例如：1.85"
     },
     "status": {
       "ok": "正常",
       "warning": "警告",
       "critical": "严重"
+    },
+    "lotStatus": {
+      "available": "可用",
+      "reserved": "预留",
+      "consumed": "已耗用"
     },
     "detail": {
       "missingMaterial": "未指定材料。",
@@ -203,7 +233,15 @@
       "consumptionTrend": "耗用趋势",
       "timestamp": "时间",
       "consumed": "耗用量",
-      "noConsumption": "没有耗用数据"
+      "noConsumption": "没有耗用数据",
+      "addLot": "新增批次",
+      "createLot": "创建批次",
+      "supplier": "供应商",
+      "location": "位置",
+      "quantityPlaceholder": "例如：1200",
+      "batchPlaceholder": "例如：B2025-10",
+      "supplierPlaceholder": "例如：Formosa",
+      "locationPlaceholder": "例如：仓库 A"
     }
   },
   "factory": {
@@ -339,6 +377,10 @@
     "saveChanges": "保存更改",
     "noUsers": "未找到用户",
     "loadFailed": "加载用户失败",
+    "status": {
+      "active": "启用",
+      "inactive": "停用"
+    },
     "roles": {
       "admin": "管理员",
       "operator": "操作员",
@@ -532,7 +574,13 @@
         "language": {
           "title": "语言",
           "current": "当前语言：{{lang}}",
-          "switch": "切换语言"
+          "switch": "切换语言",
+          "names": {
+            "en": "English",
+            "zhTW": "繁體中文",
+            "zhCN": "简体中文",
+            "vi": "Tiếng Việt"
+          }
         },
         "logout": {
           "title": "登出",
@@ -590,6 +638,56 @@
       "expires": "有效期至 {{month}}/{{year}}",
       "endingIn": "末四码 {{last4}}",
       "managePaymentMethodsNote": "您可以在账单管理入口中管理付款方式。",
+      "errors": {
+        "cardDeclined": "银行卡被拒绝，请尝试其他支付方式。",
+        "insufficientFunds": "银行卡余额不足。",
+        "expiredCard": "银行卡已过期。",
+        "incorrectCvc": "CVC 验证码不正确。",
+        "processingError": "支付处理出错，请稍后重试。",
+        "rateLimitError": "请求过于频繁，请稍后再试。",
+        "networkError": "网络错误，请检查连接后重试。",
+        "unknownError": "发生未知错误，请稍后再试。"
+      },
+      "checkout": {
+        "success": "支付成功，订阅已生效。",
+        "canceled": "已取消支付流程。",
+        "processing": "正在处理支付...",
+        "redirecting": "正在跳转到结账页面..."
+      },
+      "invoices": {
+        "title": "发票记录",
+        "description": "查看并下载历史发票",
+        "noInvoices": "暂无发票",
+        "invoiceNumber": "发票编号",
+        "dueDate": "到期日",
+        "status": {
+          "paid": "已支付",
+          "open": "待支付",
+          "draft": "草稿",
+          "void": "已作废",
+          "uncollectible": "无法收款"
+        },
+        "download": "下载 PDF"
+      },
+      "usage": {
+        "title": "使用情况",
+        "description": "查看当前使用量与套餐限制",
+        "machines": "机器：{{used}} / {{limit}}",
+        "users": "用户：{{used}} / {{limit}}",
+        "unlimited": "无限制",
+        "approachingLimit": "已接近套餐上限，建议升级以避免中断。",
+        "atLimit": "已达到套餐上限，请升级后继续使用。"
+      },
+      "coupon": {
+        "title": "优惠码",
+        "label": "输入优惠码",
+        "apply": "应用",
+        "remove": "移除",
+        "applied": "优惠码已应用",
+        "invalid": "优惠码无效",
+        "expired": "优惠码已过期",
+        "description": "如果您有优惠码，请在此输入"
+      },
       "upgradeDialog": {
         "title": "确认方案变更",
         "description": "您正在变更为 {{plan}} 方案。",

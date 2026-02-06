@@ -57,6 +57,9 @@ describe('MaterialDetail', () => {
     const lotRows = container.querySelectorAll('[data-testid^="lot-row-"]')
     expect(lotRows.length).toBeGreaterThan(0)
 
+    const lotCards = container.querySelectorAll('[data-testid^="lot-card-"]')
+    expect(lotCards.length).toBeGreaterThan(0)
+
     await waitForCondition(() => container.querySelector('[data-testid="consumption-count"]') !== null)
 
     const countNode = container.querySelector('[data-testid="consumption-count"]')

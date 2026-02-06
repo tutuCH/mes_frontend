@@ -136,7 +136,7 @@ export default function MaterialDetail() {
           </Button>
           <h1 className="text-3xl font-bold tracking-tight">{material.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('inventory.detail.materialType')}: {material.materialType}
+            {t('inventory.detail.materialType')}: {t(`inventory.materialType.${material.materialType}`)}
           </p>
         </div>
         <MaterialStatusBadge status={status} />
@@ -180,33 +180,64 @@ export default function MaterialDetail() {
           <CardTitle>{t('inventory.detail.stockByLot')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('inventory.detail.lotId')}</TableHead>
-                <TableHead>{t('inventory.detail.batch')}</TableHead>
-                <TableHead>{t('inventory.detail.quantity')}</TableHead>
-                <TableHead>{t('inventory.detail.status')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {materialLots.length === 0 && (
+          <div className="space-y-3 md:hidden">
+            {materialLots.length === 0 ? (
+              <div className="py-4 text-center text-muted-foreground">{t('inventory.detail.noLots')}</div>
+            ) : (
+              materialLots.map(lot => (
+                <Card key={lot.lotId} data-testid={`lot-card-${lot.lotId}`}>
+                  <CardContent className="grid grid-cols-2 gap-3 pt-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('inventory.detail.lotId')}</p>
+                      <p className="font-medium">{lot.lotId}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('inventory.detail.batch')}</p>
+                      <p>{lot.batchNumber || '--'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('inventory.detail.quantity')}</p>
+                      <p>{numberFormatter.format(lot.quantityKg)} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{t('inventory.detail.status')}</p>
+                      <p>{t(`inventory.lotStatus.${lot.status}`)}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {t('inventory.detail.noLots')}
-                  </TableCell>
+                  <TableHead>{t('inventory.detail.lotId')}</TableHead>
+                  <TableHead>{t('inventory.detail.batch')}</TableHead>
+                  <TableHead>{t('inventory.detail.quantity')}</TableHead>
+                  <TableHead>{t('inventory.detail.status')}</TableHead>
                 </TableRow>
-              )}
-              {materialLots.map(lot => (
-                <TableRow key={lot.lotId} data-testid={`lot-row-${lot.lotId}`}>
-                  <TableCell className="font-medium">{lot.lotId}</TableCell>
-                  <TableCell>{lot.batchNumber || '--'}</TableCell>
-                  <TableCell>{numberFormatter.format(lot.quantityKg)} kg</TableCell>
-                  <TableCell className="capitalize">{lot.status}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {materialLots.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      {t('inventory.detail.noLots')}
+                    </TableCell>
+                  </TableRow>
+                )}
+                {materialLots.map(lot => (
+                  <TableRow key={lot.lotId} data-testid={`lot-row-${lot.lotId}`}>
+                    <TableCell className="font-medium">{lot.lotId}</TableCell>
+                    <TableCell>{lot.batchNumber || '--'}</TableCell>
+                    <TableCell>{numberFormatter.format(lot.quantityKg)} kg</TableCell>
+                    <TableCell>{t(`inventory.lotStatus.${lot.status}`)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -243,24 +274,11 @@ export default function MaterialDetail() {
           <CardTitle>{t('inventory.detail.machinesConsuming')}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('inventory.detail.machine')}</TableHead>
-                <TableHead>{t('inventory.detail.shotWeight')}</TableHead>
-                <TableHead>{t('inventory.detail.scrap')}</TableHead>
-                <TableHead>{t('inventory.detail.remainingHours')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {materialAssignments.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
-                    {t('inventory.detail.noAssignments')}
-                  </TableCell>
-                </TableRow>
-              )}
-              {materialAssignments.map((assignment) => {
+          <div className="space-y-3 md:hidden">
+            {materialAssignments.length === 0 ? (
+              <div className="py-4 text-center text-muted-foreground">{t('inventory.detail.noAssignments')}</div>
+            ) : (
+              materialAssignments.map((assignment) => {
                 const machine = machines[assignment.machineId?.toString() ?? '']
                 const lot = assignment.activeLotId
                   ? materialLots.find(item => item.lotId === assignment.activeLotId)
@@ -277,28 +295,101 @@ export default function MaterialDetail() {
                   : null
 
                 return (
-                  <TableRow key={assignment.assignmentId}>
-                    <TableCell>{machine?.name || assignment.machineId}</TableCell>
-                    <TableCell>
-                      {assignment.shotWeightG != null
-                        ? `${numberFormatter.format(assignment.shotWeightG)} g`
-                        : '--'}
-                    </TableCell>
-                    <TableCell>
-                      {assignment.scrapPercent != null
-                        ? `${numberFormatter.format(assignment.scrapPercent * 100)}%`
-                        : '--'}
-                    </TableCell>
-                    <TableCell>
-                      {remainingMachineHours == null
-                        ? '--'
-                        : `${numberFormatter.format(remainingMachineHours)} h`}
+                  <Card key={assignment.assignmentId}>
+                    <CardContent className="grid grid-cols-2 gap-3 pt-4 text-sm">
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">{t('inventory.detail.machine')}</p>
+                        <p className="font-medium">{machine?.name || assignment.machineId}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('inventory.detail.shotWeight')}</p>
+                        <p>
+                          {assignment.shotWeightG != null
+                            ? `${numberFormatter.format(assignment.shotWeightG)} g`
+                            : '--'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('inventory.detail.scrap')}</p>
+                        <p>
+                          {assignment.scrapPercent != null
+                            ? `${numberFormatter.format(assignment.scrapPercent * 100)}%`
+                            : '--'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">{t('inventory.detail.remainingHours')}</p>
+                        <p>
+                          {remainingMachineHours == null
+                            ? '--'
+                            : `${numberFormatter.format(remainingMachineHours)} h`}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('inventory.detail.machine')}</TableHead>
+                  <TableHead>{t('inventory.detail.shotWeight')}</TableHead>
+                  <TableHead>{t('inventory.detail.scrap')}</TableHead>
+                  <TableHead>{t('inventory.detail.remainingHours')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {materialAssignments.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      {t('inventory.detail.noAssignments')}
                     </TableCell>
                   </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
+                )}
+                {materialAssignments.map((assignment) => {
+                  const machine = machines[assignment.machineId?.toString() ?? '']
+                  const lot = assignment.activeLotId
+                    ? materialLots.find(item => item.lotId === assignment.activeLotId)
+                    : null
+                  const cycleTime = machine?.cycleTime ?? 0
+                  const cyclesPerHour = cycleTime > 0 ? 3600 / cycleTime : null
+                  const remainingMachineHours = lot
+                    ? calculateRemainingHours(
+                        lot.quantityKg,
+                        cyclesPerHour,
+                        assignment.shotWeightG ?? null,
+                        assignment.scrapPercent ?? 0
+                      )
+                    : null
+
+                  return (
+                    <TableRow key={assignment.assignmentId}>
+                      <TableCell>{machine?.name || assignment.machineId}</TableCell>
+                      <TableCell>
+                        {assignment.shotWeightG != null
+                          ? `${numberFormatter.format(assignment.shotWeightG)} g`
+                          : '--'}
+                      </TableCell>
+                      <TableCell>
+                        {assignment.scrapPercent != null
+                          ? `${numberFormatter.format(assignment.scrapPercent * 100)}%`
+                          : '--'}
+                      </TableCell>
+                      <TableCell>
+                        {remainingMachineHours == null
+                          ? '--'
+                          : `${numberFormatter.format(remainingMachineHours)} h`}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

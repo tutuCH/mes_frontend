@@ -131,7 +131,9 @@ export function MachineStatusCard({
         </span>
 
         {(materialRemainingHours != null || materialStatus != null) && (
-          <MaterialGauge remainingHours={materialRemainingHours} status={materialStatus} />
+          <div className="max-w-full">
+            <MaterialGauge remainingHours={materialRemainingHours} status={materialStatus} />
+          </div>
         )}
 
         {/* Last update timestamp */}

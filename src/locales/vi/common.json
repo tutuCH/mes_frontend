@@ -258,7 +258,16 @@
     "id": "ID",
     "availability": "Khả dụng",
     "running": "Đang chạy",
-    "runningCount": "{{running}}/{{total}} Đang chạy"
+    "runningCount": "{{running}}/{{total}} Đang chạy",
+    "materialSetup": {
+      "title": "Cấu hình Vật liệu",
+      "empty": "Không có vật liệu để cấu hình cho máy này",
+      "material": "Vật liệu",
+      "activeLot": "Lô đang dùng",
+      "shotWeight": "Khối lượng mỗi shot (g)",
+      "scrap": "Tỷ lệ phế phẩm (%)",
+      "cavities": "Số lòng khuôn"
+    }
   },
   "iot": {
     "title": "Trình Duyệt Dữ liệu IoT",
@@ -288,6 +297,10 @@
     "saveChanges": "Lưu Thay đổi",
     "noUsers": "Không tìm thấy người dùng",
     "loadFailed": "Không thể tải người dùng",
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Không hoạt động"
+    },
     "roles": {
       "admin": "Quản trị viên",
       "operator": "Vận hành viên",
@@ -476,7 +489,13 @@
         "language": {
           "title": "Ngôn ngữ",
           "current": "Ngôn ngữ hiện tại: {{lang}}",
-          "switch": "Chuyển Ngôn ngữ"
+          "switch": "Chuyển Ngôn ngữ",
+          "names": {
+            "en": "English",
+            "zhTW": "繁體中文",
+            "zhCN": "简体中文",
+            "vi": "Tiếng Việt"
+          }
         },
         "logout": {
           "title": "Đăng Xuất",

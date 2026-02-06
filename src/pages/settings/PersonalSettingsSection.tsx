@@ -133,13 +133,13 @@ export default function PersonalSettingsSection() {
   const getLanguageLabel = (lang: string) => {
     switch (lang) {
       case 'en':
-        return 'English'
+        return t('settings.personal.appSettings.language.names.en')
       case 'zh-TW':
-        return '繁體中文'
+        return t('settings.personal.appSettings.language.names.zhTW')
       case 'zh-CN':
-        return '简体中文'
+        return t('settings.personal.appSettings.language.names.zhCN')
       case 'vi':
-        return 'Tiếng Việt'
+        return t('settings.personal.appSettings.language.names.vi')
       default:
         return lang
     }
@@ -184,10 +184,11 @@ export default function PersonalSettingsSection() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 onClick={handleProfileUpdate}
                 disabled={isUpdating || !formData.name || !formData.email}
+                className="w-full sm:w-auto"
               >
                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isUpdating ? t('settings.personal.personalInfo.updating') : t('settings.personal.personalInfo.saveChanges')}
@@ -196,6 +197,7 @@ export default function PersonalSettingsSection() {
                 variant="outline"
                 type="button"
                 onClick={() => setIsPasswordDialogOpen(true)}
+                className="w-full sm:w-auto"
               >
                 <Key className="mr-2 h-4 w-4" />
                 {t('settings.personal.changePassword.title')}
@@ -213,21 +215,21 @@ export default function PersonalSettingsSection() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Language Toggle */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
             <div>
               <h4 className="text-sm font-medium">{t('settings.personal.appSettings.language.title')}</h4>
               <p className="text-sm text-muted-foreground">
                 {t('settings.personal.appSettings.language.current', { lang: getLanguageLabel(language) })}
               </p>
             </div>
-            <Button variant="outline" onClick={handleLanguageToggle}>
+            <Button variant="outline" onClick={handleLanguageToggle} className="w-full sm:w-auto">
               <Languages className="mr-2 h-4 w-4" />
               {t('settings.personal.appSettings.language.switch')}
             </Button>
           </div>
 
           {/* Logout */}
-          <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex flex-col items-start justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">
             <div>
               <h4 className="text-sm font-medium">{t('settings.personal.appSettings.logout.title')}</h4>
               <p className="text-sm text-muted-foreground">{t('settings.personal.appSettings.logout.description')}</p>
@@ -235,7 +237,7 @@ export default function PersonalSettingsSection() {
             <Button
               variant="outline"
               onClick={logout}
-              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground sm:w-auto"
             >
               <LogOut className="mr-2 h-4 w-4" />
               {t('settings.personal.appSettings.logout.button')}

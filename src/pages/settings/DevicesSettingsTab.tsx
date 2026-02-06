@@ -187,8 +187,47 @@ export function DevicesSettingsTab() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="min-w-[600px]">
+            <>
+              <div className="space-y-3 md:hidden">
+                {filteredMachines.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    {searchQuery ? t('deviceRegistry.noDevicesMatch') : t('deviceRegistry.noDevices')}
+                  </div>
+                ) : (
+                  filteredMachines.map((machine) => (
+                    <Card key={`machine-card-${machine.machineId}`} className="border">
+                      <CardContent className="space-y-3 pt-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium">{machine.machineName}</p>
+                            <p className="text-xs text-muted-foreground">{machine.machineIndex}</p>
+                          </div>
+                          <Badge variant={getStatusVariant(machine.status)}>
+                            {machine.status || t('deviceRegistry.statusUnknown')}
+                          </Badge>
+                        </div>
+                        <div className="text-sm">
+                          <p className="text-xs text-muted-foreground">{t('deviceRegistry.tableHeaders.factory')}</p>
+                          <p>{machine.factoryName}</p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => openEditDialog(machine)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            {t('deviceRegistry.actions.edit')}
+                          </Button>
+                          <Button variant="outline" size="sm" className="w-full justify-center" onClick={() => openDeleteDialog(machine)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t('deviceRegistry.actions.delete')}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">{t('deviceRegistry.tableHeaders.id')}</TableHead>
@@ -242,8 +281,9 @@ export function DevicesSettingsTab() {
                     ))
                   )}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

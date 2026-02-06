@@ -115,6 +115,12 @@ export function UserSettingsTab() {
     setIsDeleteDialogOpen(true)
   }
 
+  const getStatusLabel = (status?: string) => {
+    return status === 'inactive'
+      ? t('users.status.inactive')
+      : t('users.status.active')
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -145,8 +151,63 @@ export function UserSettingsTab() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="min-w-[400px]">
+            <>
+              <div className="space-y-3 md:hidden">
+                {users.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">{t('users.noUsers')}</div>
+                ) : (
+                  users.map((user) => (
+                    <Card key={`user-card-${user.id || user.email}`} className="border">
+                      <CardContent className="space-y-3 pt-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
+                              <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <p className="truncate font-medium">{getUserDisplayName(user)}</p>
+                              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
+                            {getStatusLabel(user.status)}
+                          </Badge>
+                        </div>
+
+                        <div className="text-sm">
+                          <p className="text-xs text-muted-foreground">{t('users.role')}</p>
+                          <p>{t(`users.roles.${(user.role || 'Operator').toLowerCase()}`)}</p>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-center"
+                            onClick={() => openEditDialog(user)}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            {t('common.edit')}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-center"
+                            onClick={() => openDeleteDialog(user)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {t('common.delete')}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              <div className="hidden overflow-x-auto md:block">
+                <Table className="min-w-[400px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">{t('users.users')}</TableHead>
@@ -180,7 +241,7 @@ export function UserSettingsTab() {
                         <TableCell>{t(`users.roles.${(user.role || 'Operator').toLowerCase()}`)}</TableCell>
                         <TableCell>
                           <Badge variant={user.status === 'active' ? 'outline' : 'secondary'}>
-                            {user.status || 'active'}
+                            {getStatusLabel(user.status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -209,8 +270,9 @@ export function UserSettingsTab() {
                     ))
                   )}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

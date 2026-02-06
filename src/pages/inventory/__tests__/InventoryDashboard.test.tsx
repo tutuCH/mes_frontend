@@ -55,6 +55,9 @@ describe('InventoryDashboard', () => {
     const rows = container.querySelectorAll('[data-testid^="inventory-row-"]')
     expect(rows.length).toBeGreaterThan(0)
 
+    const cards = container.querySelectorAll('[data-testid^="inventory-card-"]')
+    expect(cards.length).toBeGreaterThan(0)
+
     await act(async () => {
       root.unmount()
     })
