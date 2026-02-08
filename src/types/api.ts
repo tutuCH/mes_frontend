@@ -20,6 +20,17 @@ export interface SpcSeriesSampling {
   intervalMs: number
 }
 
+export interface SpcSeriesCoverage {
+  firstTs: string | null
+  lastTs: string | null
+  requestedSpanMs: number
+  observedSpanMs: number
+  headGapMs: number
+  tailGapMs: number
+  coverageRatio: number
+  isPartial: boolean
+}
+
 export interface SpcSeriesStats {
   count: number
   mean: number
@@ -51,6 +62,7 @@ export interface SpcSeriesResponse {
   window: SpcSeriesWindow
   sampling: SpcSeriesSampling
   series: SpcSeriesPoint[]
+  coverage?: SpcSeriesCoverage
   stats: SpcSeriesStats | null
   limits: SpcSeriesLimits | null
   meta: SpcSeriesMeta

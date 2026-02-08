@@ -39,7 +39,7 @@ export default defineConfig(() => {
         },
         workbox: {
           cleanupOutdatedCaches: true,
-          navigateFallback: "/offline.html",
+          navigateFallback: "/index.html",
           navigateFallbackDenylist: [
             /^\/api\//,
             /^\/sse\//,

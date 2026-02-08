@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, memo, useState, useCallback } from 'react'
 
-import { Loader2 } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 
 import { ChartJS, defaultChartOptions } from '@/lib/chartConfig'
 import type { ChartOptions, ChartData } from '@/lib/chartConfig'
@@ -16,8 +16,17 @@ import { createLogger } from '@/utils/logger'
 import { summarizeSeriesTiming } from '@/utils/spcTimingDebug'
 import { mapSeriesToChartPoints } from '@/utils/spcSeriesTransform'
 import { buildSpcDatasets } from '@/utils/spcChartDatasets'
+import { inferSpcCoverage, shouldWarnPartialCoverage } from '@/utils/spcCoverage'
 
 import { SPCStatsPanel } from './SPCStatsPanel'
+import {
+  formatHours,
+  MIN_24H_COVERAGE_RATIO,
+  pickBetterSeriesResponse,
+  resolveSpcSeriesLimit,
+  shouldAttemptRawFallback,
+  shouldShowNoDataCard,
+} from './spcChartHelpers'
 
 const logger = createLogger('SPCChart')
 const debugLog = logger.debug.bind(logger)
@@ -46,6 +55,8 @@ interface SPCChartProps {
 }
 
 const RENDER_INTERVAL_MS = 100 // Update chart at 10 FPS
+const SPC_SERIES_LIMIT = resolveSpcSeriesLimit(import.meta.env.VITE_SPC_MAX_POINTS)
+
 export const SPCChart = memo(function SPCChart({
   machineId,
   deviceId,
@@ -71,16 +82,18 @@ export const SPCChart = memo(function SPCChart({
   const [limitsLoaded, setLimitsLoaded] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [currentValue, setCurrentValue] = useState<number | null>(null)
+  const [historyHadNoData, setHistoryHadNoData] = useState(false)
+  const [hasVisibleData, setHasVisibleData] = useState(false)
 
   const currentWindow = timeWindow || 'last_1h'
   const getDownsampleMethod = (window: TimeWindow): string => {
-    const longWindows: TimeWindow[] = ['last_6h', 'last_24h', 'last_3d', 'last_7d']
-    return longWindows.includes(window) ? 'avg' : 'none'
+    return ['last_6h', 'last_24h', 'last_3d', 'last_7d'].includes(window) ? 'avg' : 'none'
   }
 
   // Handle data updates from WebSocket
   const handleDataUpdate = useCallback((newData: DataPoint[]) => {
     dataRef.current = newData
+    setHasVisibleData(newData.some((point) => Number.isFinite(point.y)))
     if (newData.length > 0) {
       const val = newData[newData.length - 1].y
       setCurrentValue(val)
@@ -106,18 +119,52 @@ export const SPCChart = memo(function SPCChart({
       setError(null)
 
       try {
-        const seriesRes: SpcSeriesResponse = await api.getSPCSeries(
+        const preferredDownsample = getDownsampleMethod(currentWindow)
+        let seriesRes: SpcSeriesResponse = await api.getSPCSeries(
           machineId,
           field,
           currentWindow as string,
-          100,
-          getDownsampleMethod(currentWindow),
+          SPC_SERIES_LIMIT,
+          preferredDownsample,
           true,
           true
         )
+        if (
+          shouldAttemptRawFallback({
+            response: seriesRes,
+            preferredDownsample,
+            requestedLimit: SPC_SERIES_LIMIT,
+            currentWindow,
+          })
+        ) {
+          try {
+            const rawFallback = await api.getSPCSeries(
+              machineId,
+              field,
+              currentWindow as string,
+              SPC_SERIES_LIMIT,
+              'none',
+              true,
+              true
+            )
+            seriesRes = pickBetterSeriesResponse(seriesRes, rawFallback)
+          } catch (fallbackError) {
+            logger.warn('[SPCChart] Raw fallback request failed, keeping primary response', {
+              field,
+              machineId,
+              currentWindow,
+              error: fallbackError,
+            })
+          }
+        }
 
         if (!seriesRes.series || seriesRes.series.length === 0) {
+          setSeries(seriesRes)
           setInitialData([])
+          setStats(seriesRes.stats ?? null)
+          setCurrentValue(null)
+          setHasVisibleData(false)
+          setHistoryHadNoData(true)
           setDataLoaded(true)
           setLoading(false)
           setLimits(null)
@@ -131,6 +178,7 @@ export const SPCChart = memo(function SPCChart({
         const shouldUseInterval = seriesRes.sampling?.intervalMs ?? null
         const historicalPoints: DataPoint[] = mapSeriesToChartPoints({
           series: seriesRes.series,
+          downsample: seriesRes.sampling?.downsample,
           intervalMs: shouldUseInterval,
           windowEndMs,
           debug: DEBUG_TIMING,
@@ -173,6 +221,8 @@ export const SPCChart = memo(function SPCChart({
           })
         }
         setInitialData(historicalPoints)
+        setHasVisibleData(historicalPoints.some((point) => Number.isFinite(point.y)))
+        setHistoryHadNoData(false)
         setDataLoaded(true)
         setSeries(seriesRes)
 
@@ -216,7 +266,7 @@ export const SPCChart = memo(function SPCChart({
   useEffect(() => {
     if (!canvasRef.current) return
     // Use dataBuffer for initial data - new references will be provided by the aggregator
-    if (!dataBuffer || dataBuffer.length === 0) return
+    if (!dataBuffer) return
 
     const ctx = canvasRef.current.getContext('2d')
     if (!ctx) return
@@ -303,7 +353,7 @@ export const SPCChart = memo(function SPCChart({
         chartRef.current = null
       }
     }
-  }, [loading, limitsLoaded, dataBuffer, name, unit, field, timeWindow, limits, stats])
+  }, [loading, limitsLoaded, dataBuffer, name, unit, field, deviceId, timeWindow, limits, stats])
 
   // Sync datasets when limits/stats change to avoid missing metric lines
   useEffect(() => {
@@ -503,13 +553,46 @@ export const SPCChart = memo(function SPCChart({
 
   // Main render - chart with collapsible stats panel
   const hasStatsData = dataLoaded && limitsLoaded && stats && limits && series
+  const coverage = inferSpcCoverage({
+    window: series?.window,
+    series: series?.series,
+    coverage: series?.coverage ?? null,
+  })
+  const show24hCoverageWarning = currentWindow === 'last_24h' && shouldWarnPartialCoverage({
+    coverage,
+    minCoverageRatio: MIN_24H_COVERAGE_RATIO,
+    intervalMs: series?.sampling?.intervalMs,
+  })
+  const showNoDataCard = shouldShowNoDataCard({
+    loading,
+    dataLoaded,
+    error,
+    historyHadNoData,
+    hasVisibleData,
+  })
   debugLog('Stats data ready:', hasStatsData)
 
   return (
     <section className="w-full space-y-4">
+      {show24hCoverageWarning && coverage && (
+        <div className="flex items-center gap-2 rounded-md border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Partial 24h data: {formatHours(coverage.requestedSpanMs * coverage.coverageRatio)} covered,{' '}
+            {formatHours(coverage.requestedSpanMs - (coverage.requestedSpanMs * coverage.coverageRatio))} missing
+            (most recent gap {formatHours(coverage.tailGapMs)})
+          </span>
+        </div>
+      )}
+
       {/* Chart Section - Fixed Height */}
       <div className="relative h-80 w-full">
         <canvas ref={canvasRef} className="h-full w-full" />
+        {showNoDataCard && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-md border border-dashed border-muted-foreground/40 bg-background/85 px-4 text-center text-sm text-muted-foreground">
+            No data in selected window yet. Waiting for live updates.
+          </div>
+        )}
       </div>
 
       {/* Stats Panel - Collapsible */}

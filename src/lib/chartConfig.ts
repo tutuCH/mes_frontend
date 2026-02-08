@@ -300,6 +300,7 @@ export function createDataLine(
     pointBackgroundColor: 'rgb(59, 130, 246)',
     fill: false,
     tension: 0.1,
+    spanGaps: false,
     parsing: false as const, // Disable parsing to prevent Chart.js from reordering data
   }
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton"
+import { resolveLoginRedirectPath, type LoginLocationState } from "@/pages/auth/loginRedirect"
 
 export default function LoginPage() {
   const { t } = useTranslation()
@@ -18,7 +19,7 @@ export default function LoginPage() {
   const location = useLocation()
 
   // Get the redirect path from state (set by ProtectedRoute)
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/"
+  const from = resolveLoginRedirectPath(location.state as LoginLocationState)
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -26,8 +27,9 @@ export default function LoginPage() {
     try {
       await login(email, password)
       navigate(from, { replace: true })
-    } catch (err: any) {
-      setError(err.message || t('login.failed'))
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : ''
+      setError(message || t('login.failed'))
     }
   }
 
@@ -37,8 +39,9 @@ export default function LoginPage() {
     try {
       await googleLogin(idToken)
       navigate(from, { replace: true })
-    } catch (err: any) {
-      setError(err.message || t('auth.googleSignInFailed'))
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : ''
+      setError(message || t('auth.googleSignInFailed'))
     } finally {
       setIsGoogleLoading(false)
     }

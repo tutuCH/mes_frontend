@@ -8,6 +8,7 @@ describe('mapSeriesToChartPoints', () => {
         { ts: '2026-01-29T21:02:57.000Z', value: 51 },
         { ts: '2026-01-29T21:17:21.259Z', value: 60 },
       ],
+      downsample: 'avg',
       intervalMs: 864000,
       windowEndMs: Date.parse('2026-01-29T21:44:20.116Z'),
     })
@@ -18,6 +19,7 @@ describe('mapSeriesToChartPoints', () => {
   it('keeps bucket end when data is stale', () => {
     const points = mapSeriesToChartPoints({
       series: [{ ts: '2026-01-29T18:00:00.000Z', value: 60 }],
+      downsample: 'avg',
       intervalMs: 864000,
       windowEndMs: Date.parse('2026-01-29T21:44:20.116Z'),
     })
@@ -28,7 +30,19 @@ describe('mapSeriesToChartPoints', () => {
   it('uses raw timestamp when intervalMs is missing', () => {
     const points = mapSeriesToChartPoints({
       series: [{ ts: '2026-01-29T21:45:43.388Z', value: 52 }],
+      downsample: 'none',
       intervalMs: null,
+      windowEndMs: Date.parse('2026-01-29T21:46:00.000Z'),
+    })
+
+    expect(points[0].x).toBe(Date.parse('2026-01-29T21:45:43.388Z'))
+  })
+
+  it('uses raw timestamps for downsample=none even when interval exists', () => {
+    const points = mapSeriesToChartPoints({
+      series: [{ ts: '2026-01-29T21:45:43.388Z', value: 52 }],
+      downsample: 'none',
+      intervalMs: 864000,
       windowEndMs: Date.parse('2026-01-29T21:46:00.000Z'),
     })
 

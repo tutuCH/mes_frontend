@@ -37,6 +37,7 @@ const logger = createLogger('useSPCStreamAggregator')
 const DEBUG_TIMING = import.meta.env.VITE_DEBUG_SPC_TIMING === 'true' ||
   (typeof window !== 'undefined' && (window as typeof window & { __SPC_DEBUG_TIMING__?: boolean }).__SPC_DEBUG_TIMING__ === true)
 const GAP_WARNING_THRESHOLD_MS = 2 * 60 * 1000
+const GAP_BREAK_EPSILON_MS = 1
 
 /**
  * Hook to aggregate real-time data from the stream for a specific field
@@ -133,27 +134,40 @@ export function useSPCStreamAggregator({
             return
           }
 
-          if (DEBUG_TIMING && !firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
-            const summary = summarizeLiveTiming({
-              lastHistoricX: lastHistoricXRef.current,
-              liveX: x,
-              source: selection.source,
-              raw: selection.raw,
-            })
-            logger.debug('[SPC] First live realtime point', {
-              field,
-              summary,
-              rawEvent: event,
-              point: { x, y: value },
-            })
+          if (!firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
             const gapEval = evaluateGapDelta(lastHistoricXRef.current, x, GAP_WARNING_THRESHOLD_MS)
             if (gapEval?.shouldWarn) {
-              logger.warn('[SPC] Large gap between history and live point', {
+              const breakX = Math.min(x - GAP_BREAK_EPSILON_MS, lastHistoricXRef.current + GAP_BREAK_EPSILON_MS)
+              if (breakX > lastHistoricXRef.current && breakX < x) {
+                addDataPoint({
+                  x: breakX,
+                  y: Number.NaN,
+                })
+              }
+            }
+
+            if (DEBUG_TIMING) {
+              const summary = summarizeLiveTiming({
+                lastHistoricX: lastHistoricXRef.current,
+                liveX: x,
+                source: selection.source,
+                raw: selection.raw,
+              })
+              logger.debug('[SPC] First live realtime point', {
                 field,
                 summary,
-                thresholdMs: GAP_WARNING_THRESHOLD_MS,
+                rawEvent: event,
+                point: { x, y: value },
               })
+              if (gapEval?.shouldWarn) {
+                logger.warn('[SPC] Large gap between history and live point', {
+                  field,
+                  summary,
+                  thresholdMs: GAP_WARNING_THRESHOLD_MS,
+                })
+              }
             }
+
             firstLiveLoggedRef.current = true
           }
 
@@ -194,27 +208,40 @@ export function useSPCStreamAggregator({
             return
           }
 
-          if (DEBUG_TIMING && !firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
-            const summary = summarizeLiveTiming({
-              lastHistoricX: lastHistoricXRef.current,
-              liveX: x,
-              source: selection.source,
-              raw: selection.raw,
-            })
-            logger.debug('[SPC] First live SPC point', {
-              field,
-              summary,
-              rawEvent: event,
-              point: { x, y: value },
-            })
+          if (!firstLiveLoggedRef.current && lastHistoricXRef.current !== null) {
             const gapEval = evaluateGapDelta(lastHistoricXRef.current, x, GAP_WARNING_THRESHOLD_MS)
             if (gapEval?.shouldWarn) {
-              logger.warn('[SPC] Large gap between history and live point', {
+              const breakX = Math.min(x - GAP_BREAK_EPSILON_MS, lastHistoricXRef.current + GAP_BREAK_EPSILON_MS)
+              if (breakX > lastHistoricXRef.current && breakX < x) {
+                addDataPoint({
+                  x: breakX,
+                  y: Number.NaN,
+                })
+              }
+            }
+
+            if (DEBUG_TIMING) {
+              const summary = summarizeLiveTiming({
+                lastHistoricX: lastHistoricXRef.current,
+                liveX: x,
+                source: selection.source,
+                raw: selection.raw,
+              })
+              logger.debug('[SPC] First live SPC point', {
                 field,
                 summary,
-                thresholdMs: GAP_WARNING_THRESHOLD_MS,
+                rawEvent: event,
+                point: { x, y: value },
               })
+              if (gapEval?.shouldWarn) {
+                logger.warn('[SPC] Large gap between history and live point', {
+                  field,
+                  summary,
+                  thresholdMs: GAP_WARNING_THRESHOLD_MS,
+                })
+              }
             }
+
             firstLiveLoggedRef.current = true
           }
 

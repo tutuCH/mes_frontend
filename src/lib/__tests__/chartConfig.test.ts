@@ -12,4 +12,10 @@ describe('chartConfig', () => {
 
     expect(dataset.parsing).toBe(false)
   })
+
+  it('does not bridge NaN/null gaps in the main line', () => {
+    const dataset = createDataLine([{ x: Date.now(), y: 1 }], 'Test')
+
+    expect(dataset.spanGaps).toBe(false)
+  })
 })

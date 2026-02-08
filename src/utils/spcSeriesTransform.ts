@@ -3,6 +3,7 @@ import type { SpcSeriesPoint } from '@/types/api'
 
 type TransformInput = {
   series: SpcSeriesPoint[]
+  downsample?: string | null
   intervalMs: number | null
   windowEndMs: number
   debug?: boolean
@@ -16,6 +17,7 @@ const STALE_INTERVAL_MULTIPLIER = 2
 
 export function mapSeriesToChartPoints({ 
   series, 
+  downsample,
   intervalMs, 
   windowEndMs, 
   debug = false,
@@ -48,13 +50,15 @@ export function mapSeriesToChartPoints({
       return { x: base, y: point.value }
     }
 
-    if (!intervalMs) {
-      // No interval - use raw timestamp directly
+    const shouldAlignByBucket = downsample === 'avg' || downsample === 'minmax'
+    if (!intervalMs || !shouldAlignByBucket) {
+      // Raw/non-aggregated data should keep source timestamps.
       if (debug && logger && (index === 0 || index === series.length - 1)) {
-        logger.debug('[mapSeriesToChartPoints] No interval, using raw timestamp', {
+        logger.debug('[mapSeriesToChartPoints] Using raw timestamp', {
           field,
           index,
           isLast: index === series.length - 1,
+          downsample,
           rawTs: point.ts,
           x: base,
           xISO: new Date(base).toISOString(),
