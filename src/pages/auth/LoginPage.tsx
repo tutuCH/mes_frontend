@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { useTranslation } from "react-i18next"
@@ -6,39 +6,57 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton"
-import { resolveLoginRedirectPath, type LoginLocationState } from "@/pages/auth/loginRedirect"
+import {
+  consumeOAuthRedirectPath,
+  resolveLoginRedirectPath,
+  storeOAuthRedirectPath,
+  type LoginLocationState,
+} from "@/pages/auth/loginRedirect"
 
 export default function LoginPage() {
   const { t } = useTranslation()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const { login, googleLogin, isLoading } = useAuth()
+  const { authStatus, signIn, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
   // Get the redirect path from state (set by ProtectedRoute)
   const from = resolveLoginRedirectPath(location.state as LoginLocationState)
+  const isLoading = authStatus === 'loading'
+
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return
+
+    const oauthRedirectPath = consumeOAuthRedirectPath()
+    navigate(oauthRedirectPath || from, { replace: true })
+  }, [authStatus, from, navigate])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError("")
+    setIsSubmitting(true)
+
     try {
-      await login(email, password)
-      navigate(from, { replace: true })
+      await signIn(email, password)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ''
       setError(message || t('login.failed'))
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const handleGoogleSuccess = async (idToken: string) => {
+  const handleGoogleSignIn = async () => {
     setError("")
     setIsGoogleLoading(true)
+
     try {
-      await googleLogin(idToken)
-      navigate(from, { replace: true })
+      storeOAuthRedirectPath(from)
+      await signInWithGoogle()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ''
       setError(message || t('auth.googleSignInFailed'))
@@ -47,11 +65,7 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleError = (error: string) => {
-    setError(error)
-  }
-
-  const isDisabled = isLoading || isGoogleLoading
+  const isDisabled = isLoading || isSubmitting || isGoogleLoading
 
   return (
     <div className="flex app-root-height safe-area-padding items-center justify-center bg-slate-50">
@@ -87,7 +101,13 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
+              <Link
+                to="/verify-email"
+                className="text-sm text-primary hover:underline"
+              >
+                {t('auth.enterVerificationCode')}
+              </Link>
               <Link
                 to="/forgot-password"
                 className="text-sm text-primary hover:underline"
@@ -96,7 +116,7 @@ export default function LoginPage() {
               </Link>
             </div>
             <Button type="submit" className="w-full" disabled={isDisabled}>
-              {isLoading ? t('login.signingIn') : t('login.signIn')}
+              {isSubmitting ? t('login.signingIn') : t('login.signIn')}
             </Button>
           </form>
 
@@ -114,8 +134,7 @@ export default function LoginPage() {
 
           {/* Google Sign In */}
           <GoogleAuthButton
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleError}
+            onClick={handleGoogleSignIn}
             disabled={isDisabled}
           />
         </CardContent>

@@ -376,6 +376,8 @@
     "deleteConfirm": "Are you sure you want to delete {{user}}? This action cannot be undone.",
     "name": "Name",
     "email": "Email",
+    "phoneNumber": "Phone Number",
+    "phoneNumberPlaceholder": "Enter phone number (e.g. +14155550100)",
     "password": "Password",
     "role": "Role",
     "namePlaceholder": "Enter user name",
@@ -428,6 +430,7 @@
     "alreadyHaveAccount": "Already have an account?",
     "noAccount": "Don't have an account?",
     "backToLogin": "Back to Login",
+    "enterVerificationCode": "Enter Verification Code",
     "orContinueWith": "Or continue with",
     "continueWithGoogle": "Continue with Google",
     "googleNotConfigured": "Google Sign-In not configured",
@@ -506,7 +509,34 @@
     "resetEmailInstructions": "Check your email for the password reset link.",
     "didntReceiveEmail": "Didn't receive the email?",
     "tryAgain": "Try Again",
-    "sendingResetLink": "Sending reset link..."
+    "sendingResetLink": "Sending reset link...",
+    "goToResetPassword": "Enter reset code",
+    "verifyCodeTitle": "Verify your account",
+    "verifyCodeSubtitle": "Enter your email and verification code to activate your account.",
+    "verifyCodeHelp": "Use the confirmation code from your email. Cognito may send only the code without a direct link.",
+    "verificationCode": "Verification Code",
+    "verificationCodePlaceholder": "Enter verification code",
+    "verifyCodeButton": "Verify Code",
+    "resendCode": "Resend Code",
+    "resendingCode": "Resending code...",
+    "verificationCodeResent": "Verification code sent.",
+    "signOutSuccess": "Logged out successfully",
+    "errors": {
+      "userNotFound": "Account not found.",
+      "notAuthorized": "Invalid email or password.",
+      "userNotConfirmed": "Your account is not confirmed yet. Please verify your email first.",
+      "codeMismatch": "Invalid verification code.",
+      "expiredCode": "Verification code has expired.",
+      "limitExceeded": "Too many attempts. Please try again later.",
+      "tooManyRequests": "Too many requests. Please try again later.",
+      "usernameExists": "An account with this email already exists.",
+      "generic": "Authentication failed. Please try again.",
+      "resetPasswordRequired": "You must reset your password before signing in.",
+      "signInNotComplete": "Sign in requires additional steps. Please try again.",
+      "emailRequired": "Email is required.",
+      "codeAndEmailRequired": "Email and verification code are required.",
+      "invalidPhoneNumber": "Phone number must be in E.164 format (e.g. +14155550100)."
+    }
   },
   "dashboard": {
     "title": "Factory Overview",
@@ -555,6 +585,7 @@
         "description": "Update your personal details",
         "name": "Name",
         "email": "Email",
+        "phone": "Phone Number",
         "saveChanges": "Save Changes",
         "updating": "Updating..."
       },
@@ -595,7 +626,8 @@
       "alerts": {
         "profileUpdated": "Profile updated successfully",
         "passwordChanged": "Password changed successfully",
-        "updateFailed": "Failed to update profile"
+        "updateFailed": "Failed to update profile",
+        "phoneUpdateFailed": "Failed to update phone number"
       }
     },
     "payment": {

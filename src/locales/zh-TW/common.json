@@ -376,6 +376,8 @@
     "deleteConfirm": "確定要刪除 {{user}} 嗎？此操作無法撤銷。",
     "name": "姓名",
     "email": "電子郵件",
+    "phoneNumber": "手機號碼",
+    "phoneNumberPlaceholder": "輸入手機號碼（例如 +14155550100）",
     "password": "密碼",
     "role": "角色",
     "namePlaceholder": "輸入用戶姓名",
@@ -428,6 +430,7 @@
     "alreadyHaveAccount": "已有帳戶？",
     "noAccount": "還沒有帳戶？",
     "backToLogin": "返回登入",
+    "enterVerificationCode": "輸入驗證碼",
     "orContinueWith": "或使用以下方式繼續",
     "continueWithGoogle": "使用 Google 繼續",
     "googleNotConfigured": "Google 登入未設定",
@@ -506,7 +509,34 @@
     "resetEmailInstructions": "Check your email for the password reset link.",
     "didntReceiveEmail": "Didn't receive the email?",
     "tryAgain": "Try Again",
-    "sendingResetLink": "Sending reset link..."
+    "sendingResetLink": "Sending reset link...",
+    "goToResetPassword": "輸入重設驗證碼",
+    "verifyCodeTitle": "驗證您的帳戶",
+    "verifyCodeSubtitle": "輸入電子郵件與驗證碼以啟用帳戶。",
+    "verifyCodeHelp": "請輸入電子郵件中的驗證碼。Cognito 郵件可能只提供驗證碼而不包含連結。",
+    "verificationCode": "驗證碼",
+    "verificationCodePlaceholder": "輸入驗證碼",
+    "verifyCodeButton": "驗證",
+    "resendCode": "重新發送驗證碼",
+    "resendingCode": "重新發送中...",
+    "verificationCodeResent": "已發送新的驗證碼。",
+    "signOutSuccess": "已成功登出",
+    "errors": {
+      "userNotFound": "找不到帳戶。",
+      "notAuthorized": "電子郵件或密碼錯誤。",
+      "userNotConfirmed": "帳戶尚未驗證，請先完成電子郵件驗證。",
+      "codeMismatch": "驗證碼不正確。",
+      "expiredCode": "驗證碼已過期。",
+      "limitExceeded": "嘗試次數過多，請稍後再試。",
+      "tooManyRequests": "請求過於頻繁，請稍後再試。",
+      "usernameExists": "此電子郵件已註冊。",
+      "generic": "驗證失敗，請稍後再試。",
+      "resetPasswordRequired": "登入前需先重設密碼。",
+      "signInNotComplete": "登入需要額外步驟，請重試。",
+      "emailRequired": "電子郵件為必填。",
+      "codeAndEmailRequired": "電子郵件與驗證碼為必填。",
+      "invalidPhoneNumber": "手機號碼必須是 E.164 格式（例如 +14155550100）。"
+    }
   },
   "dashboard": {
     "title": "工廠概覽",
@@ -555,6 +585,7 @@
         "description": "更新您的個人詳細資料",
         "name": "姓名",
         "email": "電子郵件",
+        "phone": "手機號碼",
         "saveChanges": "保存更改",
         "updating": "更新中..."
       },
@@ -595,7 +626,8 @@
       "alerts": {
         "profileUpdated": "個人資料更新成功",
         "passwordChanged": "密碼更改成功",
-        "updateFailed": "更新個人資料失敗"
+        "updateFailed": "更新個人資料失敗",
+        "phoneUpdateFailed": "更新手機號碼失敗"
       }
     },
     "payment": {

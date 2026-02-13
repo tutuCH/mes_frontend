@@ -1,201 +1,34 @@
-import { useCallback } from 'react'
-import { GoogleLogin, GoogleOAuthProvider, useGoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { useTranslation } from 'react-i18next'
+
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
-// Google Client ID from environment variables
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
 interface GoogleAuthButtonProps {
-  onSuccess: (idToken: string) => void
-  onError?: (error: string) => void
+  onClick: () => void
   disabled?: boolean
   className?: string
 }
 
-/**
- * Google Sign-In Button Component
- *
- * This component provides Google OAuth 2.0 authentication.
- * It requires VITE_GOOGLE_CLIENT_ID to be set in the environment.
- *
- * The onSuccess callback receives the Google ID token, which should be
- * sent to the backend for verification and JWT token exchange.
- */
-function GoogleAuthButtonInner({
-  onSuccess,
-  onError,
-  disabled = false,
-  className,
-}: GoogleAuthButtonProps) {
+export function GoogleAuthButton({ onClick, disabled = false, className }: GoogleAuthButtonProps) {
   const { t } = useTranslation()
-
-  const handleSuccess = useCallback(
-    (credentialResponse: CredentialResponse) => {
-      const idToken = credentialResponse.credential
-      if (idToken) {
-        onSuccess(idToken)
-      } else {
-        onError?.(t('auth.googleSignInFailed'))
-      }
-    },
-    [onSuccess, onError, t]
-  )
-
-  const handleError = useCallback(() => {
-    onError?.(t('auth.googleSignInFailed'))
-  }, [onError, t])
-
-  // If no Google Client ID is configured, show a placeholder
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        disabled
-        className={cn('w-full', className)}
-      >
-        <GoogleIcon className="mr-2 h-4 w-4" />
-        {t('auth.googleNotConfigured')}
-      </Button>
-    )
-  }
-
-  // If disabled, show a disabled button
-  if (disabled) {
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        disabled
-        className={cn('w-full', className)}
-      >
-        <GoogleIcon className="mr-2 h-4 w-4" />
-        {t('auth.continueWithGoogle')}
-      </Button>
-    )
-  }
-
-  return (
-    <div className={cn('w-full', className)}>
-      <GoogleLogin
-        onSuccess={handleSuccess}
-        onError={handleError}
-        useOneTap={false}
-        auto_select={false}
-        context="signin"
-        theme="outline"
-        size="large"
-        width="100%"
-        text="signin_with"
-        shape="rectangular"
-      />
-    </div>
-  )
-}
-
-/**
- * Wrapped Google Auth Button with OAuth Provider
- */
-export function GoogleAuthButton(props: GoogleAuthButtonProps) {
-  if (!GOOGLE_CLIENT_ID) {
-    return <GoogleAuthButtonInner {...props} />
-  }
-
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <GoogleAuthButtonInner {...props} />
-    </GoogleOAuthProvider>
-  )
-}
-
-/**
- * Custom styled Google button (alternative to the default Google button)
- */
-export function GoogleAuthButtonCustom({
-  onSuccess,
-  onError,
-  disabled = false,
-  isLoading = false,
-  className,
-}: GoogleAuthButtonProps & { isLoading?: boolean }) {
-  const { t } = useTranslation()
-
-  // If no Google Client ID is configured, show disabled state
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        disabled
-        className={cn('w-full', className)}
-      >
-        <GoogleIcon className="mr-2 h-4 w-4" />
-        {t('auth.googleNotConfigured')}
-      </Button>
-    )
-  }
-
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <GoogleLoginButton
-        onSuccess={onSuccess}
-        onError={onError}
-        disabled={disabled}
-        isLoading={isLoading}
-        className={className}
-      />
-    </GoogleOAuthProvider>
-  )
-}
-
-function GoogleLoginButton({
-  onSuccess,
-  onError,
-  disabled,
-  isLoading,
-  className,
-}: GoogleAuthButtonProps & { isLoading?: boolean }) {
-  const { t } = useTranslation()
-
-  const login = useGoogleLogin({
-    onSuccess: (response) => {
-      // For implicit flow, we get access_token
-      // For authorization code flow, we'd get code
-      if (response.access_token) {
-        onSuccess(response.access_token)
-      }
-    },
-    onError: () => {
-      onError?.(t('auth.googleSignInFailed'))
-    },
-    // Note: Currently using implicit flow for compatibility.
-    // To migrate to PKCE (authorization code flow):
-    // 1. Change flow to 'authorization-code' or 'pkce'
-    // 2. Update backend to handle authorization code exchange
-    // 3. Update onSuccess to handle code instead of access_token
-    flow: 'implicit',
-  })
 
   return (
     <Button
       type="button"
       variant="outline"
-      onClick={() => login()}
-      disabled={disabled || isLoading}
+      disabled={disabled}
+      onClick={onClick}
       className={cn('w-full', className)}
     >
       <GoogleIcon className="mr-2 h-4 w-4" />
-      {isLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
+      {t('auth.continueWithGoogle')}
     </Button>
   )
 }
 
-// Google "G" logo SVG
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24">
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

@@ -287,6 +287,8 @@
     "deleteConfirm": "Bạn có chắc muốn xóa {{user}}? Hành động này không thể hoàn tác.",
     "name": "Tên",
     "email": "Email",
+    "phoneNumber": "Số điện thoại",
+    "phoneNumberPlaceholder": "Nhập số điện thoại (ví dụ +14155550100)",
     "password": "Mật khẩu",
     "role": "Vai trò",
     "namePlaceholder": "Nhập tên người dùng",
@@ -339,6 +341,7 @@
     "alreadyHaveAccount": "Đã có tài khoản?",
     "noAccount": "Chưa có tài khoản?",
     "backToLogin": "Quay lại Đăng nhập",
+    "enterVerificationCode": "Nhập mã xác minh",
     "orContinueWith": "Hoặc tiếp tục với",
     "continueWithGoogle": "Tiếp tục với Google",
     "googleNotConfigured": "Đăng nhập Google chưa được cấu hình",
@@ -417,7 +420,34 @@
     "resetEmailInstructions": "Kiểm tra email để tìm liên kết đặt lại mật khẩu.",
     "didntReceiveEmail": "Không nhận được email?",
     "tryAgain": "Thử lại",
-    "sendingResetLink": "Đang gửi liên kết đặt lại..."
+    "sendingResetLink": "Đang gửi liên kết đặt lại...",
+    "goToResetPassword": "Nhập mã đặt lại",
+    "verifyCodeTitle": "Xác minh tài khoản",
+    "verifyCodeSubtitle": "Nhập email và mã xác minh để kích hoạt tài khoản.",
+    "verifyCodeHelp": "Nhập mã xác minh trong email. Cognito có thể chỉ gửi mã mà không có liên kết trực tiếp.",
+    "verificationCode": "Mã xác minh",
+    "verificationCodePlaceholder": "Nhập mã xác minh",
+    "verifyCodeButton": "Xác minh",
+    "resendCode": "Gửi lại mã",
+    "resendingCode": "Đang gửi lại mã...",
+    "verificationCodeResent": "Đã gửi lại mã xác minh.",
+    "signOutSuccess": "Đăng xuất thành công",
+    "errors": {
+      "userNotFound": "Không tìm thấy tài khoản.",
+      "notAuthorized": "Email hoặc mật khẩu không đúng.",
+      "userNotConfirmed": "Tài khoản chưa được xác minh. Vui lòng xác minh email trước.",
+      "codeMismatch": "Mã xác minh không đúng.",
+      "expiredCode": "Mã xác minh đã hết hạn.",
+      "limitExceeded": "Quá nhiều lần thử. Vui lòng thử lại sau.",
+      "tooManyRequests": "Quá nhiều yêu cầu. Vui lòng thử lại sau.",
+      "usernameExists": "Email này đã được đăng ký.",
+      "generic": "Xác thực thất bại. Vui lòng thử lại.",
+      "resetPasswordRequired": "Bạn cần đặt lại mật khẩu trước khi đăng nhập.",
+      "signInNotComplete": "Đăng nhập cần thêm bước xác minh. Vui lòng thử lại.",
+      "emailRequired": "Email là bắt buộc.",
+      "codeAndEmailRequired": "Email và mã xác minh là bắt buộc.",
+      "invalidPhoneNumber": "Số điện thoại phải theo định dạng E.164 (ví dụ +14155550100)."
+    }
   },
   "dashboard": {
     "title": "Tổng Quan Nhà Máy",
@@ -466,6 +496,7 @@
         "description": "Cập nhật thông tin cá nhân",
         "name": "Tên",
         "email": "Email",
+        "phone": "Số điện thoại",
         "saveChanges": "Lưu Thay đổi",
         "updating": "Đang cập nhật..."
       },
@@ -506,7 +537,8 @@
       "alerts": {
         "profileUpdated": "Hồ sơ đã cập nhật thành công",
         "passwordChanged": "Mật khẩu đã đổi thành công",
-        "updateFailed": "Không thể cập nhật hồ sơ"
+        "updateFailed": "Không thể cập nhật hồ sơ",
+        "phoneUpdateFailed": "Không thể cập nhật số điện thoại"
       }
     },
     "payment": {

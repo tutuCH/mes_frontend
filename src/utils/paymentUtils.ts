@@ -102,21 +102,6 @@ export function getCurrentUserId(): string | null {
     }
   }
 
-  // Try to decode from JWT (simplified)
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    try {
-      // JWT is base64url encoded, need to decode the payload
-      const parts = token.split('.')
-      if (parts.length === 3) {
-        const payload = JSON.parse(atob(parts[1]))
-        return payload.userId?.toString() || payload.sub?.toString() || null
-      }
-    } catch {
-      // Ignore decode errors
-    }
-  }
-
   return null
 }
 

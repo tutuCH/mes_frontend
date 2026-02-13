@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveLoginRedirectPath } from '@/pages/auth/loginRedirect'
+import {
+  consumeOAuthRedirectPath,
+  resolveLoginRedirectPath,
+  storeOAuthRedirectPath,
+} from '@/pages/auth/loginRedirect'
 
 describe('resolveLoginRedirectPath', () => {
   it('returns root when no redirect state is present', () => {
@@ -19,5 +23,14 @@ describe('resolveLoginRedirectPath', () => {
         },
       }),
     ).toBe('/settings?tab=payment#billing')
+  })
+})
+
+describe('OAuth redirect path helpers', () => {
+  it('persists and consumes OAuth redirect path once', () => {
+    storeOAuthRedirectPath('/settings?tab=payment')
+
+    expect(consumeOAuthRedirectPath()).toBe('/settings?tab=payment')
+    expect(consumeOAuthRedirectPath()).toBeNull()
   })
 })

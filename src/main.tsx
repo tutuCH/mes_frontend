@@ -7,9 +7,12 @@ import App from './App.tsx'
 import { createLogger } from '@/utils/logger'
 import { registerSW } from 'virtual:pwa-register'
 import { initIosViewportFix } from '@/utils/iosViewport'
+import 'aws-amplify/auth/enable-oauth-listener'
+import { configureAmplify } from '@/auth/amplifyConfig'
 
 const logger = createLogger('main')
 initIosViewportFix()
+configureAmplify()
 
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {

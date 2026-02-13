@@ -90,3 +90,42 @@ Then open the preview URL (default `http://localhost:4173`) and run Lighthouse f
 - Offline: app shell loads and offline screen appears.
 - API caching: GET requests fall back briefly but do not stay stale.
 - No regressions in auth, routing, or SSE behavior.
+
+## Cognito Auth Setup
+
+Required environment variables:
+
+```bash
+VITE_API_URL=http://localhost:3000
+VITE_COGNITO_REGION=ap-southeast-1
+VITE_COGNITO_USER_POOL_ID=ap-southeast-1_xxxxxxxx
+VITE_COGNITO_WEB_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+VITE_COGNITO_DOMAIN=your-domain.auth.ap-southeast-1.amazoncognito.com
+VITE_COGNITO_REDIRECT_SIGN_IN=http://localhost:5173/login
+VITE_COGNITO_REDIRECT_SIGN_OUT=http://localhost:5173/login
+VITE_DEBUG_SSE=false
+```
+
+Important:
+- Legacy backend credentials (for example `tuchenhsien@gmail.com / abc123`) do not work unless that user is also created and confirmed in the configured Cognito User Pool.
+
+### Run Web
+
+```bash
+npm install
+npm run dev
+```
+
+### React Native
+
+This repository currently contains only the web app. React Native secure-storage integration should be implemented in the RN workspace using `expo-secure-store` (Expo) or `@react-native-async-storage/async-storage` (baseline).
+
+### Verify Auth Behavior
+
+1. Sign in with email/password and refresh the browser: session should remain authenticated.
+2. Close and reopen the browser tab: session should remain authenticated.
+3. Use forgot-password + code reset flow: reset should complete and allow sign-in.
+4. Use sign-up + confirmation code flow: account confirmation should complete and allow sign-in.
+5. Sign in with Google button (Hosted UI): should return to `/login` and then to the intended route.
+6. Trigger logout from sidebar/settings: app should return to login and stay logged out after refresh.
+7. Keep app open past access-token lifetime and perform API/SSE operations: requests should continue working via refresh token flow.

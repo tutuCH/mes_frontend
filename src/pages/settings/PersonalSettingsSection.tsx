@@ -17,13 +17,14 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Key, Languages, LogOut, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { isValidE164Phone } from '@/utils/validation'
 import { createLogger } from '@/utils/logger'
 
 const logger = createLogger('PersonalSettingsSection')
 
 export default function PersonalSettingsSection() {
   const { t } = useTranslation()
-  const { user, updateProfile, changePassword, logout, refreshProfile } = useAuth()
+  const { user, updateProfile, updatePhoneNumber, changePassword, signOut, refreshProfile } = useAuth()
   const { language, setLanguage } = useLanguage()
 
   const [isUpdating, setIsUpdating] = useState(false)
@@ -35,6 +36,7 @@ export default function PersonalSettingsSection() {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
   })
 
   // Password form state
@@ -57,21 +59,44 @@ export default function PersonalSettingsSection() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
+        phoneNumber: user.phoneNumber || '',
       })
     }
   }, [user])
 
   const handleProfileUpdate = async () => {
+    const trimmedPhoneNumber = formData.phoneNumber.trim()
+    if (!isValidE164Phone(trimmedPhoneNumber)) {
+      setUpdateMessage({ type: 'error', text: t('auth.errors.invalidPhoneNumber') })
+      return
+    }
+
     setIsUpdating(true)
     setUpdateMessage(null)
 
+    const currentName = user?.name || ''
+    const currentEmail = user?.email || ''
+    const currentPhoneNumber = user?.phoneNumber || ''
+    const profileChanged = formData.name !== currentName || formData.email !== currentEmail
+    const phoneChanged = trimmedPhoneNumber !== currentPhoneNumber
+
     try {
-      await updateProfile({ name: formData.name, email: formData.email })
+      if (profileChanged) {
+        await updateProfile({ name: formData.name, email: formData.email })
+      }
+
+      if (phoneChanged) {
+        await updatePhoneNumber(trimmedPhoneNumber)
+      }
+
       await refreshProfile()
       setUpdateMessage({ type: 'success', text: t('settings.personal.alerts.profileUpdated') })
     } catch (error) {
       logger.error('Failed to update profile:', error)
-      setUpdateMessage({ type: 'error', text: t('settings.personal.alerts.updateFailed') })
+      setUpdateMessage({
+        type: 'error',
+        text: phoneChanged ? t('settings.personal.alerts.phoneUpdateFailed') : t('settings.personal.alerts.updateFailed'),
+      })
     } finally {
       setIsUpdating(false)
     }
@@ -184,10 +209,26 @@ export default function PersonalSettingsSection() {
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">{t('settings.personal.personalInfo.phone')}</Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                placeholder={t('auth.phoneNumberPlaceholder')}
+              />
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 onClick={handleProfileUpdate}
-                disabled={isUpdating || !formData.name || !formData.email}
+                disabled={
+                  isUpdating
+                    || !formData.name
+                    || !formData.email
+                    || !formData.phoneNumber
+                    || !isValidE164Phone(formData.phoneNumber.trim())
+                }
                 className="w-full sm:w-auto"
               >
                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -234,11 +275,11 @@ export default function PersonalSettingsSection() {
               <h4 className="text-sm font-medium">{t('settings.personal.appSettings.logout.title')}</h4>
               <p className="text-sm text-muted-foreground">{t('settings.personal.appSettings.logout.description')}</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={logout}
-              className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground sm:w-auto"
-            >
+              <Button
+                variant="outline"
+                onClick={signOut}
+                className="w-full border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground sm:w-auto"
+              >
               <LogOut className="mr-2 h-4 w-4" />
               {t('settings.personal.appSettings.logout.button')}
             </Button>

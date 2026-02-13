@@ -11,7 +11,7 @@ import { type RootState } from '@/store'
 import { cn } from '@/lib/utils'
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth()
+  const { user, signOut } = useAuth()
   const location = useLocation()
   const { t } = useTranslation()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -105,7 +105,7 @@ export default function DashboardLayout() {
                 <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
               </div>
             </div>
-            <Button variant="ghost" className="w-full justify-start" onClick={logout}>
+            <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
               <LogOut className="mr-2 h-4 w-4" />
               {t('navigation.signOut')}
             </Button>
@@ -155,7 +155,7 @@ export default function DashboardLayout() {
                         <p className="text-xs text-muted-foreground truncate capitalize">{user?.role}</p>
                       </div>
                     </div>
-                    <Button variant="ghost" className="w-full justify-start" onClick={logout}>
+                    <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       {t('navigation.signOut')}
                     </Button>

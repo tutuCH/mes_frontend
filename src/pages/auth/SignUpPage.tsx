@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ZodError } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -8,35 +8,28 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
-import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 import { signUpSchema, type SignUpFormData, isCommonPassword } from '@/utils/validation'
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
 
 export default function SignUpPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const verificationToken = searchParams.get('token')
+  const { signUp } = useAuth()
 
   const [formData, setFormData] = useState<SignUpFormData>({
     name: '',
     email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     acceptTerms: false,
   })
   const [errors, setErrors] = useState<Partial<Record<keyof SignUpFormData, string>>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [serverError, setServerError] = useState('')
-
-  useEffect(() => {
-    if (verificationToken) {
-      navigate(`/verify-email?token=${verificationToken}`)
-    }
-  }, [navigate, verificationToken])
 
   const handleChange = (field: keyof SignUpFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -83,43 +76,14 @@ export default function SignUpPage() {
     setServerError('')
 
     try {
-      await api.signUp({
-        username: formData.name,
-        email: formData.email,
-        password: formData.password,
-      })
-      setIsSuccess(true)
-    } catch (error: any) {
-      setServerError(error.message || t('auth.signUpFailed'))
+      await signUp(formData.name, formData.email, formData.password, formData.phoneNumber)
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`)
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : ''
+      setServerError(message || t('auth.signUpFailed'))
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (isSuccess) {
-    return (
-      <div className="flex app-root-height safe-area-padding items-center justify-center bg-slate-50">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
-            </div>
-            <CardTitle className="text-2xl">{t('auth.checkYourEmail')}</CardTitle>
-            <CardDescription>
-              {t('auth.verificationEmailSent', { email: formData.email })}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center text-sm text-muted-foreground">
-            <p>{t('auth.verificationInstructions')}</p>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => navigate('/login')}>
-              {t('auth.backToLogin')}
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -166,6 +130,21 @@ export default function SignUpPage() {
                 className={errors.email ? 'border-red-500' : ''}
               />
               {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
+            </div>
+
+            {/* Phone */}
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">{t('auth.phoneNumber')}</Label>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                placeholder={t('auth.phoneNumberPlaceholder')}
+                value={formData.phoneNumber}
+                onChange={(e) => handleChange('phoneNumber', e.target.value)}
+                disabled={isLoading}
+                className={errors.phoneNumber ? 'border-red-500' : ''}
+              />
+              {errors.phoneNumber && <p className="text-xs text-red-500">{errors.phoneNumber}</p>}
             </div>
 
             {/* Password */}

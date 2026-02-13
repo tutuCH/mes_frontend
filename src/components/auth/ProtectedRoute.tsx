@@ -69,13 +69,13 @@ export function ProtectedRoute({
   redirectTo = '/access-denied',
   requireAuth = true,
 }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth()
+  const { authStatus, user } = useAuth()
   const { canAccess, getSubscriptionStatus, isLoading: isSubscriptionLoading } = useSubscription()
   const location = useLocation()
 
   // Task 7: Only block on initial auth load, not subscription refresh
   // Subscription refresh should show a non-blocking overlay instead
-  if (isLoading && !user) {
+  if (authStatus === 'loading' && !user) {
     return null
   }
 
@@ -83,7 +83,7 @@ export function ProtectedRoute({
   const showSubscriptionRefreshOverlay = requireSubscription && isSubscriptionLoading && user
 
   // Check if authentication is required and user is not authenticated
-  if (requireAuth && !user) {
+  if (requireAuth && authStatus !== 'authenticated') {
     // Redirect to login, saving the attempted location
     return <Navigate to="/login" state={{ from: location }} replace />
   }

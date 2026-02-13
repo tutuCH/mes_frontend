@@ -1,24 +1,25 @@
-import { useState, useEffect } from 'react'
-import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter'
-import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 import { resetPasswordSchema, isCommonPassword } from '@/utils/validation'
 import { AlertCircle, CheckCircle2, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const { t } = useTranslation()
-  const { token: paramToken } = useParams<{ token: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { confirmResetPassword } = useAuth()
 
-  // Token can come from either URL param or query string
-  const token = paramToken || searchParams.get('token') || ''
+  const initialEmail = searchParams.get('email') || ''
 
+  const [email, setEmail] = useState(initialEmail)
+  const [code, setCode] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({})
@@ -28,14 +29,12 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  // Check if token exists
-  useEffect(() => {
-    if (!token) {
-      setServerError(t('auth.invalidResetLink'))
-    }
-  }, [token, t])
-
   const validateForm = (): boolean => {
+    if (!email || !code) {
+      setServerError(t('auth.errors.codeAndEmailRequired'))
+      return false
+    }
+
     const result = resetPasswordSchema.safeParse({ password, confirmPassword })
 
     if (!result.success) {
@@ -50,7 +49,6 @@ export default function ResetPasswordPage() {
       return false
     }
 
-    // Additional check for common passwords
     if (isCommonPassword(password)) {
       setErrors({ password: 'This password is too common. Please choose a stronger password.' })
       return false
@@ -60,27 +58,20 @@ export default function ResetPasswordPage() {
     return true
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
     if (!validateForm()) return
-    if (!token) {
-      setServerError(t('auth.invalidResetLink'))
-      return
-    }
 
     setIsLoading(true)
     setServerError('')
 
     try {
-      await api.resetPassword(token, password)
+      await confirmResetPassword(email, code, password)
       setIsSuccess(true)
-    } catch (err: any) {
-      if (err.message?.includes('expired') || err.message?.includes('invalid')) {
-        setServerError(t('auth.resetLinkExpired'))
-      } else {
-        setServerError(err.message || t('auth.resetPasswordFailed'))
-      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : ''
+      setServerError(message || t('auth.resetPasswordFailed'))
     } finally {
       setIsLoading(false)
     }
@@ -125,7 +116,31 @@ export default function ResetPasswordPage() {
               </div>
             )}
 
-            {/* New Password */}
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('auth.email')}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder={t('auth.emailPlaceholder')}
+                disabled={isLoading}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmationCode">{t('auth.verificationCode')}</Label>
+              <Input
+                id="confirmationCode"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                placeholder={t('auth.verificationCodePlaceholder')}
+                disabled={isLoading}
+                required
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">{t('auth.newPassword')}</Label>
               <div className="relative">
@@ -134,12 +149,12 @@ export default function ResetPasswordPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder={t('auth.newPasswordPlaceholder')}
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
+                  onChange={(event) => {
+                    setPassword(event.target.value)
                     setErrors({})
                     setServerError('')
                   }}
-                  disabled={isLoading || !token}
+                  disabled={isLoading}
                   className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <button
@@ -154,7 +169,6 @@ export default function ResetPasswordPage() {
               <PasswordStrengthMeter password={password} />
             </div>
 
-            {/* Confirm Password */}
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">{t('auth.confirmNewPassword')}</Label>
               <div className="relative">
@@ -163,12 +177,12 @@ export default function ResetPasswordPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder={t('auth.confirmNewPasswordPlaceholder')}
                   value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value)
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value)
                     setErrors({})
                     setServerError('')
                   }}
-                  disabled={isLoading || !token}
+                  disabled={isLoading}
                   className={errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <button
@@ -182,7 +196,7 @@ export default function ResetPasswordPage() {
               {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword}</p>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || !token}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? t('auth.resettingPassword') : t('auth.resetPassword')}
             </Button>
           </form>

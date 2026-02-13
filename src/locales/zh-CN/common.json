@@ -367,6 +367,8 @@
     "deleteConfirm": "确定要删除 {{user}} 吗？此操作无法撤销。",
     "name": "姓名",
     "email": "电子邮件",
+    "phoneNumber": "手机号",
+    "phoneNumberPlaceholder": "输入手机号（例如 +14155550100）",
     "password": "密码",
     "role": "角色",
     "namePlaceholder": "输入用户姓名",
@@ -430,6 +432,7 @@
     "alreadyHaveAccount": "已有账户？",
     "noAccount": "还没有账户？",
     "backToLogin": "返回登录",
+    "enterVerificationCode": "输入验证码",
     "orContinueWith": "或使用以下方式继续",
     "continueWithGoogle": "使用 Google 继续",
     "googleNotConfigured": "Google 登录未配置",
@@ -502,7 +505,34 @@
     "resetEmailInstructions": "If an account exists for {{email}}, you will receive a reset link shortly.",
     "didntReceiveEmail": "Didn't receive the email?",
     "tryAgain": "Try again",
-    "failed": "登录失败"
+    "failed": "登录失败",
+    "goToResetPassword": "输入重置验证码",
+    "verifyCodeTitle": "验证您的账号",
+    "verifyCodeSubtitle": "请输入邮箱和验证码以激活账号。",
+    "verifyCodeHelp": "请输入邮件中的验证码。Cognito 邮件可能只包含验证码，不带直接链接。",
+    "verificationCode": "验证码",
+    "verificationCodePlaceholder": "输入验证码",
+    "verifyCodeButton": "验证",
+    "resendCode": "重新发送验证码",
+    "resendingCode": "正在重新发送...",
+    "verificationCodeResent": "验证码已重新发送。",
+    "signOutSuccess": "已成功登出",
+    "errors": {
+      "userNotFound": "未找到该账号。",
+      "notAuthorized": "邮箱或密码错误。",
+      "userNotConfirmed": "账号尚未验证，请先完成邮箱验证。",
+      "codeMismatch": "验证码不正确。",
+      "expiredCode": "验证码已过期。",
+      "limitExceeded": "尝试次数过多，请稍后再试。",
+      "tooManyRequests": "请求过于频繁，请稍后再试。",
+      "usernameExists": "该邮箱已注册。",
+      "generic": "认证失败，请稍后重试。",
+      "resetPasswordRequired": "登录前需要先重置密码。",
+      "signInNotComplete": "登录需要额外步骤，请重试。",
+      "emailRequired": "邮箱为必填项。",
+      "codeAndEmailRequired": "邮箱和验证码均为必填项。",
+      "invalidPhoneNumber": "手机号必须是 E.164 格式（例如 +14155550100）。"
+    }
   },
   "dashboard": {
     "title": "工厂概览",
@@ -551,6 +581,7 @@
         "description": "更新您的个人详细资料",
         "name": "姓名",
         "email": "电子邮件",
+        "phone": "手机号",
         "saveChanges": "保存更改",
         "updating": "更新中..."
       },
@@ -591,7 +622,8 @@
       "alerts": {
         "profileUpdated": "个人资料更新成功",
         "passwordChanged": "密码更改成功",
-        "updateFailed": "更新个人资料失败"
+        "updateFailed": "更新个人资料失败",
+        "phoneUpdateFailed": "更新手机号失败"
       }
     },
     "payment": {

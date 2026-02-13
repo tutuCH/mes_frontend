@@ -1,16 +1,10 @@
 import { toast } from 'sonner';
 import type {
-  LoginRequest,
-  LoginResponse,
-  SignUpRequest,
-  SignUpResponse,
-  AuthResponse,
   BackendUser,
   User,
   CreateUserRequest,
   UpdateUserRequest,
   UpdateProfileRequest,
-  ChangePasswordRequest,
   Factory,
   CreateFactoryRequest,
   UpdateFactoryRequest,
@@ -38,6 +32,7 @@ import type {
 } from '@/types/api';
 import { createLogger } from '@/utils/logger';
 import { getApiBaseUrl } from '@/utils/apiBaseUrl';
+import { getAccessToken } from '@/services/apiClient';
 
 const logger = createLogger('API');
 const BASE_URL = getApiBaseUrl();
@@ -97,7 +92,6 @@ class CSRFTokenManager {
 }
 
 class ApiClient {
-  private token: string | null = null;
   private csrfManager = new CSRFTokenManager();
 
   /**
@@ -124,24 +118,6 @@ class ApiClient {
     };
   }
 
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('auth_token', token);
-    } else {
-      localStorage.removeItem('auth_token');
-      // Also clear CSRF token on logout
-      this.csrfManager.clearToken();
-    }
-  }
-
-  getToken(): string | null {
-    if (!this.token) {
-      this.token = localStorage.getItem('auth_token');
-    }
-    return this.token;
-  }
-
   /**
    * Get CSRF token for state-changing operations
    * The token should be validated by the backend
@@ -165,7 +141,7 @@ class ApiClient {
       ...fetchOptions.headers,
     };
 
-    const token = this.getToken();
+    const token = await getAccessToken();
     if (token) {
       (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
@@ -193,13 +169,10 @@ class ApiClient {
 
         // Handle specific error codes
         if (response.status === 401) {
-          this.setToken(null);
-          // Only show toast and redirect if not already on login page
-          if (!window.location.pathname.startsWith('/login') && !skipErrorToast) {
+          if (!skipErrorToast) {
             toast.error('Session expired. Please log in again.');
-            window.location.href = '/login';
           }
-          throw new Error('Unauthorized');
+          throw new Error(errorData.message || 'Unauthorized');
         }
 
         if (response.status === 403) {
@@ -247,28 +220,6 @@ class ApiClient {
   }
 
   // ============ Auth Endpoints ============
-  async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-      skipErrorToast: true,
-    });
-    if (response.access_token) {
-      this.setToken(response.access_token);
-      toast.success('Login successful');
-    }
-    return response;
-  }
-
-  async signUp(data: SignUpRequest): Promise<SignUpResponse> {
-    const response = await this.request<SignUpResponse>('/auth/sign-up', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    toast.success('Account created successfully');
-    return response;
-  }
-
   async getProfile(): Promise<BackendUser> {
     return this.request<BackendUser>('/auth/profile');
   }
@@ -280,53 +231,6 @@ class ApiClient {
     });
     toast.success('Profile updated successfully');
     return response;
-  }
-
-  async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await this.request<void>('/auth/change-password', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    toast.success('Password changed successfully');
-  }
-
-  async verifyEmail(token: string): Promise<AuthResponse> {
-    return this.request<AuthResponse>(`/auth/verify-email?token=${token}`);
-  }
-
-  async forgotPassword(email: string): Promise<void> {
-    await this.request<void>('/auth/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ email }),
-    });
-    toast.success('Password reset email sent');
-  }
-
-  async resetPassword(token: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/auth/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ token, password }),
-    });
-    toast.success('Password reset successful');
-    return response;
-  }
-
-  async googleLogin(idToken: string): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/auth/google', {
-      method: 'POST',
-      body: JSON.stringify({ idToken }),
-      skipErrorToast: true,
-    });
-    if (response.access_token) {
-      this.setToken(response.access_token);
-      toast.success('Login successful');
-    }
-    return response;
-  }
-
-  logout() {
-    this.setToken(null);
-    toast.success('Logged out successfully');
   }
 
   // ============ Factory Endpoints ============

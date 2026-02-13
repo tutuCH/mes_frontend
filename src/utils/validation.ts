@@ -36,6 +36,12 @@ export const emailSchema = z
   .email('Please enter a valid email address')
   .min(1, 'Email is required')
 
+// Phone validation schema (strict E.164 format)
+export const e164PhoneRegex = /^\+[1-9]\d{7,14}$/
+export const phoneSchema = z
+  .string()
+  .regex(e164PhoneRegex, 'Phone number must be in E.164 format (e.g. +14155550100)')
+
 // Name validation schema
 export const nameSchema = z
   .string()
@@ -54,6 +60,7 @@ export const signUpSchema = z
   .object({
     name: nameSchema,
     email: emailSchema,
+    phoneNumber: phoneSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
     acceptTerms: z.boolean().refine((val) => val === true, {
@@ -139,6 +146,10 @@ const commonPasswords = [
 
 export function isCommonPassword(password: string): boolean {
   return commonPasswords.includes(password.toLowerCase())
+}
+
+export function isValidE164Phone(phoneNumber: string): boolean {
+  return phoneSchema.safeParse(phoneNumber).success
 }
 
 // Sanitize user input (basic XSS prevention)

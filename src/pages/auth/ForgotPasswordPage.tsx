@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { api } from '@/services/api'
+import { useAuth } from '@/context/AuthContext'
 import { forgotPasswordSchema } from '@/utils/validation'
 import { AlertCircle, ArrowLeft, Mail } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const { t } = useTranslation()
+  const { forgotPassword } = useAuth()
+  const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
@@ -31,9 +33,9 @@ export default function ForgotPasswordPage() {
     setIsLoading(true)
 
     try {
-      await api.forgotPassword(email)
+      await forgotPassword(email)
       setIsSuccess(true)
-    } catch (err: any) {
+    } catch {
       // Don't reveal if email exists or not for security
       // Show success regardless to prevent email enumeration
       setIsSuccess(true)
@@ -57,6 +59,13 @@ export default function ForgotPasswordPage() {
           </CardHeader>
           <CardContent className="text-center text-sm text-muted-foreground space-y-4">
             <p>{t('auth.resetEmailInstructions')}</p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email)}`)}
+            >
+              {t('auth.goToResetPassword')}
+            </Button>
             <p className="text-xs">
               {t('auth.didntReceiveEmail')}{' '}
               <button

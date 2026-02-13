@@ -24,7 +24,7 @@ const logger = createLogger('SubscriptionRequired')
 export default function SubscriptionRequired() {
   const { t } = useTranslation()
   const { plans, getCurrentPlan, canAccess, isLoading } = useSubscription()
-  const { logout } = useAuth()
+  const { signOut } = useAuth()
   const currentPlan = getCurrentPlan()
   const isSinglePlan = plans.length === 1
   const [isRedirecting, setIsRedirecting] = useState(false)
@@ -76,7 +76,7 @@ export default function SubscriptionRequired() {
             <span className="text-sm font-medium">{t('settings.payment.subscriptionRequired.title')}</span>
           </div>
           <button
-            onClick={logout}
+            onClick={signOut}
             className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900"
           >
             <LogOut className="h-4 w-4" />

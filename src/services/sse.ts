@@ -7,7 +7,7 @@ import type {
   MachineStatusEvent,
   AlarmUpdateEvent,
 } from '@/types/api';
-import { api } from '@/services/api';
+import { getAccessToken } from '@/services/apiClient';
 import { getApiBaseUrl } from '@/utils/apiBaseUrl';
 import { t } from '@/utils/i18n';
 import { createLogger } from '@/utils/logger';
@@ -643,7 +643,7 @@ class SSEService {
     purpose: StreamPurpose,
     ttlSeconds = DEFAULT_TICKET_TTL_SECONDS
   ): Promise<{ ticket: string; expiresInSeconds?: number }> {
-    const token = api.getToken();
+    const token = await getAccessToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
